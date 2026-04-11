@@ -1,0 +1,8 @@
+{
+  "buildCommand": "flutter build web --release --dart-define=API_BASE_URL=$API_BASE_URL",
+  "outputDirectory": "build/web",
+  "framework": null,
+  "rewrites": [
+    { "source": "/(.*)", "destination": "/index.html" }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+    "name": "KOW Admin",
+    "short_name": "KOW Admin",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#FFFFFF",
+    "theme_color": "#6A1B9A",
+    "description": "Karunungan on Wheels Admin Panel",
+    "orientation": "any",
+    "prefer_related_applications": false,
+    "icons": []
+}

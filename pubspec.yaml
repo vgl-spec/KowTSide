@@ -1,0 +1,42 @@
+name: kow_admin_web
+description: Karunungan on Wheels — Admin Panel (Flutter Web)
+
+publish_to: 'none'
+version: 1.0.0+1
+
+environment:
+  sdk: ^3.10.7
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_web_plugins:
+    sdk: flutter
+
+  # State management
+  flutter_riverpod: ^2.5.1
+
+  # HTTP client
+  dio: ^5.4.3+1
+
+  # WebSocket
+  web_socket_channel: ^2.4.5
+
+  # Routing
+  go_router: ^13.2.4
+
+  # Local storage (JWT token — web-safe)
+  shared_preferences: ^2.2.3
+
+  # Date formatting
+  intl: ^0.19.0
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^6.0.0
+
+flutter:
+  uses-material-design: true
+  assets:
+    - assets/images/
