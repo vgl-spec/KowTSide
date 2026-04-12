@@ -238,7 +238,7 @@ class _SyncLogsScreenState extends State<SyncLogsScreen> {
                     ),
                     decoration: BoxDecoration(
                       color: AppTheme.surfaceLow,
-                      borderRadius: const BorderRadius.only(
+                      borderRadius: BorderRadius.only(
                         bottomLeft: Radius.circular(14),
                         bottomRight: Radius.circular(14),
                       ),
@@ -252,9 +252,9 @@ class _SyncLogsScreenState extends State<SyncLogsScreen> {
                             style: Theme.of(context).textTheme.bodySmall,
                           ),
                         ),
-                        Wrap(
+                        const Wrap(
                           spacing: 4,
-                          children: const [
+                          children: [
                             _PaginationButton('1', active: true),
                             _PaginationButton('2'),
                             _PaginationButton('3'),
@@ -457,7 +457,7 @@ class _SyncLogsScreenState extends State<SyncLogsScreen> {
                                 ),
                                 child: SelectableText(
                                   log.errorPayload!,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontFamily: 'monospace',
                                     fontSize: 11,
                                     color: AppTheme.textMediumEmphasis,
@@ -585,7 +585,7 @@ class _SyncLogsScreenState extends State<SyncLogsScreen> {
                     ),
                     child: SelectableText(
                       log.errorPayload!,
-                      style: const TextStyle(
+                      style: TextStyle(
                         fontFamily: 'monospace',
                         fontSize: 11,
                         color: AppTheme.textMediumEmphasis,
@@ -888,7 +888,9 @@ class _PaginationButton extends StatelessWidget {
         text,
         style: TextStyle(
           fontWeight: FontWeight.w700,
-          color: active ? const Color(0xFF47007B) : AppTheme.textMediumEmphasis,
+          color: active
+              ? Theme.of(context).colorScheme.onPrimary
+              : AppTheme.textMediumEmphasis,
         ),
       ),
     );

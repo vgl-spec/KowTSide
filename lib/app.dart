@@ -15,14 +15,37 @@ import 'screens/sync_logs_screen.dart';
 import 'screens/system_health_screen.dart';
 import 'widgets/app_shell.dart';
 import 'core/theme.dart';
+import 'providers/theme_provider.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 final _shellKey = GlobalKey<NavigatorState>();
 
-GoRouter _buildRouter(AuthState auth) => GoRouter(
+class KowAdminApp extends ConsumerStatefulWidget {
+  const KowAdminApp({super.key});
+
+  @override
+  ConsumerState<KowAdminApp> createState() => _KowAdminAppState();
+}
+
+class _KowAdminAppState extends ConsumerState<KowAdminApp> {
+  late final GoRouter _router;
+
+  @override
+  void initState() {
+    super.initState();
+    _router = _buildRouter();
+  }
+
+  NoTransitionPage<void> _page(GoRouterState state, Widget child) {
+    return NoTransitionPage<void>(key: state.pageKey, child: child);
+  }
+
+  GoRouter _buildRouter() {
+    return GoRouter(
       navigatorKey: _rootKey,
       initialLocation: '/dashboard',
       redirect: (context, state) {
+        final auth = ref.read(authProvider);
         if (auth.isLoading) return null;
         final isLoggedIn = auth.isAuthenticated;
         final isLoginRoute = state.matchedLocation == '/login';
@@ -33,77 +56,91 @@ GoRouter _buildRouter(AuthState auth) => GoRouter(
       routes: [
         GoRoute(
           path: '/login',
-          builder: (_, _) => const LoginScreen(),
+          pageBuilder: (context, state) => _page(state, const LoginScreen()),
         ),
         ShellRoute(
           navigatorKey: _shellKey,
-          builder: (context, state, child) => AppShell(
-            currentRoute: state.matchedLocation,
-            child: child,
+          pageBuilder: (context, state, child) => _page(
+            state,
+            AppShell(currentRoute: state.matchedLocation, child: child),
           ),
           routes: [
             GoRoute(
               path: '/dashboard',
-              builder: (_, _) => const DashboardScreen(),
+              pageBuilder: (context, state) =>
+                  _page(state, const DashboardScreen()),
             ),
             GoRoute(
               path: '/students',
-              builder: (_, _) => const StudentsScreen(),
+              pageBuilder: (context, state) =>
+                  _page(state, const StudentsScreen()),
               routes: [
                 GoRoute(
                   path: ':id',
-                  builder: (_, state) => StudentDetailScreen(
-                    studId: int.parse(state.pathParameters['id']!),
-                  ),
+                  pageBuilder: (context, state) {
+                    final studId = int.parse(state.pathParameters['id']!);
+                    return _page(state, StudentDetailScreen(studId: studId));
+                  },
                 ),
               ],
             ),
             GoRoute(
               path: '/questions',
-              builder: (_, _) => const QuestionsScreen(),
+              pageBuilder: (context, state) =>
+                  _page(state, const QuestionsScreen()),
             ),
             GoRoute(
               path: '/devices',
-              builder: (_, _) => const DevicesScreen(),
+              pageBuilder: (context, state) =>
+                  _page(state, const DevicesScreen()),
             ),
             GoRoute(
               path: '/reports',
-              builder: (_, _) => const ReportsScreen(),
+              pageBuilder: (context, state) =>
+                  _page(state, const ReportsScreen()),
             ),
             GoRoute(
               path: '/content-versions',
-              builder: (_, _) => const ContentVersionsScreen(),
+              pageBuilder: (context, state) =>
+                  _page(state, const ContentVersionsScreen()),
             ),
             GoRoute(
               path: '/audit-log',
-              builder: (_, _) => const AuditLogScreen(),
+              pageBuilder: (context, state) =>
+                  _page(state, const AuditLogScreen()),
             ),
             GoRoute(
               path: '/sync-logs',
-              builder: (_, _) => const SyncLogsScreen(),
+              pageBuilder: (context, state) =>
+                  _page(state, const SyncLogsScreen()),
             ),
             GoRoute(
               path: '/system-health',
-              builder: (_, _) => const SystemHealthScreen(),
+              pageBuilder: (context, state) =>
+                  _page(state, const SystemHealthScreen()),
             ),
           ],
         ),
       ],
     );
-
-class KowAdminApp extends ConsumerWidget {
-  const KowAdminApp({super.key});
+  }
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
-    final auth = ref.watch(authProvider);
-    final router = _buildRouter(auth);
+  Widget build(BuildContext context) {
+    final themeMode = ref.watch(themeModeProvider);
+    ref.listen<AuthState>(authProvider, (previous, next) => _router.refresh());
+
+    AppTheme.setThemeMode(themeMode);
 
     return MaterialApp.router(
       title: 'KOW Admin',
       debugShowCheckedModeBanner: false,
-      theme: AppTheme.darkTheme,
-      routerConfig: router,
+      theme: AppTheme.lightTheme,
+      darkTheme: AppTheme.darkTheme,
+      themeMode: themeMode,
+      themeAnimationDuration: Duration.zero,
+      themeAnimationCurve: Curves.linear,
+      routerConfig: _router,
     );
   }
 }

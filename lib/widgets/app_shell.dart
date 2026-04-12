@@ -3,10 +3,12 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
 import '../providers/auth_provider.dart';
+import '../providers/theme_provider.dart';
+import 'page_skeletons.dart';
 
 /// Persistent navigation shell with a side drawer on wide screens
 /// and a bottom nav on narrow screens.
-class AppShell extends ConsumerWidget {
+class AppShell extends ConsumerStatefulWidget {
   final Widget child;
   final String currentRoute;
 
@@ -70,8 +72,30 @@ class AppShell extends ConsumerWidget {
   ];
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<AppShell> createState() => _AppShellState();
+}
+
+class _AppShellState extends ConsumerState<AppShell> {
+  bool _isRouteSwitching = false;
+  String? _pendingRoute;
+
+  @override
+  void didUpdateWidget(covariant AppShell oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_isRouteSwitching && widget.currentRoute != oldWidget.currentRoute) {
+      setState(() {
+        _isRouteSwitching = false;
+        _pendingRoute = null;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final auth = ref.watch(authProvider);
+    final themeMode = ref.watch(themeModeProvider);
+    final isDarkTheme = themeMode == ThemeMode.dark;
+    final scheme = Theme.of(context).colorScheme;
     final width = MediaQuery.of(context).size.width;
     final isWide = width >= 900;
     final showLabels = width >= 1220;
@@ -85,9 +109,7 @@ class AppShell extends ConsumerWidget {
               decoration: BoxDecoration(
                 color: AppTheme.backgroundPrimary,
                 border: Border(
-                  right: BorderSide(
-                    color: AppTheme.textLowEmphasis.withOpacity(0.3),
-                  ),
+                  right: BorderSide(color: scheme.outline.withOpacity(0.3)),
                 ),
               ),
               child: SafeArea(
@@ -145,15 +167,17 @@ class AppShell extends ConsumerWidget {
                     Expanded(
                       child: ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        itemCount: _navItems.length,
+                        itemCount: AppShell._navItems.length,
                         itemBuilder: (context, index) {
-                          final item = _navItems[index];
-                          final selected = currentRoute.startsWith(item.route);
+                          final item = AppShell._navItems[index];
+                          final selected = widget.currentRoute.startsWith(
+                            item.route,
+                          );
                           return _DrawerMenuTile(
                             item: item,
                             selected: selected,
                             showLabel: showLabels,
-                            onPressed: () => context.go(item.route),
+                            onPressed: () => _navigateTo(item.route),
                           );
                         },
                       ),
@@ -176,6 +200,19 @@ class AppShell extends ConsumerWidget {
                             ),
                           Row(
                             children: [
+                              IconButton(
+                                tooltip: isDarkTheme
+                                    ? 'Switch to light theme'
+                                    : 'Switch to dark theme',
+                                icon: Icon(
+                                  isDarkTheme
+                                      ? Icons.light_mode_outlined
+                                      : Icons.dark_mode_outlined,
+                                ),
+                                onPressed: () => ref
+                                    .read(themeModeProvider.notifier)
+                                    .toggleThemeMode(),
+                              ),
                               IconButton(
                                 tooltip: 'Settings',
                                 icon: const Icon(Icons.settings_outlined),
@@ -215,7 +252,7 @@ class AppShell extends ConsumerWidget {
                           color: AppTheme.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: AppTheme.textLowEmphasis.withOpacity(0.28),
+                            color: scheme.outline.withOpacity(0.28),
                           ),
                         ),
                         child: showLabels
@@ -275,7 +312,22 @@ class AppShell extends ConsumerWidget {
                 ),
               ),
             ),
-            Expanded(child: child),
+            Expanded(
+              child: Stack(
+                children: [
+                  Positioned.fill(child: widget.child),
+                  if (_isRouteSwitching)
+                    Positioned.fill(
+                      child: ColoredBox(
+                        color: Theme.of(context).scaffoldBackgroundColor,
+                        child: _buildRouteSkeleton(
+                          _pendingRoute ?? widget.currentRoute,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ],
         ),
       );
@@ -283,10 +335,30 @@ class AppShell extends ConsumerWidget {
 
     // Narrow: bottom nav
     return Scaffold(
-      body: child,
+      body: Stack(
+        children: [
+          Positioned.fill(child: widget.child),
+          if (_isRouteSwitching)
+            Positioned.fill(
+              child: ColoredBox(
+                color: Theme.of(context).scaffoldBackgroundColor,
+                child: _buildRouteSkeleton(
+                  _pendingRoute ?? widget.currentRoute,
+                ),
+              ),
+            ),
+        ],
+      ),
+      floatingActionButton: FloatingActionButton.small(
+        heroTag: 'theme-toggle-fab',
+        onPressed: () => ref.read(themeModeProvider.notifier).toggleThemeMode(),
+        child: Icon(
+          isDarkTheme ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
+        ),
+      ),
       bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex(currentRoute),
-        destinations: _navItems
+        selectedIndex: _selectedIndex(widget.currentRoute),
+        destinations: AppShell._navItems
             .map(
               (n) => NavigationDestination(
                 icon: Icon(n.icon),
@@ -295,7 +367,7 @@ class AppShell extends ConsumerWidget {
               ),
             )
             .toList(),
-        onDestinationSelected: (i) => context.go(_navItems[i].route),
+        onDestinationSelected: (i) => _navigateTo(AppShell._navItems[i].route),
       ),
     );
   }
@@ -314,10 +386,48 @@ class AppShell extends ConsumerWidget {
   }
 
   int _selectedIndex(String route) {
-    for (var i = 0; i < _navItems.length; i++) {
-      if (route.startsWith(_navItems[i].route)) return i;
+    for (var i = 0; i < AppShell._navItems.length; i++) {
+      if (route.startsWith(AppShell._navItems[i].route)) return i;
     }
     return 0;
+  }
+
+  void _navigateTo(String route) {
+    if (widget.currentRoute == route) {
+      return;
+    }
+
+    setState(() {
+      _isRouteSwitching = true;
+      _pendingRoute = route;
+    });
+
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      context.go(route);
+    });
+  }
+
+  Widget _buildRouteSkeleton(String route) {
+    if (route.startsWith('/dashboard')) {
+      return const DashboardLoadingSkeleton();
+    }
+    if (route.startsWith('/students/')) {
+      return const StudentDetailLoadingSkeleton();
+    }
+    if (route.startsWith('/students')) {
+      return const StudentsLoadingSkeleton();
+    }
+    if (route.startsWith('/questions')) {
+      return const QuestionsLoadingSkeleton();
+    }
+    if (route.startsWith('/devices')) {
+      return const DevicesLoadingSkeleton();
+    }
+
+    return const StandardPageLoadingSkeleton();
   }
 
   void _confirmLogout(BuildContext context, WidgetRef ref) {
@@ -373,8 +483,10 @@ class _DrawerMenuTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final selectedColor = AppTheme.primary;
-    final textColor = selected ? selectedColor : AppTheme.textMediumEmphasis;
+    const selectedColor = AppTheme.primary;
+    final textColor = selected
+        ? selectedColor
+        : Theme.of(context).colorScheme.onSurfaceVariant;
 
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: 4),

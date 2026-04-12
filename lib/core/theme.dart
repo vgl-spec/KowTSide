@@ -1,103 +1,182 @@
 ﻿import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+
+import 'app_colors.dart';
 
 class AppTheme {
-  // Brand Colors
-  static const Color primary = Color(0xFFCD96FF);
-  static const Color accent = Color(0xFF6DFC74);
-  static const Color tertiary = Color(0xFFFF7439);
-  static const Color glow = Color(0x4DCD96FF);
+  AppTheme._();
 
-  // Background Colors
-  static const Color backgroundPrimary = Color(0xFF0C0C1F);
-  static const Color surfaceLow = Color(0xFF111127);
-  static const Color surface = Color(0xFF17172F);
-  static const Color surfaceHigh = Color(0xFF23233F);
+  static ThemeMode _activeThemeMode = ThemeMode.light;
 
-  // Semantic Colors
-  static const Color success = Color(0xFF6DFC74);
-  static const Color warning = Color(0xFFFFB74D);
-  static const Color error = Color(0xFFFF6E84);
-  static const Color info = Color(0xFF4FC3F7);
+  // Brand colors
+  static const Color primary = AppColors.primary;
+  static const Color accent = AppColors.success;
+  static const Color tertiary = AppColors.tertiary;
 
-  // Text Colors
-  static const Color textHighEmphasis = Color(0xFFE5E3FF);
-  static const Color textMediumEmphasis = Color(0xFFAAA8C3);
-  static const Color textLowEmphasis = Color(0xFF46465C);
+  // Semantic colors
+  static const Color success = AppColors.success;
+  static const Color warning = AppColors.warning;
+  static const Color error = AppColors.error;
+  static const Color info = AppColors.info;
 
-  static ThemeData get darkTheme {
-    return ThemeData(
-      brightness: Brightness.dark,
-      fontFamily: 'Inter',
+  static Color get glow => primary.withOpacity(0.25);
+
+  // Surface and text tokens resolve dynamically for the current mode.
+  static Color get backgroundPrimary => _activeThemeMode == ThemeMode.dark
+      ? AppColors.darkBackground
+      : AppColors.lightBackground;
+  static Color get surfaceLow => _activeThemeMode == ThemeMode.dark
+      ? AppColors.darkSurfaceLow
+      : AppColors.lightSurfaceLow;
+  static Color get surface => _activeThemeMode == ThemeMode.dark
+      ? AppColors.darkSurface
+      : AppColors.lightSurface;
+  static Color get surfaceHigh => _activeThemeMode == ThemeMode.dark
+      ? AppColors.darkSurfaceHigh
+      : AppColors.lightSurfaceHigh;
+
+  static Color get textHighEmphasis => _activeThemeMode == ThemeMode.dark
+      ? AppColors.darkTextHigh
+      : AppColors.lightTextHigh;
+  static Color get textMediumEmphasis => _activeThemeMode == ThemeMode.dark
+      ? AppColors.darkTextMedium
+      : AppColors.lightTextMedium;
+  static Color get textLowEmphasis => _activeThemeMode == ThemeMode.dark
+      ? AppColors.darkTextLow
+      : AppColors.lightTextLow;
+
+  static void setThemeMode(ThemeMode mode) {
+    _activeThemeMode = mode;
+  }
+
+  static ThemeData get lightTheme => _buildTheme(isDark: false);
+  static ThemeData get darkTheme => _buildTheme(isDark: true);
+
+  static ThemeData _buildTheme({required bool isDark}) {
+    final scheme = ColorScheme(
+      brightness: isDark ? Brightness.dark : Brightness.light,
+      primary: primary,
+      onPrimary: isDark ? const Color(0xFF130022) : Colors.white,
+      primaryContainer: isDark
+          ? const Color(0xFF57207B)
+          : const Color(0xFFECDCF9),
+      onPrimaryContainer: isDark
+          ? const Color(0xFFF2E1FF)
+          : const Color(0xFF2B0A44),
+      secondary: AppColors.secondary,
+      onSecondary: Colors.white,
+      secondaryContainer: isDark
+          ? const Color(0xFF2A2A47)
+          : const Color(0xFFE6E8F3),
+      onSecondaryContainer: isDark
+          ? const Color(0xFFE6E8F6)
+          : const Color(0xFF121326),
+      tertiary: tertiary,
+      onTertiary: Colors.white,
+      tertiaryContainer: isDark
+          ? const Color(0xFF5A3910)
+          : const Color(0xFFFFE4C8),
+      onTertiaryContainer: isDark
+          ? const Color(0xFFFFDFC0)
+          : const Color(0xFF3E2300),
+      error: error,
+      onError: Colors.white,
+      errorContainer: isDark
+          ? const Color(0xFF7A1A39)
+          : const Color(0xFFFFD7E1),
+      onErrorContainer: isDark
+          ? const Color(0xFFFFD9E1)
+          : const Color(0xFF3D0013),
+      surface: isDark ? AppColors.darkSurface : AppColors.lightSurface,
+      onSurface: isDark ? AppColors.darkTextHigh : AppColors.lightTextHigh,
+      onSurfaceVariant: isDark
+          ? AppColors.darkTextMedium
+          : AppColors.lightTextMedium,
+      outline: isDark ? AppColors.darkOutline : AppColors.lightOutline,
+      outlineVariant: isDark
+          ? const Color(0xFF373751)
+          : const Color(0xFFE2E5EE),
+      shadow: Colors.black.withOpacity(isDark ? 0.34 : 0.08),
+      scrim: Colors.black.withOpacity(0.45),
+      inverseSurface: isDark ? AppColors.lightSurface : AppColors.secondary,
+      onInverseSurface: isDark ? AppColors.secondary : AppColors.lightSurface,
+      inversePrimary: isDark
+          ? const Color(0xFFD8B3F7)
+          : const Color(0xFF9B57D0),
+      surfaceTint: primary,
+    );
+
+    final base = ThemeData(
       useMaterial3: true,
-      scaffoldBackgroundColor: backgroundPrimary,
-      colorScheme: const ColorScheme.dark(
-        primary: primary,
-        secondary: accent,
-        tertiary: tertiary,
-        surface: surface,
-        error: error,
-        onPrimary: Color(0xFF47007B),
-        onSecondary: Color(0xFF005E17),
-        onSurface: textHighEmphasis,
-        onError: Color(0xFF490013),
+      brightness: isDark ? Brightness.dark : Brightness.light,
+      colorScheme: scheme,
+      scaffoldBackgroundColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.lightBackground,
+      canvasColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.lightBackground,
+      fontFamily: 'Inter',
+    );
+
+    final textTheme = GoogleFonts.interTextTheme(base.textTheme).copyWith(
+      displayLarge: TextStyle(
+        fontSize: 36,
+        fontWeight: FontWeight.w900,
+        letterSpacing: -1.2,
+        color: scheme.onSurface,
       ),
-      textTheme: const TextTheme(
-        displayLarge: TextStyle(
-          fontSize: 36,
-          fontWeight: FontWeight.w900,
-          letterSpacing: -1.5,
-          color: textHighEmphasis,
-        ),
-        headlineSmall: TextStyle(
-          fontSize: 24,
-          fontWeight: FontWeight.w800,
-          letterSpacing: -0.4,
-          color: textHighEmphasis,
-        ),
-        titleLarge: TextStyle(
-          fontSize: 20,
-          fontWeight: FontWeight.w700,
-          color: textHighEmphasis,
-        ),
-        titleMedium: TextStyle(
-          fontSize: 15,
-          fontWeight: FontWeight.w700,
-          color: textHighEmphasis,
-        ),
-        bodyMedium: TextStyle(
-          fontSize: 14,
-          fontWeight: FontWeight.w500,
-          height: 1.5,
-          color: textHighEmphasis,
-        ),
-        bodySmall: TextStyle(
-          fontSize: 12,
-          fontWeight: FontWeight.w500,
-          color: textMediumEmphasis,
-        ),
-        labelSmall: TextStyle(
-          fontSize: 12,
-          fontFamily: 'monospace',
-          color: textMediumEmphasis,
-        ), // Mono
+      headlineSmall: TextStyle(
+        fontSize: 24,
+        fontWeight: FontWeight.w800,
+        letterSpacing: -0.3,
+        color: scheme.onSurface,
       ),
-      appBarTheme: const AppBarTheme(
-        backgroundColor: backgroundPrimary,
+      titleLarge: TextStyle(
+        fontSize: 20,
+        fontWeight: FontWeight.w700,
+        color: scheme.onSurface,
+      ),
+      titleMedium: TextStyle(
+        fontSize: 15,
+        fontWeight: FontWeight.w700,
+        color: scheme.onSurface,
+      ),
+      bodyMedium: TextStyle(
+        fontSize: 14,
+        fontWeight: FontWeight.w500,
+        height: 1.45,
+        color: scheme.onSurface,
+      ),
+      bodySmall: TextStyle(
+        fontSize: 12,
+        fontWeight: FontWeight.w500,
+        color: scheme.onSurfaceVariant,
+      ),
+      labelSmall: TextStyle(
+        fontSize: 12,
+        fontFamily: 'monospace',
+        color: scheme.onSurfaceVariant,
+      ),
+    );
+
+    return base.copyWith(
+      textTheme: textTheme,
+      appBarTheme: AppBarTheme(
+        backgroundColor: isDark
+            ? AppColors.darkBackground
+            : AppColors.lightBackground,
         elevation: 0,
         scrolledUnderElevation: 0,
         centerTitle: false,
-        titleTextStyle: TextStyle(
-          color: textHighEmphasis,
-          fontSize: 18,
-          fontWeight: FontWeight.w700,
-        ),
+        titleTextStyle: textTheme.titleLarge,
       ),
       cardTheme: CardThemeData(
         color: surfaceHigh,
         elevation: 0,
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(14),
-          side: const BorderSide(color: Color(0x3346465C), width: 1),
+          side: BorderSide(color: scheme.outline.withOpacity(0.32), width: 1),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
@@ -106,39 +185,39 @@ class AppTheme {
         isDense: true,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0x6646465C)),
+          borderSide: BorderSide(color: scheme.outline.withOpacity(0.55)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0x6646465C)),
+          borderSide: BorderSide(color: scheme.outline.withOpacity(0.55)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: primary, width: 2),
+          borderSide: const BorderSide(color: primary, width: 1.8),
         ),
         errorBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
           borderSide: const BorderSide(color: error),
         ),
-        labelStyle: const TextStyle(color: textMediumEmphasis),
-        hintStyle: const TextStyle(color: textLowEmphasis),
+        labelStyle: TextStyle(color: scheme.onSurfaceVariant),
+        hintStyle: TextStyle(color: textLowEmphasis),
       ),
       elevatedButtonTheme: ElevatedButtonThemeData(
         style: ElevatedButton.styleFrom(
           backgroundColor: primary,
-          foregroundColor: const Color(0xFF47007B),
+          foregroundColor: scheme.onPrimary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
           padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
           shadowColor: glow,
-          elevation: 2,
+          elevation: 1,
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: primary,
-          foregroundColor: const Color(0xFF47007B),
+          foregroundColor: scheme.onPrimary,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(10),
           ),
@@ -146,10 +225,10 @@ class AppTheme {
       ),
       chipTheme: ChipThemeData(
         backgroundColor: surfaceLow,
-        selectedColor: primary.withOpacity(0.2),
-        side: const BorderSide(color: Color(0x6646465C)),
+        selectedColor: primary.withOpacity(0.16),
+        side: BorderSide(color: scheme.outline.withOpacity(0.4)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        labelStyle: const TextStyle(color: textHighEmphasis, fontSize: 12),
+        labelStyle: TextStyle(color: scheme.onSurface, fontSize: 12),
       ),
       dataTableTheme: DataTableThemeData(
         headingRowColor: WidgetStateProperty.all(surfaceLow),
@@ -159,47 +238,60 @@ class AppTheme {
           }
           return surfaceHigh;
         }),
-        headingTextStyle: const TextStyle(
-          color: textMediumEmphasis,
+        headingTextStyle: TextStyle(
+          color: scheme.onSurfaceVariant,
           fontSize: 11,
           fontWeight: FontWeight.w700,
           letterSpacing: 0.5,
         ),
-        dataTextStyle: const TextStyle(color: textHighEmphasis, fontSize: 13),
+        dataTextStyle: TextStyle(color: scheme.onSurface, fontSize: 13),
         dividerThickness: 0.4,
       ),
-      navigationRailTheme: const NavigationRailThemeData(
-        backgroundColor: backgroundPrimary,
-        selectedIconTheme: IconThemeData(color: primary),
-        unselectedIconTheme: IconThemeData(color: textMediumEmphasis),
-        selectedLabelTextStyle: TextStyle(
+      navigationRailTheme: NavigationRailThemeData(
+        backgroundColor: isDark
+            ? AppColors.darkBackground
+            : AppColors.lightBackground,
+        selectedIconTheme: const IconThemeData(color: primary),
+        unselectedIconTheme: IconThemeData(color: scheme.onSurfaceVariant),
+        selectedLabelTextStyle: const TextStyle(
           color: primary,
           fontWeight: FontWeight.bold,
         ),
-        unselectedLabelTextStyle: TextStyle(color: textMediumEmphasis),
+        unselectedLabelTextStyle: TextStyle(color: scheme.onSurfaceVariant),
       ),
       navigationBarTheme: NavigationBarThemeData(
         backgroundColor: surface,
-        indicatorColor: primary.withOpacity(0.2),
+        indicatorColor: primary.withOpacity(0.16),
         iconTheme: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected))
-            return const IconThemeData(color: accent);
-          return const IconThemeData(color: textLowEmphasis);
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: primary);
+          }
+          return IconThemeData(color: scheme.onSurfaceVariant);
         }),
         labelTextStyle: WidgetStateProperty.resolveWith((states) {
-          if (states.contains(WidgetState.selected))
+          if (states.contains(WidgetState.selected)) {
             return const TextStyle(
-              color: accent,
+              color: primary,
               fontWeight: FontWeight.bold,
               fontSize: 12,
             );
-          return const TextStyle(color: textMediumEmphasis, fontSize: 12);
+          }
+          return TextStyle(color: scheme.onSurfaceVariant, fontSize: 12);
         }),
       ),
-      dividerTheme: const DividerThemeData(
-        color: Color(0x6646465C),
+      dividerTheme: DividerThemeData(
+        color: scheme.outline.withOpacity(0.35),
         thickness: 1,
         space: 1,
+      ),
+      snackBarTheme: SnackBarThemeData(
+        backgroundColor: isDark
+            ? AppColors.darkSurfaceHigh
+            : AppColors.secondary,
+        contentTextStyle: TextStyle(
+          color: isDark ? AppColors.darkTextHigh : Colors.white,
+          fontWeight: FontWeight.w500,
+        ),
       ),
     );
   }

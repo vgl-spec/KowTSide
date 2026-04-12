@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme.dart';
 import '../providers/devices_provider.dart';
+import '../widgets/page_skeletons.dart';
 
 class DevicesScreen extends ConsumerWidget {
   const DevicesScreen({super.key});
@@ -12,7 +13,7 @@ class DevicesScreen extends ConsumerWidget {
 
     return SafeArea(
       child: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const DevicesLoadingSkeleton(),
         error: (error, _) => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
@@ -148,24 +149,26 @@ class DevicesScreen extends ConsumerWidget {
                                         ),
                                         DataCell(
                                           synced
-                                              ? const Chip(
-                                                  label: Text('Synced'),
-                                                  backgroundColor: Color(
-                                                    0xFFE8F5E9,
-                                                  ),
-                                                  labelStyle: TextStyle(
-                                                    color: Colors.green,
+                                              ? Chip(
+                                                  label: const Text('Synced'),
+                                                  backgroundColor: AppTheme
+                                                      .success
+                                                      .withOpacity(0.15),
+                                                  labelStyle: const TextStyle(
+                                                    color: AppTheme.success,
                                                     fontSize: 12,
                                                   ),
                                                   padding: EdgeInsets.zero,
                                                 )
-                                              : const Chip(
-                                                  label: Text('Never synced'),
-                                                  backgroundColor: Color(
-                                                    0xFFFFF3E0,
+                                              : Chip(
+                                                  label: const Text(
+                                                    'Never synced',
                                                   ),
-                                                  labelStyle: TextStyle(
-                                                    color: Colors.orange,
+                                                  backgroundColor: AppTheme
+                                                      .warning
+                                                      .withOpacity(0.16),
+                                                  labelStyle: const TextStyle(
+                                                    color: AppTheme.warning,
                                                     fontSize: 12,
                                                   ),
                                                   padding: EdgeInsets.zero,

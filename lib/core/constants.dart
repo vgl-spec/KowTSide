@@ -7,9 +7,11 @@ class ApiConstants {
   );
 
   static final bool frontendOnly =
-      const String.fromEnvironment('FRONTEND_ONLY', defaultValue: 'false')
-              .toLowerCase() ==
-          'true';
+      const String.fromEnvironment(
+        'FRONTEND_ONLY',
+        defaultValue: 'false',
+      ).toLowerCase() ==
+      'true';
 
   // Auth
   static String get adminLogin => '$baseUrl/api/auth/admin/login';
@@ -35,4 +37,5 @@ class AppConstants {
   static const String usernameKey = 'kow_admin_username';
   static const String roleKey = 'kow_admin_role';
   static const String adminIdKey = 'kow_admin_id';
+  static const String themeModeKey = 'kow_admin_theme_mode';
 }

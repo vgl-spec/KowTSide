@@ -4,6 +4,7 @@ import '../core/theme.dart';
 import '../core/websocket_service.dart';
 import '../providers/auth_provider.dart';
 import '../providers/dashboard_provider.dart';
+import '../widgets/page_skeletons.dart';
 
 class DashboardScreen extends ConsumerStatefulWidget {
   const DashboardScreen({super.key});
@@ -57,7 +58,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
 
     return SafeArea(
       child: dashboardAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const DashboardLoadingSkeleton(),
         error: (error, _) => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,

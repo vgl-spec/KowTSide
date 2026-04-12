@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+import '../core/theme.dart';
 import '../providers/students_provider.dart';
 import '../models/student.dart';
+import '../widgets/page_skeletons.dart';
 
 class StudentDetailScreen extends ConsumerWidget {
   final int studId;
@@ -22,12 +25,12 @@ class StudentDetailScreen extends ConsumerWidget {
         ],
       ),
       body: async.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const StudentDetailLoadingSkeleton(),
         error: (e, _) => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
+              const Icon(Icons.error_outline, size: 48, color: AppTheme.error),
               const SizedBox(height: 8),
               Text('$e'),
               const SizedBox(height: 16),
@@ -69,13 +72,12 @@ class _DetailBody extends StatelessWidget {
                     radius: 36,
                     backgroundColor: theme.colorScheme.primaryContainer,
                     child: Text(
-                      s.nickname.isNotEmpty
-                          ? s.nickname[0].toUpperCase()
-                          : '?',
+                      s.nickname.isNotEmpty ? s.nickname[0].toUpperCase() : '?',
                       style: TextStyle(
-                          fontSize: 28,
-                          color: theme.colorScheme.onPrimaryContainer,
-                          fontWeight: FontWeight.bold),
+                        fontSize: 28,
+                        color: theme.colorScheme.onPrimaryContainer,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 20),
@@ -108,7 +110,8 @@ class _DetailBody extends StatelessWidget {
             child: detail.progress.isEmpty
                 ? const Padding(
                     padding: EdgeInsets.all(16),
-                    child: Text('No progress data yet.'))
+                    child: Text('No progress data yet.'),
+                  )
                 : SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
@@ -118,12 +121,18 @@ class _DetailBody extends StatelessWidget {
                         DataColumn(label: Text('Highest Level')),
                         DataColumn(label: Text('Time Played')),
                       ],
-                      rows: detail.progress.map((p) => DataRow(cells: [
-                            DataCell(Text(p.subject)),
-                            DataCell(Text(p.gradelvl)),
-                            DataCell(Text(p.diffLabel)),
-                            DataCell(Text(p.timeLabel)),
-                          ])).toList(),
+                      rows: detail.progress
+                          .map(
+                            (p) => DataRow(
+                              cells: [
+                                DataCell(Text(p.subject)),
+                                DataCell(Text(p.gradelvl)),
+                                DataCell(Text(p.diffLabel)),
+                                DataCell(Text(p.timeLabel)),
+                              ],
+                            ),
+                          )
+                          .toList(),
                     ),
                   ),
           ),
@@ -136,7 +145,8 @@ class _DetailBody extends StatelessWidget {
             child: detail.analytics.isEmpty
                 ? const Padding(
                     padding: EdgeInsets.all(16),
-                    child: Text('No analytics data yet.'))
+                    child: Text('No analytics data yet.'),
+                  )
                 : SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
@@ -148,16 +158,31 @@ class _DetailBody extends StatelessWidget {
                         DataColumn(label: Text('Highest')),
                         DataColumn(label: Text('Attempts')),
                       ],
-                      rows: detail.analytics.map((a) => DataRow(cells: [
-                            DataCell(Text(a.subject)),
-                            DataCell(Text(a.gradelvl)),
-                            DataCell(Text(a.lowestScore.toStringAsFixed(1))),
-                            DataCell(Text(a.averageScore.toStringAsFixed(2),
-                                style: const TextStyle(
-                                    fontWeight: FontWeight.bold))),
-                            DataCell(Text(a.highestScore.toStringAsFixed(1))),
-                            DataCell(Text('${a.totalAttempts}')),
-                          ])).toList(),
+                      rows: detail.analytics
+                          .map(
+                            (a) => DataRow(
+                              cells: [
+                                DataCell(Text(a.subject)),
+                                DataCell(Text(a.gradelvl)),
+                                DataCell(
+                                  Text(a.lowestScore.toStringAsFixed(1)),
+                                ),
+                                DataCell(
+                                  Text(
+                                    a.averageScore.toStringAsFixed(2),
+                                    style: const TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                                DataCell(
+                                  Text(a.highestScore.toStringAsFixed(1)),
+                                ),
+                                DataCell(Text('${a.totalAttempts}')),
+                              ],
+                            ),
+                          )
+                          .toList(),
                     ),
                   ),
           ),
@@ -170,7 +195,8 @@ class _DetailBody extends StatelessWidget {
             child: detail.recentScores.isEmpty
                 ? const Padding(
                     padding: EdgeInsets.all(16),
-                    child: Text('No score records yet.'))
+                    child: Text('No score records yet.'),
+                  )
                 : SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
@@ -181,29 +207,41 @@ class _DetailBody extends StatelessWidget {
                         DataColumn(label: Text('Result')),
                         DataColumn(label: Text('Played At')),
                       ],
-                      rows: detail.recentScores.map((sc) => DataRow(cells: [
-                            DataCell(Text(sc.subject)),
-                            DataCell(Text(sc.difficulty)),
-                            DataCell(Text(
-                                '${sc.score.toStringAsFixed(0)}/10')),
-                            DataCell(
-                              sc.passed
-                                  ? const Chip(
-                                      label: Text('Passed'),
-                                      backgroundColor: Color(0xFFE8F5E9),
-                                      labelStyle:
-                                          TextStyle(color: Colors.green),
-                                      padding: EdgeInsets.zero,
-                                    )
-                                  : const Chip(
-                                      label: Text('Failed'),
-                                      backgroundColor: Color(0xFFFFEBEE),
-                                      labelStyle: TextStyle(color: Colors.red),
-                                      padding: EdgeInsets.zero,
-                                    ),
+                      rows: detail.recentScores
+                          .map(
+                            (sc) => DataRow(
+                              cells: [
+                                DataCell(Text(sc.subject)),
+                                DataCell(Text(sc.difficulty)),
+                                DataCell(
+                                  Text('${sc.score.toStringAsFixed(0)}/10'),
+                                ),
+                                DataCell(
+                                  sc.passed
+                                      ? Chip(
+                                          label: const Text('Passed'),
+                                          backgroundColor: AppTheme.success
+                                              .withOpacity(0.16),
+                                          labelStyle: const TextStyle(
+                                            color: AppTheme.success,
+                                          ),
+                                          padding: EdgeInsets.zero,
+                                        )
+                                      : Chip(
+                                          label: const Text('Failed'),
+                                          backgroundColor: AppTheme.error
+                                              .withOpacity(0.16),
+                                          labelStyle: const TextStyle(
+                                            color: AppTheme.error,
+                                          ),
+                                          padding: EdgeInsets.zero,
+                                        ),
+                                ),
+                                DataCell(Text(sc.playedAt)),
+                              ],
                             ),
-                            DataCell(Text(sc.playedAt)),
-                          ])).toList(),
+                          )
+                          .toList(),
                     ),
                   ),
           ),
@@ -220,15 +258,19 @@ class _Info extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label,
-              style: TextStyle(
-                  fontSize: 11,
-                  color: Theme.of(context).colorScheme.onSurfaceVariant)),
-          Text(value,
-              style: const TextStyle(
-                  fontSize: 14, fontWeight: FontWeight.w600)),
-        ],
-      );
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Text(
+        label,
+        style: TextStyle(
+          fontSize: 11,
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+      Text(
+        value,
+        style: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+      ),
+    ],
+  );
 }

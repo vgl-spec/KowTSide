@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme.dart';
 import '../providers/questions_provider.dart';
 import '../models/question.dart';
+import '../widgets/page_skeletons.dart';
 
 class QuestionsScreen extends ConsumerWidget {
   const QuestionsScreen({super.key});
@@ -11,6 +12,10 @@ class QuestionsScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final filter = ref.watch(questionFilterProvider);
     final async = ref.watch(questionsProvider);
+
+    if (async.isLoading) {
+      return const SafeArea(child: QuestionsLoadingSkeleton());
+    }
 
     return SafeArea(
       child: Column(
@@ -100,8 +105,7 @@ class QuestionsScreen extends ConsumerWidget {
               padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
               child: Card(
                 child: async.when(
-                  loading: () =>
-                      const Center(child: CircularProgressIndicator()),
+                  loading: () => const SizedBox.shrink(),
                   error: (error, _) => Center(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -271,7 +275,7 @@ class QuestionsScreen extends ConsumerWidget {
             child: const Text('Cancel'),
           ),
           FilledButton(
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
             onPressed: () async {
               Navigator.pop(context);
               await ref
@@ -325,16 +329,19 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => active
-      ? const Chip(
-          label: Text('Active'),
-          backgroundColor: Color(0xFFE8F5E9),
-          labelStyle: TextStyle(color: Colors.green, fontSize: 12),
+      ? Chip(
+          label: const Text('Active'),
+          backgroundColor: AppTheme.success.withOpacity(0.16),
+          labelStyle: const TextStyle(color: AppTheme.success, fontSize: 12),
           padding: EdgeInsets.zero,
         )
-      : const Chip(
-          label: Text('Inactive'),
-          backgroundColor: Color(0xFFEEEEEE),
-          labelStyle: TextStyle(color: Colors.grey, fontSize: 12),
+      : Chip(
+          label: const Text('Inactive'),
+          backgroundColor: AppTheme.surfaceHigh,
+          labelStyle: TextStyle(
+            color: AppTheme.textMediumEmphasis,
+            fontSize: 12,
+          ),
           padding: EdgeInsets.zero,
         );
 }
@@ -432,7 +439,7 @@ class _QuestionFormDialogState extends State<QuestionFormDialog> {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Failed to save question.'),
-          backgroundColor: Colors.red,
+          backgroundColor: AppTheme.error,
         ),
       );
     }

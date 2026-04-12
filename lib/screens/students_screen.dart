@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
 import '../models/student.dart';
 import '../providers/students_provider.dart';
+import '../widgets/page_skeletons.dart';
 
 Color _proficiencyColor(String proficiency) {
   switch (proficiency) {
@@ -27,7 +28,7 @@ class StudentsScreen extends ConsumerWidget {
 
     return SafeArea(
       child: studentsAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
+        loading: () => const StudentsLoadingSkeleton(),
         error: (error, _) => Center(
           child: Column(
             mainAxisSize: MainAxisSize.min,

@@ -88,7 +88,7 @@ class ContentVersionsScreen extends StatelessWidget {
                           DataColumn(label: Text('Adoption')),
                           DataColumn(label: Text('Status')),
                         ],
-                        rows: const [
+                        rows: [
                           DataRow(
                             cells: [
                               DataCell(Text('v43')),
@@ -154,12 +154,12 @@ class ContentVersionsScreen extends StatelessWidget {
                   width: MediaQuery.of(context).size.width < 1200
                       ? MediaQuery.of(context).size.width - 48
                       : (MediaQuery.of(context).size.width - 320) / 2,
-                  child: Card(
+                  child: const Card(
                     child: Padding(
-                      padding: const EdgeInsets.all(16),
+                      padding: EdgeInsets.all(16),
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
-                        children: const [
+                        children: [
                           Text('Change Timeline'),
                           SizedBox(height: 12),
                           _VersionTimelineTile(
