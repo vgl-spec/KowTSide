@@ -66,7 +66,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
             end: Alignment.bottomRight,
             colors: [
               AppTheme.backgroundPrimary,
-              cs.primaryContainer.withOpacity(isDarkTheme ? 0.16 : 0.5),
+              cs.primaryContainer.withValues(alpha: isDarkTheme ? 0.16 : 0.5),
               AppTheme.backgroundPrimary,
             ],
           ),
@@ -81,7 +81,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 height: 240,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: cs.primary.withOpacity(0.12),
+                  color: cs.primary.withValues(alpha: 0.12),
                 ),
               ),
             ),
@@ -93,7 +93,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 height: 210,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  color: AppTheme.tertiary.withOpacity(0.12),
+                  color: AppTheme.tertiary.withValues(alpha: 0.12),
                 ),
               ),
             ),
@@ -137,10 +137,10 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   height: 52,
                                   width: 52,
                                   decoration: BoxDecoration(
-                                    color: cs.primary.withOpacity(0.12),
+                                    color: cs.primary.withValues(alpha: 0.12),
                                     borderRadius: BorderRadius.circular(14),
                                     border: Border.all(
-                                      color: cs.primary.withOpacity(0.22),
+                                      color: cs.primary.withValues(alpha: 0.22),
                                     ),
                                   ),
                                   child: Icon(
@@ -219,7 +219,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   color: cs.errorContainer,
                                   borderRadius: BorderRadius.circular(10),
                                   border: Border.all(
-                                    color: cs.error.withOpacity(0.25),
+                                    color: cs.error.withValues(alpha: 0.25),
                                   ),
                                 ),
                                 child: Row(

@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
+import 'package:shimmer/shimmer.dart';
+import '../core/app_colors.dart';
 
-class SkeletonBox extends StatelessWidget {
+class Skeleton extends StatelessWidget {
   final double height;
   final double? width;
   final BorderRadius borderRadius;
 
-  const SkeletonBox({
+  const Skeleton({
     super.key,
     required this.height,
     this.width,
@@ -14,14 +16,21 @@ class SkeletonBox extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = Theme.of(
-      context,
-    ).colorScheme.onSurfaceVariant.withValues(alpha: 0.16);
-
-    return Container(
-      width: width,
-      height: height,
-      decoration: BoxDecoration(color: color, borderRadius: borderRadius),
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final baseColor = isDark ? AppColors.darkElevated : AppColors.lightElevated;
+    final highlightColor = isDark ? AppColors.darkSidebar : AppColors.lightSidebar;
+    
+    return Shimmer.fromColors(
+      baseColor: baseColor,
+      highlightColor: highlightColor,
+      child: Container(
+        width: width,
+        height: height,
+        decoration: BoxDecoration(
+          color: Colors.white, // Color is not rendered because of Shimmer replacing it
+          borderRadius: borderRadius,
+        ),
+      ),
     );
   }
 }
@@ -40,30 +49,39 @@ class DashboardLoadingSkeleton extends StatelessWidget {
           runSpacing: 10,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: const [
-            SkeletonBox(height: 32, width: 180),
-            SkeletonBox(height: 30, width: 120),
-            SkeletonBox(height: 36, width: 140),
+            Skeleton(height: 32, width: 180),
+            Skeleton(height: 30, width: 120),
+            Skeleton(height: 36, width: 140),
           ],
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 24),
         Wrap(
-          spacing: 10,
-          runSpacing: 10,
+          spacing: 16,
+          runSpacing: 16,
           children: List.generate(
             3,
             (_) => SizedBox(
-              width: 286,
+              width: 320,
+              height: 140, // Height to match the new StatCard
               child: Card(
                 child: Padding(
-                  padding: EdgeInsets.all(14),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  padding: const EdgeInsets.all(24),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
-                      SkeletonBox(height: 14, width: 120),
-                      SizedBox(height: 8),
-                      SkeletonBox(height: 30, width: 140),
-                      SizedBox(height: 8),
-                      SkeletonBox(height: 12, width: 170),
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: const [
+                          Skeleton(height: 14, width: 100),
+                          SizedBox(height: 12),
+                          Skeleton(height: 36, width: 140),
+                        ],
+                      ),
+                      const Skeleton(
+                        height: 64, width: 64, 
+                        borderRadius: BorderRadius.all(Radius.circular(32))
+                      ),
                     ],
                   ),
                 ),
@@ -71,18 +89,40 @@ class DashboardLoadingSkeleton extends StatelessWidget {
             ),
           ),
         ),
-        const SizedBox(height: 12),
-        const _SectionSkeleton(rows: 4),
-        const SizedBox(height: 12),
+        const SizedBox(height: 24),
         const Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: _SectionSkeleton(rows: 4)),
-            SizedBox(width: 10),
-            Expanded(child: _SectionSkeleton(rows: 6)),
+            Expanded(flex: 2, child: _SectionSkeleton(rows: 6)),
+            SizedBox(width: 16),
+            Expanded(flex: 1, child: _SectionSkeleton(rows: 8)),
           ],
         ),
       ],
+    );
+  }
+}
+
+class _SectionSkeleton extends StatelessWidget {
+  final int rows;
+
+  const _SectionSkeleton({required this.rows});
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: List.generate(
+            rows,
+            (index) => const Padding(
+              padding: EdgeInsets.only(bottom: 12),
+              child: Skeleton(height: 48, width: double.infinity),
+            )
+          ),
+        ),
+      ),
     );
   }
 }
@@ -101,29 +141,11 @@ class StudentsLoadingSkeleton extends StatelessWidget {
             spacing: 12,
             runSpacing: 10,
             children: [
-              SkeletonBox(height: 32, width: 140),
-              SkeletonBox(height: 36, width: 110),
+              Skeleton(height: 32, width: 140),
+              Skeleton(height: 36, width: 110),
             ],
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: List.generate(
-              4,
-              (_) => const SkeletonBox(height: 34, width: 130),
-            ),
-          ),
-          const SizedBox(height: 12),
-          const Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: [
-              SkeletonBox(height: 42, width: 360),
-              SkeletonBox(height: 42, width: 150),
-            ],
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
           const Expanded(child: _TableSkeleton(columns: 8, rows: 8)),
         ],
       ),
@@ -145,20 +167,11 @@ class DevicesLoadingSkeleton extends StatelessWidget {
             spacing: 12,
             runSpacing: 10,
             children: [
-              SkeletonBox(height: 32, width: 210),
-              SkeletonBox(height: 36, width: 110),
+              Skeleton(height: 32, width: 210),
+              Skeleton(height: 36, width: 110),
             ],
           ),
-          const SizedBox(height: 12),
-          Wrap(
-            spacing: 10,
-            runSpacing: 10,
-            children: List.generate(
-              3,
-              (_) => const SkeletonBox(height: 34, width: 120),
-            ),
-          ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 24),
           const Expanded(child: _TableSkeleton(columns: 6, rows: 8)),
         ],
       ),
@@ -179,37 +192,32 @@ class QuestionsLoadingSkeleton extends StatelessWidget {
             spacing: 12,
             runSpacing: 10,
             children: [
-              SkeletonBox(height: 32, width: 170),
-              SkeletonBox(height: 36, width: 130),
-              SkeletonBox(height: 36, width: 110),
+              Skeleton(height: 32, width: 170),
+              Skeleton(height: 36, width: 130),
+              Skeleton(height: 36, width: 110),
             ],
           ),
         ),
         const Padding(
-          padding: EdgeInsets.fromLTRB(24, 12, 24, 0),
+          padding: EdgeInsets.fromLTRB(24, 16, 24, 0),
           child: Card(
             child: Padding(
-              padding: EdgeInsets.all(12),
+              padding: EdgeInsets.all(16),
               child: Wrap(
                 spacing: 12,
                 runSpacing: 8,
                 children: [
-                  SkeletonBox(height: 38, width: 140),
-                  SkeletonBox(height: 38, width: 140),
-                  SkeletonBox(height: 38, width: 140),
-                  SkeletonBox(height: 32, width: 120),
+                  Skeleton(height: 32, width: 100),
+                  Skeleton(height: 32, width: 100),
                 ],
               ),
             ),
           ),
         ),
-        const SizedBox(height: 8),
-        const Expanded(
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(24, 0, 24, 24),
-            child: _TableSkeleton(columns: 8, rows: 8),
-          ),
-        ),
+        const Expanded(child: Padding(
+          padding: EdgeInsets.all(24),
+          child: _TableSkeleton(columns: 7, rows: 6),
+        )),
       ],
     );
   }
@@ -224,41 +232,49 @@ class StudentDetailLoadingSkeleton extends StatelessWidget {
       padding: const EdgeInsets.all(24),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
-        children: const [
+        children: [
           Card(
             child: Padding(
-              padding: EdgeInsets.all(20),
-              child: Column(
+              padding: const EdgeInsets.all(24),
+              child: Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  SkeletonBox(height: 24, width: 220),
-                  SizedBox(height: 14),
-                  Wrap(
-                    spacing: 10,
-                    runSpacing: 10,
-                    children: [
-                      SkeletonBox(height: 16, width: 110),
-                      SkeletonBox(height: 16, width: 140),
-                      SkeletonBox(height: 16, width: 80),
-                      SkeletonBox(height: 16, width: 110),
-                    ],
+                children: const [
+                  Skeleton(
+                    height: 72,
+                    width: 72,
+                    borderRadius: BorderRadius.all(Radius.circular(12)),
+                  ),
+                  SizedBox(width: 20),
+                  Expanded(
+                    child: Wrap(
+                      spacing: 16,
+                      runSpacing: 12,
+                      children: [
+                        Skeleton(height: 16, width: 140),
+                        Skeleton(height: 16, width: 180),
+                        Skeleton(height: 16, width: 120),
+                        Skeleton(height: 16, width: 160),
+                        Skeleton(height: 16, width: 130),
+                        Skeleton(height: 16, width: 150),
+                      ],
+                    ),
                   ),
                 ],
               ),
             ),
           ),
-          SizedBox(height: 24),
-          SkeletonBox(height: 24, width: 170),
-          SizedBox(height: 8),
-          _TableSkeleton(columns: 4, rows: 4, height: 220),
-          SizedBox(height: 24),
-          SkeletonBox(height: 24, width: 150),
-          SizedBox(height: 8),
-          _TableSkeleton(columns: 6, rows: 4, height: 220),
-          SizedBox(height: 24),
-          SkeletonBox(height: 24, width: 130),
-          SizedBox(height: 8),
-          _TableSkeleton(columns: 5, rows: 4, height: 220),
+          const SizedBox(height: 24),
+          const Skeleton(height: 18, width: 170),
+          const SizedBox(height: 8),
+          const SizedBox(height: 280, child: _TableSkeleton(columns: 4, rows: 4)),
+          const SizedBox(height: 24),
+          const Skeleton(height: 18, width: 150),
+          const SizedBox(height: 8),
+          const SizedBox(height: 280, child: _TableSkeleton(columns: 6, rows: 4)),
+          const SizedBox(height: 24),
+          const Skeleton(height: 18, width: 130),
+          const SizedBox(height: 8),
+          const SizedBox(height: 260, child: _TableSkeleton(columns: 5, rows: 4)),
         ],
       ),
     );
@@ -270,59 +286,310 @@ class StandardPageLoadingSkeleton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.all(24),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: const [
+          Skeleton(height: 30, width: 220),
+          SizedBox(height: 16),
+          Skeleton(height: 42, width: 360),
+          SizedBox(height: 24),
+          Expanded(child: _SectionSkeleton(rows: 7)),
+        ],
+      ),
+    );
+  }
+}
+
+class ReportsLoadingSkeleton extends StatelessWidget {
+  const ReportsLoadingSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
     return ListView(
-      physics: const AlwaysScrollableScrollPhysics(),
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
       children: [
         const Wrap(
           spacing: 12,
           runSpacing: 10,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            SkeletonBox(height: 32, width: 210),
-            SkeletonBox(height: 36, width: 130),
+            Skeleton(height: 32, width: 290),
+            Skeleton(height: 36, width: 150),
           ],
         ),
         const SizedBox(height: 16),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: List.generate(
+            4,
+            (_) => const SizedBox(
+              width: 245,
+              child: Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Skeleton(height: 14, width: 120),
+                      SizedBox(height: 10),
+                      Skeleton(height: 30, width: 120),
+                      SizedBox(height: 8),
+                      Skeleton(height: 12, width: 140),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
         const Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Expanded(child: _TableSkeleton(columns: 4, rows: 4, height: 180)),
-            SizedBox(width: 12),
-            Expanded(child: _TableSkeleton(columns: 3, rows: 4, height: 180)),
+            Expanded(child: SizedBox(height: 270, child: _SectionSkeleton(rows: 5))),
+            SizedBox(width: 10),
+            Expanded(child: SizedBox(height: 270, child: _SectionSkeleton(rows: 5))),
           ],
         ),
         const SizedBox(height: 12),
-        const _TableSkeleton(columns: 6, rows: 8, height: 360),
+        const SizedBox(height: 340, child: _TableSkeleton(columns: 5, rows: 5)),
       ],
     );
   }
 }
 
-class _SectionSkeleton extends StatelessWidget {
-  final int rows;
-  const _SectionSkeleton({required this.rows});
+class ContentVersionsLoadingSkeleton extends StatelessWidget {
+  const ContentVersionsLoadingSkeleton({super.key});
 
   @override
   Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+      children: [
+        const Wrap(
+          spacing: 12,
+          runSpacing: 10,
+          crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            const SkeletonBox(height: 22, width: 180),
-            const SizedBox(height: 8),
-            const SkeletonBox(height: 14, width: 290),
-            const SizedBox(height: 12),
-            ...List.generate(
-              rows,
-              (_) => const Padding(
-                padding: EdgeInsets.only(bottom: 10),
-                child: SkeletonBox(height: 18, width: double.infinity),
-              ),
-            ),
+            Skeleton(height: 32, width: 210),
+            Skeleton(height: 36, width: 150),
+            Skeleton(height: 36, width: 170),
           ],
         ),
-      ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: List.generate(
+            3,
+            (_) => const SizedBox(
+              width: 320,
+              child: Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Skeleton(height: 14, width: 140),
+                      SizedBox(height: 10),
+                      Skeleton(height: 30, width: 90),
+                      SizedBox(height: 8),
+                      Skeleton(height: 12, width: 170),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const SizedBox(height: 280, child: _TableSkeleton(columns: 6, rows: 4)),
+        const SizedBox(height: 12),
+        const Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: SizedBox(height: 250, child: _SectionSkeleton(rows: 4))),
+            SizedBox(width: 10),
+            Expanded(child: SizedBox(height: 250, child: _SectionSkeleton(rows: 6))),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class AuditLogLoadingSkeleton extends StatelessWidget {
+  const AuditLogLoadingSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+      children: [
+        const Wrap(
+          spacing: 12,
+          runSpacing: 10,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Skeleton(height: 32, width: 130),
+            Skeleton(height: 42, width: 360),
+            Skeleton(height: 36, width: 150),
+            Skeleton(height: 36, width: 150),
+            Skeleton(height: 36, width: 120),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: List.generate(
+            3,
+            (_) => const SizedBox(
+              width: 320,
+              child: Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Skeleton(height: 14, width: 130),
+                      SizedBox(height: 10),
+                      Skeleton(height: 30, width: 80),
+                      SizedBox(height: 8),
+                      Skeleton(height: 12, width: 150),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const SizedBox(height: 340, child: _TableSkeleton(columns: 5, rows: 6)),
+      ],
+    );
+  }
+}
+
+class SyncLogsLoadingSkeleton extends StatelessWidget {
+  const SyncLogsLoadingSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+      children: [
+        const Wrap(
+          spacing: 12,
+          runSpacing: 10,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Skeleton(height: 32, width: 110),
+            Skeleton(height: 42, width: 320),
+            Skeleton(height: 36, width: 140),
+          ],
+        ),
+        const SizedBox(height: 18),
+        Wrap(
+          spacing: 12,
+          runSpacing: 12,
+          children: List.generate(
+            4,
+            (_) => const SizedBox(
+              width: 245,
+              child: Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Skeleton(height: 14, width: 110),
+                      SizedBox(height: 10),
+                      Skeleton(height: 28, width: 95),
+                      SizedBox(height: 8),
+                      Skeleton(height: 12, width: 140),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 16),
+        const SizedBox(height: 420, child: _TableSkeleton(columns: 5, rows: 8)),
+        const SizedBox(height: 18),
+        const Wrap(
+          spacing: 18,
+          runSpacing: 10,
+          children: [
+            Skeleton(height: 34, width: 430),
+            Skeleton(height: 34, width: 120),
+            Skeleton(height: 34, width: 140),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class SystemHealthLoadingSkeleton extends StatelessWidget {
+  const SystemHealthLoadingSkeleton({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView(
+      padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+      children: [
+        const Wrap(
+          spacing: 12,
+          runSpacing: 10,
+          crossAxisAlignment: WrapCrossAlignment.center,
+          children: [
+            Skeleton(height: 32, width: 170),
+            Skeleton(height: 36, width: 150),
+          ],
+        ),
+        const SizedBox(height: 16),
+        Wrap(
+          spacing: 10,
+          runSpacing: 10,
+          children: List.generate(
+            3,
+            (_) => const SizedBox(
+              width: 320,
+              child: Card(
+                child: Padding(
+                  padding: EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Skeleton(height: 14, width: 140),
+                      SizedBox(height: 8),
+                      Skeleton(height: 22, width: 95),
+                      SizedBox(height: 8),
+                      Skeleton(height: 12, width: 170),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 12),
+        const Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: SizedBox(height: 280, child: _SectionSkeleton(rows: 5))),
+            SizedBox(width: 10),
+            Expanded(child: SizedBox(height: 280, child: _SectionSkeleton(rows: 6))),
+          ],
+        ),
+        const SizedBox(height: 12),
+        const SizedBox(height: 250, child: _SectionSkeleton(rows: 4)),
+      ],
     );
   }
 }
@@ -330,56 +597,26 @@ class _SectionSkeleton extends StatelessWidget {
 class _TableSkeleton extends StatelessWidget {
   final int columns;
   final int rows;
-  final double? height;
 
-  const _TableSkeleton({
-    required this.columns,
-    required this.rows,
-    this.height,
-  });
+  const _TableSkeleton({required this.columns, required this.rows});
 
   @override
   Widget build(BuildContext context) {
     return Card(
-      child: SizedBox(
-        height: height,
-        child: Padding(
-          padding: const EdgeInsets.all(10),
-          child: Column(
-            children: [
-              Row(
-                children: List.generate(
-                  columns,
-                  (_) => const Expanded(
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 4),
-                      child: SkeletonBox(height: 14),
-                    ),
-                  ),
-                ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Column(
+          children: [
+            const Skeleton(height: 24, width: double.infinity),
+            const SizedBox(height: 16),
+            ...List.generate(
+              rows,
+              (_) => const Padding(
+                padding: EdgeInsets.only(bottom: 12),
+                child: Skeleton(height: 48, width: double.infinity),
               ),
-              const SizedBox(height: 12),
-              Expanded(
-                child: ListView.builder(
-                  itemCount: rows,
-                  itemBuilder: (_, __) => Padding(
-                    padding: const EdgeInsets.only(bottom: 10),
-                    child: Row(
-                      children: List.generate(
-                        columns,
-                        (_) => const Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 4),
-                            child: SkeletonBox(height: 16),
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

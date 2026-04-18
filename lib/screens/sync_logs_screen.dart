@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../core/theme.dart';
 
 class SyncLogsScreen extends StatefulWidget {
@@ -353,11 +353,11 @@ class _SyncLogsScreenState extends State<SyncLogsScreen> {
                     decoration: BoxDecoration(
                       border: Border(
                         top: BorderSide(
-                          color: AppTheme.textLowEmphasis.withOpacity(0.16),
+                          color: AppTheme.textLowEmphasis.withValues(alpha: 0.16),
                         ),
                       ),
                       color: expanded
-                          ? AppTheme.surfaceLow.withOpacity(0.55)
+                          ? AppTheme.surfaceLow.withValues(alpha: 0.55)
                           : Colors.transparent,
                     ),
                     child: Row(
@@ -427,7 +427,7 @@ class _SyncLogsScreenState extends State<SyncLogsScreen> {
                       color: AppTheme.surfaceLow,
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(
-                        color: AppTheme.error.withOpacity(0.4),
+                        color: AppTheme.error.withValues(alpha: 0.4),
                       ),
                     ),
                     child: Wrap(
@@ -537,7 +537,7 @@ class _SyncLogsScreenState extends State<SyncLogsScreen> {
               color: AppTheme.surfaceLow,
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: AppTheme.textLowEmphasis.withOpacity(0.3),
+                color: AppTheme.textLowEmphasis.withValues(alpha: 0.3),
               ),
             ),
             child: ExpansionTile(
@@ -618,11 +618,11 @@ class _PulseCard extends StatelessWidget {
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(14),
         gradient: LinearGradient(
-          colors: [AppTheme.surfaceHigh, AppTheme.surface.withOpacity(0.92)],
+          colors: [AppTheme.surfaceHigh, AppTheme.surface.withValues(alpha: 0.92)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        border: Border.all(color: AppTheme.textLowEmphasis.withOpacity(0.28)),
+        border: Border.all(color: AppTheme.textLowEmphasis.withValues(alpha: 0.28)),
       ),
       padding: const EdgeInsets.all(16),
       child: Row(
@@ -661,7 +661,7 @@ class _PulseCard extends StatelessWidget {
             width: 110,
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: AppTheme.backgroundPrimary.withOpacity(0.45),
+              color: AppTheme.backgroundPrimary.withValues(alpha: 0.45),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
@@ -718,7 +718,7 @@ class _MiniStatCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.16),
+                    color: color.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(icon, color: color, size: 18),
@@ -753,9 +753,9 @@ class _PillChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 9, vertical: 4),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.16),
+        color: color.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color.withOpacity(0.35)),
+        border: Border.all(color: color.withValues(alpha: 0.35)),
       ),
       child: Text(
         label,

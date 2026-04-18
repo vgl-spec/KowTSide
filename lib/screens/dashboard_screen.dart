@@ -227,7 +227,7 @@ class _DashboardScreenState extends ConsumerState<DashboardScreen> {
                   leading: Container(
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
-                      color: AppTheme.primary.withOpacity(0.16),
+                      color: AppTheme.primary.withValues(alpha: 0.16),
                       borderRadius: BorderRadius.circular(10),
                     ),
                     child: const Icon(

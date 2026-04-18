@@ -331,7 +331,7 @@ class _StatusChip extends StatelessWidget {
   Widget build(BuildContext context) => active
       ? Chip(
           label: const Text('Active'),
-          backgroundColor: AppTheme.success.withOpacity(0.16),
+          backgroundColor: AppTheme.success.withValues(alpha: 0.16),
           labelStyle: const TextStyle(color: AppTheme.success, fontSize: 12),
           padding: EdgeInsets.zero,
         )

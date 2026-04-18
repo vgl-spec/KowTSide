@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
@@ -231,7 +231,7 @@ class _StudentsViewState extends State<_StudentsView> {
                                         vertical: 4,
                                       ),
                                       decoration: BoxDecoration(
-                                        color: proficiencyColor.withOpacity(
+                                        color: proficiencyColor.withValues(alpha: 
                                           0.18,
                                         ),
                                         borderRadius: BorderRadius.circular(20),
@@ -277,9 +277,9 @@ class _MetricChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

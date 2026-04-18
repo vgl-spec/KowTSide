@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 import '../core/theme.dart';
@@ -109,7 +109,7 @@ class _AppShellState extends ConsumerState<AppShell> {
               decoration: BoxDecoration(
                 color: AppTheme.backgroundPrimary,
                 border: Border(
-                  right: BorderSide(color: scheme.outline.withOpacity(0.3)),
+                  right: BorderSide(color: scheme.outline.withValues(alpha: 0.3)),
                 ),
               ),
               child: SafeArea(
@@ -131,10 +131,10 @@ class _AppShellState extends ConsumerState<AppShell> {
                             height: 40,
                             width: 40,
                             decoration: BoxDecoration(
-                              color: AppTheme.primary.withOpacity(0.16),
+                              color: AppTheme.primary.withValues(alpha: 0.16),
                               borderRadius: BorderRadius.circular(12),
                               border: Border.all(
-                                color: AppTheme.primary.withOpacity(0.28),
+                                color: AppTheme.primary.withValues(alpha: 0.28),
                               ),
                             ),
                             child: const Icon(
@@ -252,7 +252,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                           color: AppTheme.surface,
                           borderRadius: BorderRadius.circular(12),
                           border: Border.all(
-                            color: scheme.outline.withOpacity(0.28),
+                            color: scheme.outline.withValues(alpha: 0.28),
                           ),
                         ),
                         child: showLabels
@@ -261,7 +261,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                                   CircleAvatar(
                                     radius: 18,
                                     backgroundColor: AppTheme.primary
-                                        .withOpacity(0.2),
+                                        .withValues(alpha: 0.2),
                                     child: Text(
                                       _initials(auth.username),
                                       style: const TextStyle(
@@ -426,6 +426,21 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (route.startsWith('/devices')) {
       return const DevicesLoadingSkeleton();
     }
+    if (route.startsWith('/reports')) {
+      return const ReportsLoadingSkeleton();
+    }
+    if (route.startsWith('/content-versions')) {
+      return const ContentVersionsLoadingSkeleton();
+    }
+    if (route.startsWith('/audit-log')) {
+      return const AuditLogLoadingSkeleton();
+    }
+    if (route.startsWith('/sync-logs')) {
+      return const SyncLogsLoadingSkeleton();
+    }
+    if (route.startsWith('/system-health')) {
+      return const SystemHealthLoadingSkeleton();
+    }
 
     return const StandardPageLoadingSkeleton();
   }
@@ -498,12 +513,12 @@ class _DrawerMenuTile extends StatelessWidget {
           padding: EdgeInsets.symmetric(horizontal: showLabel ? 12 : 0),
           decoration: BoxDecoration(
             color: selected
-                ? AppTheme.primary.withOpacity(0.12)
+                ? AppTheme.primary.withValues(alpha: 0.12)
                 : Colors.transparent,
             borderRadius: BorderRadius.circular(12),
             border: Border.all(
               color: selected
-                  ? AppTheme.accent.withOpacity(0.35)
+                  ? AppTheme.accent.withValues(alpha: 0.35)
                   : Colors.transparent,
             ),
           ),

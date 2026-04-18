@@ -221,7 +221,7 @@ class _DetailBody extends StatelessWidget {
                                       ? Chip(
                                           label: const Text('Passed'),
                                           backgroundColor: AppTheme.success
-                                              .withOpacity(0.16),
+                                              .withValues(alpha: 0.16),
                                           labelStyle: const TextStyle(
                                             color: AppTheme.success,
                                           ),
@@ -230,7 +230,7 @@ class _DetailBody extends StatelessWidget {
                                       : Chip(
                                           label: const Text('Failed'),
                                           backgroundColor: AppTheme.error
-                                              .withOpacity(0.16),
+                                              .withValues(alpha: 0.16),
                                           labelStyle: const TextStyle(
                                             color: AppTheme.error,
                                           ),

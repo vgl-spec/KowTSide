@@ -153,7 +153,7 @@ class DevicesScreen extends ConsumerWidget {
                                                   label: const Text('Synced'),
                                                   backgroundColor: AppTheme
                                                       .success
-                                                      .withOpacity(0.15),
+                                                      .withValues(alpha: 0.15),
                                                   labelStyle: const TextStyle(
                                                     color: AppTheme.success,
                                                     fontSize: 12,
@@ -166,7 +166,7 @@ class DevicesScreen extends ConsumerWidget {
                                                   ),
                                                   backgroundColor: AppTheme
                                                       .warning
-                                                      .withOpacity(0.16),
+                                                      .withValues(alpha: 0.16),
                                                   labelStyle: const TextStyle(
                                                     color: AppTheme.warning,
                                                     fontSize: 12,
@@ -208,9 +208,9 @@ class _SummaryChip extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.15),
+        color: color.withValues(alpha: 0.15),
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: color.withOpacity(0.3)),
+        border: Border.all(color: color.withValues(alpha: 0.3)),
       ),
       child: Row(
         mainAxisSize: MainAxisSize.min,

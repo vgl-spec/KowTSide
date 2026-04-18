@@ -3,34 +3,30 @@ import 'package:flutter/material.dart';
 class AppColors {
   AppColors._();
 
-  // Brand tokens aligned to the provided design palette.
   static const Color primary = Color(0xFF7B2CBF);
-  static const Color secondary = Color(0xFF1A1A2E);
-  static const Color tertiary = Color(0xFF7E4D00);
+  static const Color secondary = Color(0xFF3CCF4E);
+  static const Color tertiary = Color(0xFFFF5C00);
 
-  // Semantic tokens.
-  static const Color success = Color(0xFF21885C);
-  static const Color warning = Color(0xFFCC7A00);
-  static const Color error = Color(0xFFC6284F);
-  static const Color info = Color(0xFF2D7FF9);
+  static const Color success = Color(0xFF3CCF4E);
+  static const Color warning = Color(0xFFFF5C00);
+  static const Color error = Color(0xFFE53935);
+  static const Color info = Color(0xFF7B2CBF);
 
-  // Light theme surfaces/text.
   static const Color lightBackground = Color(0xFFF8F9FE);
   static const Color lightSurface = Color(0xFFFFFFFF);
-  static const Color lightSurfaceLow = Color(0xFFF1F2F7);
-  static const Color lightSurfaceHigh = Color(0xFFE7EAF3);
-  static const Color lightOutline = Color(0xFFD7DBE8);
-  static const Color lightTextHigh = Color(0xFF171827);
-  static const Color lightTextMedium = Color(0xFF5D6073);
-  static const Color lightTextLow = Color(0xFF8D91A4);
+  static const Color lightElevated = Color(0xFFF0F0FA);
+  static const Color lightSidebar = Color(0xFFECECF8);
+  static const Color lightTextPrimary = Color(0xFF0D0D1A);
+  static const Color lightTextSecondary = Color(0xFF5A5A7A);
+  static const Color lightTextMuted = Color(0xFFA0A0C0);
+  static const Color lightBorder = Color(0x23000000); // approx rgba(0,0,0,0.14)
 
-  // Dark theme surfaces/text.
-  static const Color darkBackground = Color(0xFF0C0C1F);
-  static const Color darkSurface = Color(0xFF17172F);
-  static const Color darkSurfaceLow = Color(0xFF111127);
-  static const Color darkSurfaceHigh = Color(0xFF23233F);
-  static const Color darkOutline = Color(0xFF46465C);
-  static const Color darkTextHigh = Color(0xFFE5E3FF);
-  static const Color darkTextMedium = Color(0xFFAAA8C3);
-  static const Color darkTextLow = Color(0xFF74738B);
+  static const Color darkBackground = Color(0xFF0D0D1A);
+  static const Color darkSurface = Color(0xFF12122A);
+  static const Color darkElevated = Color(0xFF1A1A35);
+  static const Color darkSidebar = Color(0xFF0A0A18);
+  static const Color darkTextPrimary = Color(0xFFFFFFFF);
+  static const Color darkTextSecondary = Color(0xFFA0A0C0);
+  static const Color darkTextMuted = Color(0xFF5A5A7A);
+  static const Color darkBorder = Color(0x1FFFFFFF); // approx rgba(255,255,255,0.12)
 }

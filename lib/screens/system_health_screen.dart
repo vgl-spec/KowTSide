@@ -1,4 +1,4 @@
-﻿import 'package:flutter/material.dart';
+import 'package:flutter/material.dart';
 import '../core/theme.dart';
 
 class SystemHealthScreen extends StatelessWidget {
@@ -268,7 +268,7 @@ class _HealthCard extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.16),
+                    color: color.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(10),
                   ),
                   child: Icon(icon, color: color, size: 18),
@@ -286,7 +286,7 @@ class _HealthCard extends StatelessWidget {
                     vertical: 3,
                   ),
                   decoration: BoxDecoration(
-                    color: color.withOpacity(0.16),
+                    color: color.withValues(alpha: 0.16),
                     borderRadius: BorderRadius.circular(16),
                   ),
                   child: Text(
