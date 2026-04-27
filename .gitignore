@@ -33,5 +33,9 @@ Thumbs.db
 # Test and coverage
 coverage/
 docs/
+!docs/
+docs/*
+!docs/VERCEL_PUBLISH_GUIDE.md
 AGENTS.md
 memory.md
+.vercel
