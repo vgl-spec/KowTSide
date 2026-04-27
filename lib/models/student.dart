@@ -1,8 +1,12 @@
+import '../core/student_id.dart';
+
 class Student {
   final int studId;
   final String nickname;
   final String firstName;
   final String lastName;
+  final String area;
+  final String birthday;
   final int age;
   final String gradelvl;
   final String sex;
@@ -15,6 +19,8 @@ class Student {
     required this.nickname,
     required this.firstName,
     required this.lastName,
+    required this.area,
+    required this.birthday,
     required this.age,
     required this.gradelvl,
     required this.sex,
@@ -24,19 +30,61 @@ class Student {
   });
 
   factory Student.fromJson(Map<String, dynamic> j) => Student(
-        studId: j['stud_id'] as int? ?? 0,
+        studId: parseStudentId(j['stud_id'] ?? j['studId']) ?? 0,
         nickname: j['nickname'] as String? ?? '',
         firstName: j['first_name'] as String? ?? '',
         lastName: j['last_name'] as String? ?? '',
-        age: j['age'] as int? ?? 0,
+        area: j['area'] as String? ?? j['barangay'] as String? ?? '',
+        birthday: j['birthday'] as String? ?? '',
+        age: _readInt(j['age']) ?? 0,
         gradelvl: j['gradelvl'] as String? ?? '',
         sex: j['sex'] as String? ?? '',
-        totalSessions: j['total_sessions'] as int? ?? 0,
-        avgScore: (j['avg_score'] as num?)?.toDouble() ?? 0.0,
+        totalSessions: _readInt(j['total_sessions']) ?? 0,
+        avgScore: _readDouble(j['avg_score']) ?? 0.0,
         proficiency: j['proficiency'] as String? ?? 'On track',
       );
 
   String get fullName => '$firstName $lastName';
+  String get displayStudId => formatStudentId(studId);
+}
+
+class StudentPage {
+  final int page;
+  final int limit;
+  final int total;
+  final int totalPages;
+  final List<Student> students;
+
+  const StudentPage({
+    required this.page,
+    required this.limit,
+    required this.total,
+    required this.totalPages,
+    required this.students,
+  });
+
+  factory StudentPage.fromJson(Map<String, dynamic> json) {
+    final list =
+        json['students'] as List? ??
+        json['data'] as List? ??
+        const <dynamic>[];
+    final total = _readInt(json['total']) ?? list.length;
+    final rawLimit = _readInt(json['limit']) ?? list.length;
+    final limit = rawLimit <= 0 ? 1 : rawLimit;
+    final totalPages =
+        _readInt(json['total_pages']) ??
+        (total == 0 ? 1 : ((total + limit - 1) ~/ limit));
+
+    return StudentPage(
+      page: _readInt(json['page']) ?? 1,
+      limit: limit,
+      total: total,
+      totalPages: totalPages < 1 ? 1 : totalPages,
+      students: list
+          .map((item) => Student.fromJson(item as Map<String, dynamic>))
+          .toList(),
+    );
+  }
 }
 
 // ---------- Detail models (GET /api/admin/students/:id) ----------
@@ -62,7 +110,10 @@ class StudentDetail {
         analytics: (j['analytics'] as List? ?? [])
             .map((e) => SubjectAnalytics.fromJson(e as Map<String, dynamic>))
             .toList(),
-        recentScores: (j['recent_scores'] as List? ?? [])
+        recentScores:
+            (j['recent_scores'] as List? ??
+                    j['scores'] as List? ??
+                    const <dynamic>[])
             .map((e) => ScoreRecord.fromJson(e as Map<String, dynamic>))
             .toList(),
       );
@@ -73,19 +124,25 @@ class SubjectProgress {
   final String gradelvl;
   final int highestDiffPassed;
   final int totalTimePlayed;
+  final String lastPlayedAt;
 
   const SubjectProgress({
     required this.subject,
     required this.gradelvl,
     required this.highestDiffPassed,
     required this.totalTimePlayed,
+    required this.lastPlayedAt,
   });
 
   factory SubjectProgress.fromJson(Map<String, dynamic> j) => SubjectProgress(
         subject: j['subject'] as String? ?? '',
         gradelvl: j['gradelvl'] as String? ?? '',
-        highestDiffPassed: j['highest_diff_passed'] as int? ?? 0,
-        totalTimePlayed: j['total_time_played'] as int? ?? 0,
+        highestDiffPassed: _readInt(j['highest_diff_passed']) ?? 0,
+        totalTimePlayed: _readInt(j['total_time_played']) ?? 0,
+        lastPlayedAt:
+            j['last_played_at'] as String? ??
+            j['last_played'] as String? ??
+            '',
       );
 
   String get diffLabel {
@@ -124,33 +181,53 @@ class SubjectAnalytics {
   factory SubjectAnalytics.fromJson(Map<String, dynamic> j) => SubjectAnalytics(
         subject: j['subject'] as String? ?? '',
         gradelvl: j['gradelvl'] as String? ?? '',
-        lowestScore: (j['lowest_score'] as num?)?.toDouble() ?? 0.0,
-        averageScore: (j['average_score'] as num?)?.toDouble() ?? 0.0,
-        highestScore: (j['highest_score'] as num?)?.toDouble() ?? 0.0,
-        totalAttempts: j['total_attempts'] as int? ?? 0,
+        lowestScore: _readDouble(j['lowest_score']) ?? 0.0,
+        averageScore: _readDouble(j['average_score']) ?? 0.0,
+        highestScore: _readDouble(j['highest_score']) ?? 0.0,
+        totalAttempts: _readInt(j['total_attempts']) ?? 0,
       );
 }
 
 class ScoreRecord {
   final String subject;
+  final String gradelvl;
   final String difficulty;
   final double score;
+  final int totalItems;
   final bool passed;
   final String playedAt;
 
   const ScoreRecord({
     required this.subject,
+    required this.gradelvl,
     required this.difficulty,
     required this.score,
+    required this.totalItems,
     required this.passed,
     required this.playedAt,
   });
 
   factory ScoreRecord.fromJson(Map<String, dynamic> j) => ScoreRecord(
         subject: j['subject'] as String? ?? '',
+        gradelvl: j['gradelvl'] as String? ?? '',
         difficulty: j['difficulty'] as String? ?? '',
-        score: (j['score'] as num?)?.toDouble() ?? 0.0,
-        passed: (j['passed'] as int? ?? 0) == 1,
+        score: _readDouble(j['score']) ?? 0.0,
+        totalItems: _readInt(j['total_items']) ?? 10,
+        passed: (_readInt(j['passed']) ?? 0) == 1 || j['passed'] == true,
         playedAt: j['played_at'] as String? ?? '',
       );
+}
+
+int? _readInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
+}
+
+double? _readDouble(Object? value) {
+  if (value is double) return value;
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value);
+  return null;
 }

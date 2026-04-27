@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/auth_service.dart';
 import '../core/constants.dart';
+import '../core/role_utils.dart';
 import '../core/websocket_service.dart';
 
 class AuthState {
@@ -13,12 +14,13 @@ class AuthState {
   const AuthState({
     this.token,
     this.username = '',
-    this.role = 'admin',
+    this.role = 'superadmin',
     this.adminId = 0,
     this.isLoading = true,
   });
 
   bool get isAuthenticated => token != null;
+  bool get isSuperadmin => isSuperadminRole(role);
 
   AuthState copyWith({
     String? token,
@@ -53,7 +55,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState(
         token: session.token,
         username: session.username,
-        role: session.role,
+        role: normalizeAdminRole(session.role),
         adminId: session.adminId,
         isLoading: false,
       );
@@ -76,7 +78,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = AuthState(
           token: session.token,
           username: session.username,
-          role: session.role,
+          role: normalizeAdminRole(session.role),
           adminId: session.adminId,
           isLoading: false,
         );

@@ -9,5 +9,8 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
     return MockData.dashboard();
   }
   final resp = await dio.get(ApiConstants.dashboard);
-  return DashboardData.fromJson(resp.data as Map<String, dynamic>);
+  final data =
+      resp.data['data'] as Map<String, dynamic>? ??
+      resp.data as Map<String, dynamic>;
+  return DashboardData.fromJson(data);
 });

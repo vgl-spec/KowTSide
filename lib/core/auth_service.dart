@@ -2,6 +2,7 @@ import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'api_client.dart';
 import 'constants.dart';
+import 'role_utils.dart';
 
 class AuthResult {
   final bool success;
@@ -16,30 +17,6 @@ class AuthService {
   static final AuthService instance = AuthService._();
 
   Future<AuthResult> login(String username, String password) async {
-    if (ApiConstants.frontendOnly) {
-      final isAdmin =
-          username == 'kow_admin' && password == 'Admin@KOW2026';
-      final isReadonly =
-          username == 'kow_readonly' && password == 'Readonly@KOW2026';
-      if (!isAdmin && !isReadonly) {
-        return const AuthResult.fail(
-          'Frontend-only mode credentials: kow_admin / Admin@KOW2026',
-        );
-      }
-
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(
-        AppConstants.tokenKey,
-        'mock-token-${DateTime.now().millisecondsSinceEpoch}',
-      );
-      await prefs.setString(AppConstants.usernameKey, username);
-      await prefs.setString(
-        AppConstants.roleKey,
-        isReadonly ? 'readonly' : 'admin',
-      );
-      await prefs.setInt(AppConstants.adminIdKey, isReadonly ? 2 : 1);
-      return const AuthResult.ok();
-    }
 
     try {
       final resp = await dio.post(
@@ -48,10 +25,18 @@ class AuthService {
       );
       final data = resp.data as Map<String, dynamic>;
       final prefs = await SharedPreferences.getInstance();
-      await prefs.setString(AppConstants.tokenKey, data['token'] as String);
+      final token = data['token'] as String? ?? 'cookie-session';
+      final csrfToken = data['csrf_token'] as String?;
+      await prefs.setString(AppConstants.tokenKey, token);
+      if (csrfToken != null) {
+        await prefs.setString(AppConstants.csrfTokenKey, csrfToken);
+      }
       await prefs.setString(AppConstants.usernameKey, data['username'] as String);
-      await prefs.setString(AppConstants.roleKey, data['role'] as String);
-      await prefs.setInt(AppConstants.adminIdKey, data['admin_id'] as int);
+      await prefs.setString(
+        AppConstants.roleKey,
+        normalizeAdminRole(data['role'] as String? ?? 'teacher'),
+      );
+      await prefs.setInt(AppConstants.adminIdKey, data['admin_id'] as int? ?? 0);
       return const AuthResult.ok();
     } on DioException catch (e) {
       if (e.type == DioExceptionType.connectionError ||
@@ -70,7 +55,15 @@ class AuthService {
 
   Future<void> logout() async {
     final prefs = await SharedPreferences.getInstance();
+    if (!ApiConstants.frontendOnly) {
+      try {
+        await dio.post(ApiConstants.adminLogout);
+      } catch (_) {
+        // Local logout should still clear browser state if the API is offline.
+      }
+    }
     await prefs.remove(AppConstants.tokenKey);
+    await prefs.remove(AppConstants.csrfTokenKey);
     await prefs.remove(AppConstants.usernameKey);
     await prefs.remove(AppConstants.roleKey);
     await prefs.remove(AppConstants.adminIdKey);
@@ -79,11 +72,21 @@ class AuthService {
   Future<StoredSession?> loadSession() async {
     final prefs = await SharedPreferences.getInstance();
     final token = prefs.getString(AppConstants.tokenKey);
-    if (token == null) return null;
+    if (token == null) {
+      if (ApiConstants.frontendOnly && ApiConstants.autoLogin) {
+        await prefs.setString(AppConstants.tokenKey, 'mock-auto-login-token');
+        await prefs.setString(AppConstants.usernameKey, 'kow_admin');
+        await prefs.setString(AppConstants.roleKey, 'superadmin');
+        await prefs.setInt(AppConstants.adminIdKey, 1);
+      } else {
+        return null;
+      }
+    }
+
     return StoredSession(
-      token: token,
+      token: prefs.getString(AppConstants.tokenKey) ?? '',
       username: prefs.getString(AppConstants.usernameKey) ?? '',
-      role: prefs.getString(AppConstants.roleKey) ?? 'admin',
+      role: normalizeAdminRole(prefs.getString(AppConstants.roleKey) ?? 'superadmin'),
       adminId: prefs.getInt(AppConstants.adminIdKey) ?? 0,
     );
   }

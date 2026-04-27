@@ -1,27 +1,39 @@
 class DashboardData {
   final int totalStudents;
-  final int totalSessions;
-  final int activeDevices;
+  final int totalScores;
+  final double averageScore;
+  final String contentVersion;
   final List<AgeGroupProgress> ageGroupProgress;
-  final List<RecentSync> recentSyncs;
+  final List<PoolHealthEntry> poolHealth;
 
   const DashboardData({
     required this.totalStudents,
-    required this.totalSessions,
-    required this.activeDevices,
+    required this.totalScores,
+    required this.averageScore,
+    required this.contentVersion,
     required this.ageGroupProgress,
-    required this.recentSyncs,
+    required this.poolHealth,
   });
 
   factory DashboardData.fromJson(Map<String, dynamic> j) => DashboardData(
-        totalStudents: j['total_students'] as int? ?? 0,
-        totalSessions: j['total_sessions'] as int? ?? 0,
-        activeDevices: j['active_devices'] as int? ?? 0,
+        totalStudents: _readInt(j['total_students']) ?? 0,
+        totalScores:
+            _readInt(j['total_scores']) ??
+            _readInt(j['total_sessions']) ??
+            0,
+        averageScore:
+            _readDouble(j['average_score']) ??
+            _readDouble(j['avg_score']) ??
+            0.0,
+        contentVersion:
+            j['content_version'] as String? ??
+            j['version_tag'] as String? ??
+            'v0',
         ageGroupProgress: (j['age_group_progress'] as List? ?? [])
             .map((e) => AgeGroupProgress.fromJson(e as Map<String, dynamic>))
             .toList(),
-        recentSyncs: (j['recent_syncs'] as List? ?? [])
-            .map((e) => RecentSync.fromJson(e as Map<String, dynamic>))
+        poolHealth: (j['pool_health'] as List? ?? [])
+            .map((e) => PoolHealthEntry.fromJson(e as Map<String, dynamic>))
             .toList(),
       );
 }
@@ -44,29 +56,58 @@ class AgeGroupProgress {
   factory AgeGroupProgress.fromJson(Map<String, dynamic> j) => AgeGroupProgress(
         gradelvl: j['gradelvl'] as String? ?? '',
         subject: j['subject'] as String? ?? '',
-        activeStudents: j['active_students'] as int? ?? 0,
-        avgScore: (j['avg_score'] as num?)?.toDouble() ?? 0.0,
-        passRatePct: (j['pass_rate_pct'] as num?)?.toDouble() ?? 0.0,
+        activeStudents: _readInt(j['active_students']) ?? 0,
+        avgScore: _readDouble(j['avg_score']) ?? 0.0,
+        passRatePct: _readDouble(j['pass_rate_pct']) ?? 0.0,
       );
 }
 
-class RecentSync {
-  final String deviceUuid;
-  final String deviceName;
-  final String lastSyncedAt;
-  final int studentsSynced;
+class PoolHealthEntry {
+  final int gradelvlId;
+  final int subjectId;
+  final int diffId;
+  final String gradelvl;
+  final String subject;
+  final String difficulty;
+  final int questionCount;
 
-  const RecentSync({
-    required this.deviceUuid,
-    required this.deviceName,
-    required this.lastSyncedAt,
-    required this.studentsSynced,
+  const PoolHealthEntry({
+    required this.gradelvlId,
+    required this.subjectId,
+    required this.diffId,
+    required this.gradelvl,
+    required this.subject,
+    required this.difficulty,
+    required this.questionCount,
   });
 
-  factory RecentSync.fromJson(Map<String, dynamic> j) => RecentSync(
-        deviceUuid: j['device_uuid'] as String? ?? '',
-        deviceName: j['device_name'] as String? ?? 'Unknown Device',
-        lastSyncedAt: j['last_synced_at'] as String? ?? '',
-        studentsSynced: j['students_synced'] as int? ?? 0,
+  factory PoolHealthEntry.fromJson(Map<String, dynamic> j) => PoolHealthEntry(
+        gradelvlId: _readInt(j['gradelvl_id']) ?? 0,
+        subjectId: _readInt(j['subject_id']) ?? 0,
+        diffId: _readInt(j['diff_id']) ?? 0,
+        gradelvl: j['gradelvl'] as String? ?? '',
+        subject: j['subject'] as String? ?? '',
+        difficulty: j['difficulty'] as String? ?? '',
+        questionCount: _readInt(j['question_count']) ?? 0,
       );
+
+  String get healthLabel {
+    if (questionCount >= 8) return 'Healthy';
+    if (questionCount >= 5) return 'Low';
+    return 'Critical';
+  }
+}
+
+int? _readInt(Object? value) {
+  if (value is int) return value;
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value);
+  return null;
+}
+
+double? _readDouble(Object? value) {
+  if (value is double) return value;
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value);
+  return null;
 }

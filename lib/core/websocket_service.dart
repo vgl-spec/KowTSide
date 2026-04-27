@@ -20,6 +20,8 @@ class WebSocketService {
   void connect(String token) {
     _currentToken = token;
     _disposed = false;
+    _reconnectTimer?.cancel();
+    _channel?.sink.close();
     _doConnect();
   }
 
@@ -28,6 +30,11 @@ class WebSocketService {
     try {
       final uri = Uri.parse('${ApiConstants.wsUrl}?token=$_currentToken');
       _channel = WebSocketChannel.connect(uri);
+      unawaited(
+        _channel!.ready.catchError((_) {
+          _scheduleReconnect();
+        }),
+      );
       _channel!.stream.listen(
         (raw) {
           try {
@@ -36,7 +43,9 @@ class WebSocketService {
           } catch (_) {}
         },
         onDone: _scheduleReconnect,
-        onError: (_) => _scheduleReconnect(),
+        onError: (_) {
+          _scheduleReconnect();
+        },
         cancelOnError: true,
       );
     } catch (_) {
@@ -63,8 +72,6 @@ class WsEvent {
   final Map<String, dynamic> data;
   const WsEvent({required this.type, required this.data});
 
-  factory WsEvent.fromJson(Map<String, dynamic> json) => WsEvent(
-        type: json['type'] as String? ?? 'unknown',
-        data: json,
-      );
+  factory WsEvent.fromJson(Map<String, dynamic> json) =>
+      WsEvent(type: json['type'] as String? ?? 'unknown', data: json);
 }

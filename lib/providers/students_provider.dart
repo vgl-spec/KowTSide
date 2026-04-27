@@ -9,7 +9,10 @@ final studentsProvider = FutureProvider<List<Student>>((ref) async {
     return MockData.students();
   }
   final resp = await dio.get(ApiConstants.students);
-  final list = (resp.data['students'] as List? ?? []);
+  final list =
+      resp.data['students'] as List? ??
+      resp.data['data'] as List? ??
+      const <dynamic>[];
   return list.map((e) => Student.fromJson(e as Map<String, dynamic>)).toList();
 });
 
@@ -19,5 +22,8 @@ final studentDetailProvider =
     return MockData.studentDetail(id);
   }
   final resp = await dio.get(ApiConstants.student(id));
-  return StudentDetail.fromJson(resp.data as Map<String, dynamic>);
+  final data =
+      resp.data['data'] as Map<String, dynamic>? ??
+      resp.data as Map<String, dynamic>;
+  return StudentDetail.fromJson(data);
 });

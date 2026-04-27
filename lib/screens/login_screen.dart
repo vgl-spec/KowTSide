@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
+import '../widgets/flareline_components.dart';
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -122,147 +123,158 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                 padding: const EdgeInsets.all(16),
                 child: ConstrainedBox(
                   constraints: BoxConstraints(maxWidth: panelWidth),
-                  child: Card(
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(28, 26, 28, 28),
-                      child: Form(
-                        key: _formKey,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Row(
-                              children: [
-                                Container(
-                                  height: 52,
-                                  width: 52,
-                                  decoration: BoxDecoration(
-                                    color: cs.primary.withValues(alpha: 0.12),
-                                    borderRadius: BorderRadius.circular(14),
-                                    border: Border.all(
-                                      color: cs.primary.withValues(alpha: 0.22),
-                                    ),
-                                  ),
-                                  child: Icon(
-                                    Icons.school_rounded,
-                                    size: 30,
-                                    color: cs.primary,
-                                  ),
-                                ),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        'KOW Admin',
-                                        style: textTheme.headlineSmall
-                                            ?.copyWith(
-                                              color: cs.primary,
-                                              fontWeight: FontWeight.w900,
-                                            ),
-                                      ),
-                                      Text(
-                                        'Karunungan on Wheels Control Center',
-                                        style: textTheme.bodySmall,
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 24),
-                            Text(
-                              'Sign in to manage dashboards, sync logs, and learning analytics.',
-                              style: textTheme.bodySmall,
-                            ),
-                            const SizedBox(height: 18),
-                            TextFormField(
-                              controller: _userCtrl,
-                              decoration: const InputDecoration(
-                                labelText: 'Username',
-                                prefixIcon: Icon(Icons.person_outline),
-                              ),
-                              validator: (v) =>
-                                  (v == null || v.isEmpty) ? 'Required' : null,
-                              textInputAction: TextInputAction.next,
-                            ),
-                            const SizedBox(height: 14),
-                            TextFormField(
-                              controller: _passCtrl,
-                              obscureText: _obscure,
-                              decoration: InputDecoration(
-                                labelText: 'Password',
-                                prefixIcon: const Icon(Icons.lock_outline),
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _obscure
-                                        ? Icons.visibility_off_outlined
-                                        : Icons.visibility_outlined,
-                                  ),
-                                  onPressed: () =>
-                                      setState(() => _obscure = !_obscure),
-                                ),
-                              ),
-                              validator: (v) =>
-                                  (v == null || v.isEmpty) ? 'Required' : null,
-                              textInputAction: TextInputAction.done,
-                              onFieldSubmitted: (_) => _submit(),
-                            ),
-                            const SizedBox(height: 8),
-                            if (_error != null) ...[
-                              const SizedBox(height: 8),
+                  child: FlareSurfaceCard(
+                    padding: const EdgeInsets.fromLTRB(28, 26, 28, 28),
+                    child: Form(
+                      key: _formKey,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Row(
+                            children: [
                               Container(
-                                padding: const EdgeInsets.all(12),
+                                height: 52,
+                                width: 52,
                                 decoration: BoxDecoration(
-                                  color: cs.errorContainer,
-                                  borderRadius: BorderRadius.circular(10),
+                                  color: cs.primary.withValues(alpha: 0.12),
+                                  borderRadius: BorderRadius.circular(14),
                                   border: Border.all(
-                                    color: cs.error.withValues(alpha: 0.25),
+                                    color: cs.primary.withValues(alpha: 0.22),
                                   ),
                                 ),
-                                child: Row(
+                                child: Icon(
+                                  Icons.school_rounded,
+                                  size: 30,
+                                  color: cs.primary,
+                                ),
+                              ),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    Icon(
-                                      Icons.error_outline,
-                                      color: cs.onErrorContainer,
-                                      size: 18,
-                                    ),
-                                    const SizedBox(width: 8),
-                                    Expanded(
-                                      child: Text(
-                                        _error!,
-                                        style: TextStyle(
-                                          color: cs.onErrorContainer,
-                                          fontSize: 13,
-                                        ),
+                                    Text(
+                                      'KOW Admin',
+                                      style: textTheme.headlineSmall?.copyWith(
+                                        color: cs.primary,
+                                        fontWeight: FontWeight.w900,
                                       ),
+                                    ),
+                                    Text(
+                                      'Karunungan on Wheels Control Center',
+                                      style: textTheme.bodySmall,
                                     ),
                                   ],
                                 ),
                               ),
                             ],
-                            const SizedBox(height: 22),
-                            SizedBox(
-                              width: double.infinity,
-                              height: 48,
-                              child: FilledButton(
-                                onPressed: _loading ? null : _submit,
-                                child: _loading
-                                    ? SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: cs.onPrimary,
-                                        ),
-                                      )
-                                    : const Text('Sign In'),
+                          ),
+                          const SizedBox(height: 24),
+                          Text(
+                            'Sign in to manage dashboards, sync logs, and learning analytics.',
+                            style: textTheme.bodySmall,
+                          ),
+                          const SizedBox(height: 12),
+                          const Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              FlarePill(
+                                label: 'Read-only learner records',
+                                color: AppTheme.primary,
+                              ),
+                              FlarePill(
+                                label: 'Question version tracking',
+                                color: AppTheme.tertiary,
+                              ),
+                            ],
+                          ),
+                          const SizedBox(height: 18),
+                          TextFormField(
+                            controller: _userCtrl,
+                            decoration: const InputDecoration(
+                              labelText: 'Username',
+                              prefixIcon: Icon(Icons.person_outline),
+                            ),
+                            validator: (v) =>
+                                (v == null || v.isEmpty) ? 'Required' : null,
+                            textInputAction: TextInputAction.next,
+                          ),
+                          const SizedBox(height: 14),
+                          TextFormField(
+                            controller: _passCtrl,
+                            obscureText: _obscure,
+                            decoration: InputDecoration(
+                              labelText: 'Password',
+                              prefixIcon: const Icon(Icons.lock_outline),
+                              suffixIcon: IconButton(
+                                icon: Icon(
+                                  _obscure
+                                      ? Icons.visibility_off_outlined
+                                      : Icons.visibility_outlined,
+                                ),
+                                onPressed: () =>
+                                    setState(() => _obscure = !_obscure),
+                              ),
+                            ),
+                            validator: (v) =>
+                                (v == null || v.isEmpty) ? 'Required' : null,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _submit(),
+                          ),
+                          const SizedBox(height: 8),
+                          if (_error != null) ...[
+                            const SizedBox(height: 8),
+                            Container(
+                              padding: const EdgeInsets.all(12),
+                              decoration: BoxDecoration(
+                                color: cs.errorContainer,
+                                borderRadius: BorderRadius.circular(10),
+                                border: Border.all(
+                                  color: cs.error.withValues(alpha: 0.25),
+                                ),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(
+                                    Icons.error_outline,
+                                    color: cs.onErrorContainer,
+                                    size: 18,
+                                  ),
+                                  const SizedBox(width: 8),
+                                  Expanded(
+                                    child: Text(
+                                      _error!,
+                                      style: TextStyle(
+                                        color: cs.onErrorContainer,
+                                        fontSize: 13,
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ),
                             ),
                           ],
-                        ),
+                          const SizedBox(height: 22),
+                          SizedBox(
+                            width: double.infinity,
+                            height: 48,
+                            child: FilledButton(
+                              onPressed: _loading ? null : _submit,
+                              child: _loading
+                                  ? SizedBox(
+                                      width: 20,
+                                      height: 20,
+                                      child: CircularProgressIndicator(
+                                        strokeWidth: 2,
+                                        color: cs.onPrimary,
+                                      ),
+                                    )
+                                  : const Text('Sign In'),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ),

@@ -1,21 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
+import 'core/role_utils.dart';
+import 'core/student_id.dart';
+import 'core/theme.dart';
 import 'providers/auth_provider.dart';
-import 'screens/login_screen.dart';
+import 'providers/theme_provider.dart';
+import 'screens/activity_logs_screen.dart';
 import 'screens/dashboard_screen.dart';
-import 'screens/students_screen.dart';
-import 'screens/student_detail_screen.dart';
-import 'screens/questions_screen.dart';
 import 'screens/devices_screen.dart';
+import 'screens/login_screen.dart';
 import 'screens/reports_screen.dart';
-import 'screens/content_versions_screen.dart';
-import 'screens/audit_log_screen.dart';
+import 'screens/student_detail_screen.dart';
+import 'screens/students_screen.dart';
 import 'screens/sync_logs_screen.dart';
 import 'screens/system_health_screen.dart';
+import 'screens/teacher_questions_screen.dart';
+import 'screens/userbase_screen.dart';
 import 'widgets/app_shell.dart';
-import 'core/theme.dart';
-import 'providers/theme_provider.dart';
 
 final _rootKey = GlobalKey<NavigatorState>();
 final _shellKey = GlobalKey<NavigatorState>();
@@ -47,10 +50,25 @@ class _KowAdminAppState extends ConsumerState<KowAdminApp> {
       redirect: (context, state) {
         final auth = ref.read(authProvider);
         if (auth.isLoading) return null;
+
         final isLoggedIn = auth.isAuthenticated;
         final isLoginRoute = state.matchedLocation == '/login';
+        final isSuperadmin = isSuperadminRole(auth.role);
+        final superadminOnly = {
+          '/userbase',
+          '/devices',
+          '/sync-logs',
+          '/system-health',
+        };
+
         if (!isLoggedIn && !isLoginRoute) return '/login';
         if (isLoggedIn && isLoginRoute) return '/dashboard';
+        if (isLoggedIn &&
+            !isSuperadmin &&
+            superadminOnly
+                .any((route) => state.matchedLocation.startsWith(route))) {
+          return '/dashboard';
+        }
         return null;
       },
       routes: [
@@ -78,7 +96,10 @@ class _KowAdminAppState extends ConsumerState<KowAdminApp> {
                 GoRoute(
                   path: ':id',
                   pageBuilder: (context, state) {
-                    final studId = int.parse(state.pathParameters['id']!);
+                    final studId = parseStudentId(state.pathParameters['id']);
+                    if (studId == null) {
+                      throw const FormatException('Invalid student id.');
+                    }
                     return _page(state, StudentDetailScreen(studId: studId));
                   },
                 ),
@@ -87,12 +108,7 @@ class _KowAdminAppState extends ConsumerState<KowAdminApp> {
             GoRoute(
               path: '/questions',
               pageBuilder: (context, state) =>
-                  _page(state, const QuestionsScreen()),
-            ),
-            GoRoute(
-              path: '/devices',
-              pageBuilder: (context, state) =>
-                  _page(state, const DevicesScreen()),
+                  _page(state, const TeacherQuestionsScreen()),
             ),
             GoRoute(
               path: '/reports',
@@ -100,14 +116,19 @@ class _KowAdminAppState extends ConsumerState<KowAdminApp> {
                   _page(state, const ReportsScreen()),
             ),
             GoRoute(
-              path: '/content-versions',
+              path: '/activity-logs',
               pageBuilder: (context, state) =>
-                  _page(state, const ContentVersionsScreen()),
+                  _page(state, const ActivityLogsScreen()),
             ),
             GoRoute(
-              path: '/audit-log',
+              path: '/userbase',
               pageBuilder: (context, state) =>
-                  _page(state, const AuditLogScreen()),
+                  _page(state, const UserbaseScreen()),
+            ),
+            GoRoute(
+              path: '/devices',
+              pageBuilder: (context, state) =>
+                  _page(state, const DevicesScreen()),
             ),
             GoRoute(
               path: '/sync-logs',
@@ -133,7 +154,7 @@ class _KowAdminAppState extends ConsumerState<KowAdminApp> {
     AppTheme.setThemeMode(themeMode);
 
     return MaterialApp.router(
-      title: 'KOW Admin',
+      title: 'KOW Teacher Console',
       debugShowCheckedModeBanner: false,
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,

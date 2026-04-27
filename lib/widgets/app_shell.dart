@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
+
 import '../core/theme.dart';
+import '../core/role_utils.dart';
 import '../providers/auth_provider.dart';
 import '../providers/theme_provider.dart';
 import 'page_skeletons.dart';
 
-/// Persistent navigation shell with a side drawer on wide screens
-/// and a bottom nav on narrow screens.
 class AppShell extends ConsumerStatefulWidget {
   final Widget child;
   final String currentRoute;
@@ -19,55 +19,59 @@ class AppShell extends ConsumerStatefulWidget {
       route: '/dashboard',
       label: 'Dashboard',
       icon: Icons.dashboard_outlined,
-      activeIcon: Icons.dashboard,
+      activeIcon: Icons.dashboard_rounded,
     ),
     _NavItem(
       route: '/students',
-      label: 'Students',
-      icon: Icons.group_outlined,
-      activeIcon: Icons.group,
+      label: 'Learners',
+      icon: Icons.groups_outlined,
+      activeIcon: Icons.groups_rounded,
     ),
     _NavItem(
       route: '/questions',
-      label: 'Questions',
+      label: 'Question Bank',
       icon: Icons.quiz_outlined,
-      activeIcon: Icons.quiz,
+      activeIcon: Icons.quiz_rounded,
+    ),
+    _NavItem(
+      route: '/reports',
+      label: 'Reports',
+      icon: Icons.insert_chart_outlined_rounded,
+      activeIcon: Icons.insert_chart_rounded,
+    ),
+    _NavItem(
+      route: '/activity-logs',
+      label: 'Activity Logs',
+      icon: Icons.history_rounded,
+      activeIcon: Icons.manage_history_rounded,
+    ),
+    _NavItem(
+      route: '/userbase',
+      label: 'Userbase',
+      icon: Icons.admin_panel_settings_outlined,
+      activeIcon: Icons.admin_panel_settings_rounded,
+      superadminOnly: true,
     ),
     _NavItem(
       route: '/devices',
       label: 'Devices',
       icon: Icons.tablet_android_outlined,
-      activeIcon: Icons.tablet_android,
-    ),
-    _NavItem(
-      route: '/reports',
-      label: 'Reports',
-      icon: Icons.bar_chart_outlined,
-      activeIcon: Icons.bar_chart,
-    ),
-    _NavItem(
-      route: '/content-versions',
-      label: 'Content',
-      icon: Icons.history_outlined,
-      activeIcon: Icons.history,
-    ),
-    _NavItem(
-      route: '/audit-log',
-      label: 'Audit Log',
-      icon: Icons.policy_outlined,
-      activeIcon: Icons.policy,
+      activeIcon: Icons.tablet_android_rounded,
+      superadminOnly: true,
     ),
     _NavItem(
       route: '/sync-logs',
       label: 'Sync Logs',
-      icon: Icons.sync_alt_outlined,
-      activeIcon: Icons.sync_alt,
+      icon: Icons.sync_outlined,
+      activeIcon: Icons.sync_rounded,
+      superadminOnly: true,
     ),
     _NavItem(
       route: '/system-health',
-      label: 'Health',
+      label: 'System Health',
       icon: Icons.health_and_safety_outlined,
-      activeIcon: Icons.health_and_safety,
+      activeIcon: Icons.health_and_safety_rounded,
+      superadminOnly: true,
     ),
   ];
 
@@ -97,19 +101,24 @@ class _AppShellState extends ConsumerState<AppShell> {
     final isDarkTheme = themeMode == ThemeMode.dark;
     final scheme = Theme.of(context).colorScheme;
     final width = MediaQuery.of(context).size.width;
-    final isWide = width >= 900;
-    final showLabels = width >= 1220;
+    final isWide = width >= 960;
+    final showLabels = width >= 1240;
+    final navItems = AppShell._navItems
+        .where((item) => !item.superadminOnly || isSuperadminRole(auth.role))
+        .toList();
 
     if (isWide) {
       return Scaffold(
         body: Row(
           children: [
             Container(
-              width: showLabels ? 260 : 92,
+              width: showLabels ? 272 : 92,
               decoration: BoxDecoration(
                 color: AppTheme.backgroundPrimary,
                 border: Border(
-                  right: BorderSide(color: scheme.outline.withValues(alpha: 0.3)),
+                  right: BorderSide(
+                    color: scheme.outline.withValues(alpha: 0.28),
+                  ),
                 ),
               ),
               child: SafeArea(
@@ -128,17 +137,17 @@ class _AppShellState extends ConsumerState<AppShell> {
                             : MainAxisAlignment.center,
                         children: [
                           Container(
-                            height: 40,
-                            width: 40,
+                            height: 44,
+                            width: 44,
                             decoration: BoxDecoration(
                               color: AppTheme.primary.withValues(alpha: 0.16),
-                              borderRadius: BorderRadius.circular(12),
+                              borderRadius: BorderRadius.circular(14),
                               border: Border.all(
-                                color: AppTheme.primary.withValues(alpha: 0.28),
+                                color: AppTheme.primary.withValues(alpha: 0.26),
                               ),
                             ),
                             child: const Icon(
-                              Icons.school_rounded,
+                              Icons.menu_book_rounded,
                               color: AppTheme.primary,
                             ),
                           ),
@@ -148,12 +157,12 @@ class _AppShellState extends ConsumerState<AppShell> {
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Text(
-                                  'KOW Admin',
-                                  style: Theme.of(context).textTheme.titleMedium
+                                  'KOW Teacher',
+                                  style: Theme.of(context).textTheme.titleLarge
                                       ?.copyWith(fontWeight: FontWeight.w800),
                                 ),
                                 Text(
-                                  'Control Center',
+                                  'Classroom Console',
                                   style: Theme.of(
                                     context,
                                   ).textTheme.bodySmall?.copyWith(fontSize: 11),
@@ -164,12 +173,13 @@ class _AppShellState extends ConsumerState<AppShell> {
                         ],
                       ),
                     ),
+                    const SizedBox(height: 4),
                     Expanded(
                       child: ListView.builder(
                         padding: const EdgeInsets.symmetric(horizontal: 12),
-                        itemCount: AppShell._navItems.length,
+                        itemCount: navItems.length,
                         itemBuilder: (context, index) {
-                          final item = AppShell._navItems[index];
+                          final item = navItems[index];
                           final selected = widget.currentRoute.startsWith(
                             item.route,
                           );
@@ -195,7 +205,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                         children: [
                           if (showLabels)
                             Text(
-                              'Quick Actions',
+                              'Quick actions',
                               style: Theme.of(context).textTheme.bodySmall,
                             ),
                           Row(
@@ -214,26 +224,13 @@ class _AppShellState extends ConsumerState<AppShell> {
                                     .toggleThemeMode(),
                               ),
                               IconButton(
-                                tooltip: 'Settings',
-                                icon: const Icon(Icons.settings_outlined),
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Settings page is planned next.',
-                                      ),
-                                    ),
-                                  );
-                                },
-                              ),
-                              IconButton(
-                                tooltip: 'Help',
+                                tooltip: 'Teacher guide',
                                 icon: const Icon(Icons.help_outline),
                                 onPressed: () {
                                   ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
                                       content: Text(
-                                        'KOW support guide will be added soon.',
+                                        'Learners are read-only. Question edits automatically update the content version for student devices.',
                                       ),
                                     ),
                                   );
@@ -285,7 +282,7 @@ class _AppShellState extends ConsumerState<AppShell> {
                                           ),
                                         ),
                                         Text(
-                                          auth.role,
+                                          roleDisplayName(auth.role),
                                           style: Theme.of(
                                             context,
                                           ).textTheme.bodySmall,
@@ -333,7 +330,6 @@ class _AppShellState extends ConsumerState<AppShell> {
       );
     }
 
-    // Narrow: bottom nav
     return Scaffold(
       body: Stack(
         children: [
@@ -356,40 +352,44 @@ class _AppShellState extends ConsumerState<AppShell> {
           isDarkTheme ? Icons.light_mode_outlined : Icons.dark_mode_outlined,
         ),
       ),
-      bottomNavigationBar: NavigationBar(
-        selectedIndex: _selectedIndex(widget.currentRoute),
-        destinations: AppShell._navItems
-            .map(
-              (n) => NavigationDestination(
-                icon: Icon(n.icon),
-                selectedIcon: Icon(n.activeIcon),
-                label: n.label,
-              ),
-            )
-            .toList(),
-        onDestinationSelected: (i) => _navigateTo(AppShell._navItems[i].route),
+      bottomNavigationBar: SafeArea(
+        top: false,
+        child: Container(
+          decoration: BoxDecoration(
+            color: AppTheme.surfaceHigh,
+            border: Border(
+              top: BorderSide(color: scheme.outline.withValues(alpha: 0.28)),
+            ),
+          ),
+          padding: const EdgeInsets.fromLTRB(10, 8, 10, 10),
+          child: Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: navItems.map((item) {
+              final selected = widget.currentRoute.startsWith(item.route);
+              return _BottomNavChip(
+                item: item,
+                selected: selected,
+                onPressed: () => _navigateTo(item.route),
+              );
+            }).toList(),
+          ),
+        ),
       ),
     );
   }
 
   String _initials(String value) {
     final trimmed = value.trim();
-    if (trimmed.isEmpty) {
-      return 'A';
-    }
+    if (trimmed.isEmpty) return 'A';
+
     final parts = trimmed.split(RegExp(r'\s+'));
     if (parts.length == 1) {
       return parts.first.substring(0, 1).toUpperCase();
     }
+
     return (parts.first.substring(0, 1) + parts.last.substring(0, 1))
         .toUpperCase();
-  }
-
-  int _selectedIndex(String route) {
-    for (var i = 0; i < AppShell._navItems.length; i++) {
-      if (route.startsWith(AppShell._navItems[i].route)) return i;
-    }
-    return 0;
   }
 
   void _navigateTo(String route) {
@@ -403,9 +403,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     });
 
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!mounted) {
-        return;
-      }
+      if (!mounted) return;
       context.go(route);
     });
   }
@@ -423,17 +421,15 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (route.startsWith('/questions')) {
       return const QuestionsLoadingSkeleton();
     }
-    if (route.startsWith('/devices')) {
-      return const DevicesLoadingSkeleton();
-    }
     if (route.startsWith('/reports')) {
       return const ReportsLoadingSkeleton();
     }
-    if (route.startsWith('/content-versions')) {
-      return const ContentVersionsLoadingSkeleton();
+    if (route.startsWith('/activity-logs') ||
+        route.startsWith('/userbase')) {
+      return const StandardPageLoadingSkeleton();
     }
-    if (route.startsWith('/audit-log')) {
-      return const AuditLogLoadingSkeleton();
+    if (route.startsWith('/devices')) {
+      return const DevicesLoadingSkeleton();
     }
     if (route.startsWith('/sync-logs')) {
       return const SyncLogsLoadingSkeleton();
@@ -441,15 +437,14 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (route.startsWith('/system-health')) {
       return const SystemHealthLoadingSkeleton();
     }
-
     return const StandardPageLoadingSkeleton();
   }
 
   void _confirmLogout(BuildContext context, WidgetRef ref) {
-    showDialog(
+    showDialog<void>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Sign Out'),
+        title: const Text('Sign out'),
         content: const Text('Are you sure you want to sign out?'),
         actions: [
           TextButton(
@@ -460,9 +455,11 @@ class _AppShellState extends ConsumerState<AppShell> {
             onPressed: () async {
               Navigator.pop(context);
               await ref.read(authProvider.notifier).logout();
-              if (context.mounted) context.go('/login');
+              if (context.mounted) {
+                context.go('/login');
+              }
             },
-            child: const Text('Sign Out'),
+            child: const Text('Sign out'),
           ),
         ],
       ),
@@ -475,11 +472,14 @@ class _NavItem {
   final String label;
   final IconData icon;
   final IconData activeIcon;
+  final bool superadminOnly;
+
   const _NavItem({
     required this.route,
     required this.label,
     required this.icon,
     required this.activeIcon,
+    this.superadminOnly = false,
   });
 }
 
@@ -547,6 +547,64 @@ class _DrawerMenuTile extends StatelessWidget {
               ],
             ],
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _BottomNavChip extends StatelessWidget {
+  final _NavItem item;
+  final bool selected;
+  final VoidCallback onPressed;
+
+  const _BottomNavChip({
+    required this.item,
+    required this.selected,
+    required this.onPressed,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    const selectedColor = AppTheme.primary;
+    final color = selected
+        ? selectedColor
+        : Theme.of(context).colorScheme.onSurfaceVariant;
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(999),
+      onTap: onPressed,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? selectedColor.withValues(alpha: 0.15)
+              : Colors.transparent,
+          borderRadius: BorderRadius.circular(999),
+          border: Border.all(
+            color: selected
+                ? selectedColor.withValues(alpha: 0.32)
+                : Theme.of(context).colorScheme.outline.withValues(alpha: 0.4),
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(
+              selected ? item.activeIcon : item.icon,
+              size: 16,
+              color: color,
+            ),
+            const SizedBox(width: 6),
+            Text(
+              item.label,
+              style: TextStyle(
+                color: color,
+                fontSize: 11,
+                fontWeight: selected ? FontWeight.w700 : FontWeight.w600,
+              ),
+            ),
+          ],
         ),
       ),
     );

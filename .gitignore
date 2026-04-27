@@ -32,3 +32,6 @@ Thumbs.db
 
 # Test and coverage
 coverage/
+docs/
+AGENTS.md
+memory.md
