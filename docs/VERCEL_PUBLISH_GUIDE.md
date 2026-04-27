@@ -18,7 +18,7 @@ The important part is that Vercel does not have a Flutter framework preset, so t
 2. Use a custom Flutter install step.
 3. Build the app with `flutter build web`.
 4. Publish `build/web`.
-5. Set `API_BASE_URL` to your real backend URL, not `http://localhost:3000`.
+5. Set `API_BASE_URL` to the backend URL you want the deployed app to use.
 
 ## What I checked in this repo
 
@@ -29,7 +29,7 @@ The important part is that Vercel does not have a Flutter framework preset, so t
 - `.env.prod` currently contains:
   - `API_BASE_URL=http://localhost:3000`
 
-That localhost value must be replaced for production.
+That value is okay temporarily for build testing, but a deployed Vercel site cannot call your own local `localhost:3000`.
 
 ## Recommended publish path
 
@@ -48,9 +48,10 @@ Make sure you already have:
 
 1. A Vercel account with access to the correct GitHub account/team.
 2. Access to `vgl-spec/KowTSide`.
-3. A real backend URL for production, for example:
-   - `https://your-api.onrender.com`
-   - `https://api.your-domain.com`
+3. A backend URL to use from the deployed app.
+   - Temporary testing value: `http://localhost:3000`
+   - Real hosted example: `https://your-api.onrender.com`
+   - Real hosted example: `https://api.your-domain.com`
 4. A successful local production build:
 
 ```bash
@@ -64,18 +65,20 @@ If local production build fails, fix that first before connecting Vercel.
 
 ### 1. Fix production values first
 
-Open `.env.prod` and replace the localhost API with your real backend URL.
+For now, you can keep `.env.prod` as localhost if your backend is not hosted yet.
 
 Example:
 
 ```env
-API_BASE_URL=https://your-backend-url.com
+API_BASE_URL=http://localhost:3000
 FRONTEND_ONLY=false
 AUTO_LOGIN=false
 ```
 
 Notes:
 
+- this is fine for now because you said your backend is not yet deployed
+- once the site is live on Vercel, browser requests to `localhost:3000` will point to the visitor's own computer, not your VPS or your development machine
 - `FRONTEND_ONLY=false` is correct for production.
 - `AUTO_LOGIN=false` is also correct for production.
 - Vercel will use its own environment variables, but this file is still useful for local production testing.
@@ -144,12 +147,12 @@ git clone https://github.com/flutter/flutter.git --depth 1 -b stable $HOME/flutt
 Then open `Environment Variables` and add:
 
 - Name: `API_BASE_URL`
-- Value: your real backend URL
+- Value: for now use `http://localhost:3000`
 
 Example:
 
 ```text
-https://your-backend-url.com
+http://localhost:3000
 ```
 
 After that, click `Deploy`.
@@ -206,14 +209,16 @@ In Vercel, go to:
 Add:
 
 - Name: `API_BASE_URL`
-- Value: your real backend URL
+- Value: the backend URL you want this deployment to call
 - Environment: `Production`
 
 Recommended example:
 
 ```text
-API_BASE_URL=https://your-backend-url.com
+API_BASE_URL=http://localhost:3000
 ```
+
+When your backend is later deployed to Hostinger VPS or another host, change this value and redeploy.
 
 You can also add the same variable for:
 
@@ -320,7 +325,8 @@ Fix:
 
 Cause:
 
-- `API_BASE_URL` still points to localhost or the wrong backend
+- `API_BASE_URL` points to the wrong backend
+- if it points to `localhost:3000`, the deployed app will try to contact the visitor's own computer
 
 Fix:
 
@@ -352,13 +358,12 @@ Fix:
 
 If I were publishing this repo, I would do it in this order:
 
-1. confirm the backend production URL
-2. fix `.env.prod`
-3. update `vercel.json` to include the Flutter install step
-4. push to `vgl-spec/KowTSide`
-5. import the repo into Vercel
-6. add `API_BASE_URL`
-7. deploy and test routes
+1. update `vercel.json` to include the Flutter install step
+2. push to `vgl-spec/KowTSide`
+3. import the repo into Vercel
+4. for now set `API_BASE_URL=http://localhost:3000`
+5. deploy and confirm the Flutter app builds
+6. later, replace `API_BASE_URL` with the Hostinger VPS backend URL and redeploy
 
 ## Official sources used
 
@@ -380,6 +385,6 @@ For `vgl-spec/KowTSide`, the cleanest setup is:
 - deploy it as a static Flutter Web app
 - use Vercel with a custom Flutter install/build pipeline
 - publish `build/web`
-- set `API_BASE_URL` to the real backend
+- set `API_BASE_URL` to the backend URL you currently want to use
 
 If you want, the next safe follow-up is to update `KowTSide/vercel.json` so the repo matches this guide exactly.
