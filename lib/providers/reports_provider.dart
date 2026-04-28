@@ -46,11 +46,14 @@ final reportsSnapshotProvider = FutureProvider<ReportsSnapshot>((ref) async {
       final leaderboard = _readList(
         data['leaderboard'] ?? data['top_learners'],
       ).map(LeaderboardEntry.fromJson).toList();
+      final effectiveStudents = students.isNotEmpty
+          ? students
+          : _studentsFromLeaderboard(leaderboard);
 
-      if (students.isNotEmpty || leaderboard.isNotEmpty) {
+      if (effectiveStudents.isNotEmpty || leaderboard.isNotEmpty) {
         return ReportsSnapshot(
           dashboard: dashboard,
-          students: students,
+          students: effectiveStudents,
           leaderboard: leaderboard,
         );
       }
@@ -74,10 +77,15 @@ final reportsSnapshotProvider = FutureProvider<ReportsSnapshot>((ref) async {
     _readMap(responses[2].data)['leaderboard'] ?? responses[2].data,
   );
 
+  final leaderboard = leaderboardData.map(LeaderboardEntry.fromJson).toList();
+  final students = studentsData.map(Student.fromJson).toList();
+
   return ReportsSnapshot(
     dashboard: DashboardData.fromJson(dashboardData),
-    students: studentsData.map(Student.fromJson).toList(),
-    leaderboard: leaderboardData.map(LeaderboardEntry.fromJson).toList(),
+    students: students.isNotEmpty
+        ? students
+        : _studentsFromLeaderboard(leaderboard),
+    leaderboard: leaderboard,
   );
 });
 
@@ -94,4 +102,37 @@ List<Map<String, dynamic>> _readList(Object? value) {
         .toList();
   }
   return const [];
+}
+
+List<Student> _studentsFromLeaderboard(List<LeaderboardEntry> leaderboard) {
+  return leaderboard.map((entry) {
+    final nameParts = entry.fullName.trim().split(RegExp(r'\s+'));
+    final firstName = nameParts.isNotEmpty ? nameParts.first : entry.nickname;
+    final lastName = nameParts.length > 1 ? nameParts.skip(1).join(' ') : '';
+    final avgScore = entry.sessions <= 0
+        ? 0.0
+        : entry.totalScore / entry.sessions;
+
+    return Student(
+      studId: entry.studId,
+      nickname: entry.nickname,
+      firstName: firstName,
+      lastName: lastName,
+      area: '',
+      birthday: '',
+      age: 0,
+      gradelvl: entry.gradelvl,
+      sex: '',
+      totalSessions: entry.sessions,
+      avgScore: avgScore,
+      proficiency: _proficiencyFor(avgScore),
+    );
+  }).toList();
+}
+
+String _proficiencyFor(double avgScore) {
+  if (avgScore >= 9.0) return 'Excelling';
+  if (avgScore >= 7.0) return 'On track';
+  if (avgScore >= 5.0) return 'Needs support';
+  return 'Needs significant support';
 }

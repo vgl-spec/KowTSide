@@ -322,6 +322,7 @@ class MockData {
       totalStudents: _students.length,
       totalScores: totalScores,
       averageScore: averageScore,
+      passRatePct: 75.0,
       contentVersion: 'v43',
       ageGroupProgress: const [
         AgeGroupProgress(

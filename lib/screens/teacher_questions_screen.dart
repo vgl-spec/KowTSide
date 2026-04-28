@@ -77,9 +77,6 @@ class _TeacherQuestionsScreenState
         ),
         data: (pageData) {
           final questions = pageData.questions;
-          final activeCount = questions
-              .where((question) => question.isActive)
-              .length;
           final selectedIds = _selectedVisibleIds(questions);
           final selectedCount = selectedIds.length;
 
@@ -119,7 +116,8 @@ class _TeacherQuestionsScreenState
                               controller: _searchController,
                               decoration: const InputDecoration(
                                 labelText: 'Search questions or options',
-                                hintText: 'Find words in the question or A/B/C/D choices...',
+                                hintText:
+                                    'Find words in the question or A/B/C/D choices...',
                                 prefixIcon: Icon(Icons.search_rounded),
                               ),
                               onChanged: _onSearchChanged,
@@ -175,8 +173,12 @@ class _TeacherQuestionsScreenState
                             label: const Text('Show inactive'),
                             selected: filter.showInactive,
                             onSelected: (selected) {
-                              ref.read(questionFilterProvider.notifier).state =
-                                  filter.copyWith(showInactive: selected, page: 1);
+                              ref
+                                  .read(questionFilterProvider.notifier)
+                                  .state = filter.copyWith(
+                                showInactive: selected,
+                                page: 1,
+                              );
                             },
                           ),
                         ],
@@ -239,8 +241,7 @@ class _TeacherQuestionsScreenState
                                   selectedQuestionIds: selectedIds,
                                   onTapQuestion: (question) =>
                                       _handleQuestionTap(context, question),
-                                  onLongPressQuestion:
-                                      _handleQuestionLongPress,
+                                  onLongPressQuestion: _handleQuestionLongPress,
                                 ),
                         ),
                       ),
@@ -329,10 +330,7 @@ class _TeacherQuestionsScreenState
     });
   }
 
-  void _setFilter({
-    int? page,
-    String? searchQuery,
-  }) {
+  void _setFilter({int? page, String? searchQuery}) {
     final current = ref.read(questionFilterProvider);
     ref.read(questionFilterProvider.notifier).state = current.copyWith(
       page: page,
@@ -550,23 +548,6 @@ class _FilterDropdown<T> extends StatelessWidget {
         onChanged: onChanged,
       ),
     );
-  }
-}
-
-class _StatBadge extends StatelessWidget {
-  final String label;
-  final String value;
-  final Color color;
-
-  const _StatBadge({
-    required this.label,
-    required this.value,
-    required this.color,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return FlarePill(label: '$label: $value', color: color);
   }
 }
 

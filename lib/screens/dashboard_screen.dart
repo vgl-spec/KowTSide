@@ -53,7 +53,7 @@ class _DashboardView extends StatelessWidget {
     final scoreBySubject = _groupBySubject(data.ageGroupProgress);
     final scoreByGroup = _groupByAgeGroup(data.ageGroupProgress);
     final averagePassRate = data.ageGroupProgress.isEmpty
-        ? 0.0
+        ? data.passRatePct
         : data.ageGroupProgress
                   .map((entry) => entry.passRatePct)
                   .reduce((a, b) => a + b) /

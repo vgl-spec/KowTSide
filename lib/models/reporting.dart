@@ -33,7 +33,7 @@ class LeaderboardEntry {
       fullName:
           json['full_name'] as String? ??
           (computedName.isEmpty ? 'Unknown Student' : computedName),
-      gradelvl: json['gradelvl'] as String? ?? '',
+      gradelvl: _normalizeGradeLevelLabel(json['gradelvl']),
       totalScore:
           _readDouble(json['total_score']) ??
           _readDouble(json['totalScore']) ??
@@ -68,4 +68,19 @@ double? _readDouble(Object? value) {
   if (value is num) return value.toDouble();
   if (value is String) return double.tryParse(value);
   return null;
+}
+
+String _normalizeGradeLevelLabel(Object? value) {
+  final label = (value as String?)?.trim() ?? '';
+  final lower = label.toLowerCase();
+  if (lower.contains('punla')) {
+    return 'Punla (4-5)';
+  }
+  if (lower.contains('binhi')) {
+    return 'Binhi (6-7)';
+  }
+  if (lower.isEmpty || lower == 'unknown') {
+    return 'Binhi (6-7)';
+  }
+  return label;
 }

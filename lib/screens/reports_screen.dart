@@ -74,7 +74,7 @@ class ReportsScreen extends ConsumerWidget {
     final topLeaderboard = leaderboard.take(8).toList();
 
     final passRateAverage = dashboard.ageGroupProgress.isEmpty
-        ? 0.0
+        ? dashboard.passRatePct
         : dashboard.ageGroupProgress
                   .map((item) => item.passRatePct)
                   .reduce((a, b) => a + b) /
@@ -458,7 +458,7 @@ class _LeaderboardDetailsTable extends StatelessWidget {
           ),
           child: const Row(
             children: [
-              Expanded(flex: 2, child: Text('Rank')), 
+              Expanded(flex: 2, child: Text('Rank')),
               Expanded(flex: 2, child: Text('Nickname')),
               Expanded(flex: 3, child: Text('Full Name')),
               Expanded(flex: 2, child: Text('Group')),
@@ -473,10 +473,9 @@ class _LeaderboardDetailsTable extends StatelessWidget {
             decoration: BoxDecoration(
               border: Border(
                 bottom: BorderSide(
-                  color: Theme.of(context)
-                      .colorScheme
-                      .outline
-                      .withValues(alpha: 0.2),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withValues(alpha: 0.2),
                 ),
               ),
             ),

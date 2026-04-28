@@ -2,6 +2,7 @@ class DashboardData {
   final int totalStudents;
   final int totalScores;
   final double averageScore;
+  final double passRatePct;
   final String contentVersion;
   final List<AgeGroupProgress> ageGroupProgress;
   final List<PoolHealthEntry> poolHealth;
@@ -10,6 +11,7 @@ class DashboardData {
     required this.totalStudents,
     required this.totalScores,
     required this.averageScore,
+    required this.passRatePct,
     required this.contentVersion,
     required this.ageGroupProgress,
     required this.poolHealth,
@@ -21,6 +23,7 @@ class DashboardData {
         _readInt(j['total_scores']) ?? _readInt(j['total_sessions']) ?? 0,
     averageScore:
         _readDouble(j['average_score']) ?? _readDouble(j['avg_score']) ?? 0.0,
+    passRatePct: _readDouble(j['pass_rate_pct']) ?? 0.0,
     contentVersion:
         j['content_version'] as String? ?? j['version_tag'] as String? ?? 'v0',
     ageGroupProgress: (j['age_group_progress'] as List? ?? [])
