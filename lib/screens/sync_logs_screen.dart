@@ -89,18 +89,18 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                   width: compact ? MediaQuery.of(context).size.width - 80 : 320,
                   child: TextField(
                     controller: _searchCtrl,
+                    onChanged: (_) => setState(() => _page = 1),
                     decoration: InputDecoration(
                       hintText: 'Search by device, event, or id...',
                       prefixIcon: const Icon(Icons.search, size: 18),
                       suffixIcon: IconButton(
                         icon: const Icon(Icons.clear, size: 18),
-                          onPressed: () => setState(() {
-                            _searchCtrl.clear();
-                            _page = 1;
-                          }),
+                        onPressed: () => setState(() {
+                          _searchCtrl.clear();
+                          _page = 1;
+                        }),
                       ),
                     ),
-                      onChanged: (_) => setState(() => _page = 1),
                   ),
                 ),
                 FilledButton.tonalIcon(
@@ -330,10 +330,9 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                             ),
                           ),
                         ),
-                      ),
-                    ),
-                  ),
-                ),
+                );
+              },
+            ),
             const SizedBox(height: 12),
             _SyncLogPaginationBar(
               page: safePage,
@@ -341,9 +340,6 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
               totalRows: records.length,
               rowsPerPage: _rowsPerPage,
               onPageSelected: (page) => setState(() => _page = page),
-            ),
-                );
-              },
             ),
           ],
         ),

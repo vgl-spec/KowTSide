@@ -112,6 +112,18 @@ List<Map<String, dynamic>> _readList(Object? value) {
   return const [];
 }
 
+int? _readInt(Object? value) {
+  if (value is num) return value.toInt();
+  if (value is String) return int.tryParse(value.trim());
+  return null;
+}
+
+double? _readDouble(Object? value) {
+  if (value is num) return value.toDouble();
+  if (value is String) return double.tryParse(value.trim());
+  return null;
+}
+
 Map<String, dynamic> _enrichDashboardMap(
   Map<String, dynamic> dashboard,
   Map<String, dynamic> source,
@@ -151,23 +163,37 @@ List<Map<String, dynamic>> _deriveAgeGroupProgress(Object? value) {
     final sample = rowsForGroup.first;
     final totalStudents = rowsForGroup.fold<int>(
       0,
-      (sum, row) => sum + (_readInt(row['student_groups']) ?? _readInt(row['active_students']) ?? 0),
+      (sum, row) =>
+          sum + (_readInt(row['student_groups']) ?? _readInt(row['active_students']) ?? 0),
     );
 
     final weights = rowsForGroup
-        .map((row) => (_readInt(row['student_groups']) ?? _readInt(row['active_students']) ?? 0).toDouble())
-        .toList();
+        .map<double>(
+          (row) => (_readInt(row['student_groups']) ??
+                  _readInt(row['active_students']) ??
+                  0)
+              .toDouble(),
+        )
+        .toList(growable: false);
+
+    final avgScores = rowsForGroup
+        .map<double>((row) => _readDouble(row['avg_score']) ?? 0.0)
+        .toList(growable: false);
+
+    final passRates = rowsForGroup
+        .map<double>((row) => _readDouble(row['pass_rate_pct']) ?? 0.0)
+        .toList(growable: false);
 
     return <String, dynamic>{
       'gradelvl': _normalizeGradeLevelLabel(sample['gradelvl']),
       'subject': sample['subject'] as String? ?? '',
       'active_students': totalStudents,
       'avg_score': _weightedAverage(
-        rowsForGroup.map((row) => _readDouble(row['avg_score']) ?? 0.0).toList(),
+        avgScores,
         weights,
       ),
       'pass_rate_pct': _weightedAverage(
-        rowsForGroup.map((row) => _readDouble(row['pass_rate_pct']) ?? 0.0).toList(),
+        passRates,
         weights,
       ),
     };
