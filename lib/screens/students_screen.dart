@@ -158,7 +158,7 @@ class _StudentsViewState extends State<_StudentsView> {
               FlareMetricTile(
                 label: 'Punla Learners',
                 value: '$punlaCount',
-                hint: 'Ages 3-5 grouping',
+                hint: 'Ages 4-5 grouping',
                 icon: Icons.eco_rounded,
                 color: AppTheme.success,
               ),

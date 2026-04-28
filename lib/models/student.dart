@@ -52,7 +52,7 @@ String _normalizeGradeLevelLabel(Object? value) {
   final label = (value as String?)?.trim() ?? '';
   final lower = label.toLowerCase();
   if (lower.contains('punla')) {
-    return 'Punla (3-5)';
+    return 'Punla (4-5)';
   }
   if (lower.contains('binhi')) {
     return 'Binhi (6-8)';

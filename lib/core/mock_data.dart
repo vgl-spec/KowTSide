@@ -16,7 +16,7 @@ class MockData {
       area: 'Sauyo',
       birthday: '2021-04-14',
       age: 5,
-      gradelvl: 'Punla (3-5)',
+      gradelvl: 'Punla (4-5)',
       sex: 'Female',
       totalSessions: 14,
       avgScore: 8.6,
@@ -44,7 +44,7 @@ class MockData {
       area: 'Sauyo',
       birthday: '2022-01-20',
       age: 4,
-      gradelvl: 'Punla (3-5)',
+      gradelvl: 'Punla (4-5)',
       sex: 'Female',
       totalSessions: 6,
       avgScore: 6.2,
@@ -325,14 +325,14 @@ class MockData {
       contentVersion: 'v43',
       ageGroupProgress: const [
         AgeGroupProgress(
-          gradelvl: 'Punla (3-5)',
+          gradelvl: 'Punla (4-5)',
           subject: 'Mathematics',
           activeStudents: 2,
           avgScore: 7.9,
           passRatePct: 75.0,
         ),
         AgeGroupProgress(
-          gradelvl: 'Punla (3-5)',
+          gradelvl: 'Punla (4-5)',
           subject: 'English',
           activeStudents: 2,
           avgScore: 6.8,
@@ -415,14 +415,14 @@ class MockData {
           progress: const [
             SubjectProgress(
               subject: 'English',
-              gradelvl: 'Punla (3-5)',
+              gradelvl: 'Punla (4-5)',
               highestDiffPassed: 1,
               totalTimePlayed: 260,
               lastPlayedAt: '2026-04-16',
             ),
             SubjectProgress(
               subject: 'Filipino',
-              gradelvl: 'Punla (3-5)',
+              gradelvl: 'Punla (4-5)',
               highestDiffPassed: 0,
               totalTimePlayed: 180,
               lastPlayedAt: '2026-04-15',
@@ -432,7 +432,7 @@ class MockData {
           recentScores: const [
             ScoreRecord(
               subject: 'English',
-              gradelvl: 'Punla (3-5)',
+              gradelvl: 'Punla (4-5)',
               difficulty: 'Easy',
               score: 7,
               totalItems: 10,
@@ -441,7 +441,7 @@ class MockData {
             ),
             ScoreRecord(
               subject: 'Filipino',
-              gradelvl: 'Punla (3-5)',
+              gradelvl: 'Punla (4-5)',
               difficulty: 'Easy',
               score: 5,
               totalItems: 10,
@@ -456,14 +456,14 @@ class MockData {
           progress: const [
             SubjectProgress(
               subject: 'Mathematics',
-              gradelvl: 'Punla (3-5)',
+              gradelvl: 'Punla (4-5)',
               highestDiffPassed: 2,
               totalTimePlayed: 520,
               lastPlayedAt: '2026-04-18',
             ),
             SubjectProgress(
               subject: 'Science',
-              gradelvl: 'Punla (3-5)',
+              gradelvl: 'Punla (4-5)',
               highestDiffPassed: 1,
               totalTimePlayed: 330,
               lastPlayedAt: '2026-04-17',
@@ -473,7 +473,7 @@ class MockData {
           recentScores: const [
             ScoreRecord(
               subject: 'Mathematics',
-              gradelvl: 'Punla (3-5)',
+              gradelvl: 'Punla (4-5)',
               difficulty: 'Average',
               score: 8,
               totalItems: 10,
@@ -482,7 +482,7 @@ class MockData {
             ),
             ScoreRecord(
               subject: 'Science',
-              gradelvl: 'Punla (3-5)',
+              gradelvl: 'Punla (4-5)',
               difficulty: 'Easy',
               score: 6,
               totalItems: 10,
