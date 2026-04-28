@@ -28,7 +28,10 @@ class WebSocketService {
   void _doConnect() {
     if (_disposed || _currentToken == null) return;
     try {
-      final uri = Uri.parse('${ApiConstants.wsUrl}?token=$_currentToken');
+      final token = _currentToken?.trim();
+      final uri = token == null || token.isEmpty || token == 'cookie-session'
+          ? Uri.parse(ApiConstants.wsUrl)
+          : Uri.parse('${ApiConstants.wsUrl}?token=$token');
       _channel = WebSocketChannel.connect(uri);
       unawaited(
         _channel!.ready.catchError((_) {

@@ -60,8 +60,9 @@ class ApiConstants {
 }
 
 class AppConstants {
-  static const String tokenKey = 'kow_admin_jwt';
+  static const String tokenKey = 'kow_admin_session';
   static const String csrfTokenKey = 'kow_admin_csrf';
+  static const String authModeKey = 'kow_admin_auth_mode';
   static const String usernameKey = 'kow_admin_username';
   static const String roleKey = 'kow_admin_role';
   static const String adminIdKey = 'kow_admin_id';
