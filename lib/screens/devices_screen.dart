@@ -145,7 +145,10 @@ class DevicesScreen extends ConsumerWidget {
                                           numeric: true,
                                           label: SizedBox(
                                             width: 110,
-                                            child: Text('Students'),
+                                            child: Align(
+                                              alignment: Alignment.centerRight,
+                                              child: Text('Students'),
+                                            ),
                                           ),
                                         ),
                                         DataColumn(

@@ -38,7 +38,10 @@ final reportsSnapshotProvider = FutureProvider<ReportsSnapshot>((ref) async {
     final data = _readMap(response.data);
     if (data.isNotEmpty) {
       final dashboard = DashboardData.fromJson(
-        _readMap(data['dashboard'] ?? data['summary'] ?? data),
+        _enrichDashboardMap(
+          _readMap(data['dashboard'] ?? data['summary'] ?? data),
+          data,
+        ),
       );
       final students = _readList(
         data['students'] ?? data['learners'],
@@ -81,7 +84,9 @@ final reportsSnapshotProvider = FutureProvider<ReportsSnapshot>((ref) async {
   final students = studentsData.map(Student.fromJson).toList();
 
   return ReportsSnapshot(
-    dashboard: DashboardData.fromJson(dashboardData),
+    dashboard: DashboardData.fromJson(
+      _enrichDashboardMap(dashboardData, dashboardData),
+    ),
     students: students.isNotEmpty
         ? students
         : _studentsFromLeaderboard(leaderboard),
@@ -91,6 +96,9 @@ final reportsSnapshotProvider = FutureProvider<ReportsSnapshot>((ref) async {
 
 Map<String, dynamic> _readMap(Object? value) {
   if (value is Map<String, dynamic>) return value;
+  if (value is Map) {
+    return value.map((key, entry) => MapEntry(key.toString(), entry));
+  }
   return <String, dynamic>{};
 }
 
@@ -104,6 +112,96 @@ List<Map<String, dynamic>> _readList(Object? value) {
   return const [];
 }
 
+Map<String, dynamic> _enrichDashboardMap(
+  Map<String, dynamic> dashboard,
+  Map<String, dynamic> source,
+) {
+  final existingAgeRows = dashboard['age_group_progress'];
+  if (existingAgeRows is List && existingAgeRows.isNotEmpty) {
+    return dashboard;
+  }
+
+  final derived = _deriveAgeGroupProgress(source['subject_level_summary']);
+  if (derived.isNotEmpty) {
+    return {
+      ...dashboard,
+      'age_group_progress': derived,
+    };
+  }
+
+  return dashboard;
+}
+
+List<Map<String, dynamic>> _deriveAgeGroupProgress(Object? value) {
+  final rows = _readList(value);
+  if (rows.isEmpty) {
+    return const [];
+  }
+
+  final grouped = <String, List<Map<String, dynamic>>>{};
+  for (final row in rows) {
+    final gradelvl = _normalizeGradeLevelLabel(row['gradelvl']);
+    final subject = (row['subject'] as String? ?? '').trim();
+    final key = '$gradelvl|$subject';
+    grouped.putIfAbsent(key, () => <Map<String, dynamic>>[]).add(row);
+  }
+
+  return grouped.entries.map((entry) {
+    final rowsForGroup = entry.value;
+    final sample = rowsForGroup.first;
+    final totalStudents = rowsForGroup.fold<int>(
+      0,
+      (sum, row) => sum + (_readInt(row['student_groups']) ?? _readInt(row['active_students']) ?? 0),
+    );
+
+    final weights = rowsForGroup
+        .map((row) => (_readInt(row['student_groups']) ?? _readInt(row['active_students']) ?? 0).toDouble())
+        .toList();
+
+    return <String, dynamic>{
+      'gradelvl': _normalizeGradeLevelLabel(sample['gradelvl']),
+      'subject': sample['subject'] as String? ?? '',
+      'active_students': totalStudents,
+      'avg_score': _weightedAverage(
+        rowsForGroup.map((row) => _readDouble(row['avg_score']) ?? 0.0).toList(),
+        weights,
+      ),
+      'pass_rate_pct': _weightedAverage(
+        rowsForGroup.map((row) => _readDouble(row['pass_rate_pct']) ?? 0.0).toList(),
+        weights,
+      ),
+    };
+  }).toList();
+}
+
+double _weightedAverage(List<double> values, List<double> weights) {
+  if (values.isEmpty || weights.isEmpty || values.length != weights.length) {
+    return 0.0;
+  }
+
+  final totalWeight = weights.fold<double>(0.0, (sum, weight) => sum + weight);
+  if (totalWeight <= 0) {
+    return values.fold<double>(0.0, (sum, value) => sum + value) / values.length;
+  }
+
+  var weightedSum = 0.0;
+  for (var index = 0; index < values.length; index++) {
+    weightedSum += values[index] * weights[index];
+  }
+  return weightedSum / totalWeight;
+}
+
+String _normalizeGradeLevelLabel(Object? value) {
+  final label = (value as String?)?.trim() ?? '';
+  final lower = label.toLowerCase();
+  if (lower.contains('punla')) {
+    return 'Punla (4-5)';
+  }
+  if (lower.contains('binhi')) {
+    return 'Binhi (6-7)';
+  }
+  return label;
+}
 List<Student> _studentsFromLeaderboard(List<LeaderboardEntry> leaderboard) {
   return leaderboard.map((entry) {
     final nameParts = entry.fullName.trim().split(RegExp(r'\s+'));

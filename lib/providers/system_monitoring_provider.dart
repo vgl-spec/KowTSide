@@ -146,6 +146,9 @@ final systemHealthProvider = FutureProvider<SystemHealthData>((ref) async {
 
 Map<String, dynamic> _readMap(Object? data) {
   if (data is Map<String, dynamic>) return data;
+  if (data is Map) {
+    return data.map((key, entry) => MapEntry(key.toString(), entry));
+  }
   return <String, dynamic>{};
 }
 
@@ -175,6 +178,18 @@ List<Map<String, dynamic>> _readList(
           .whereType<Map>()
           .map((entry) => Map<String, dynamic>.from(entry))
           .toList();
+    }
+  }
+  if (data is Map) {
+    final asMap = data.map((key, entry) => MapEntry(key.toString(), entry));
+    for (final key in keys) {
+      final value = asMap[key];
+      if (value is List) {
+        return value
+            .whereType<Map>()
+            .map((entry) => Map<String, dynamic>.from(entry))
+            .toList();
+      }
     }
   }
   return const [];

@@ -38,7 +38,7 @@ class Student {
     birthday: j['birthday'] as String? ?? '',
     age: _readInt(j['age']) ?? 0,
     gradelvl: _normalizeGradeLevelLabel(j['gradelvl']),
-    sex: j['sex'] as String? ?? '',
+    sex: _normalizeSexLabel(j['sex'] ?? j['sex_id']),
     totalSessions: _readInt(j['total_sessions']) ?? 0,
     avgScore: _readDouble(j['avg_score']) ?? 0.0,
     proficiency: j['proficiency'] as String? ?? 'On track',
@@ -56,6 +56,26 @@ String _normalizeGradeLevelLabel(Object? value) {
   }
   if (lower.contains('binhi')) {
     return 'Binhi (6-7)';
+  }
+  return label;
+}
+
+String _normalizeSexLabel(Object? value) {
+  if (value is num) {
+    return switch (value.toInt()) {
+      1 => 'Male',
+      2 => 'Female',
+      _ => '',
+    };
+  }
+
+  final label = (value as String?)?.trim() ?? '';
+  final lower = label.toLowerCase();
+  if (lower == '1' || lower.contains('male')) {
+    return 'Male';
+  }
+  if (lower == '2' || lower.contains('female')) {
+    return 'Female';
   }
   return label;
 }

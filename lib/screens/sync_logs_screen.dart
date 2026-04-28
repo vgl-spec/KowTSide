@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/intl.dart';
 
 import '../core/theme.dart';
 import '../models/system_monitoring.dart';
@@ -17,6 +18,9 @@ class SyncLogsScreen extends ConsumerStatefulWidget {
 class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   String _statusFilter = 'All';
+  int _page = 1;
+
+  static const int _rowsPerPage = 12;
 
   @override
   void dispose() {
@@ -55,6 +59,12 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
     final skippedCount = syncLogs?.skippedCount ?? 0;
     final totalCount = syncLogs?.records.length ?? 0;
     final compact = MediaQuery.of(context).size.width < 980;
+    final totalPages = records.isEmpty
+      ? 1
+      : ((records.length + _rowsPerPage - 1) ~/ _rowsPerPage);
+    final safePage = _page > totalPages ? totalPages : _page;
+    final startIndex = (safePage - 1) * _rowsPerPage;
+    final pageRecords = records.skip(startIndex).take(_rowsPerPage).toList();
 
     return SafeArea(
       child: RefreshIndicator(
@@ -84,10 +94,13 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                       prefixIcon: const Icon(Icons.search, size: 18),
                       suffixIcon: IconButton(
                         icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () => setState(_searchCtrl.clear),
+                          onPressed: () => setState(() {
+                            _searchCtrl.clear();
+                            _page = 1;
+                          }),
                       ),
                     ),
-                    onChanged: (_) => setState(() {}),
+                      onChanged: (_) => setState(() => _page = 1),
                   ),
                 ),
                 FilledButton.tonalIcon(
@@ -163,7 +176,10 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                             .toList(),
                         onChanged: (value) {
                           if (value != null) {
-                            setState(() => _statusFilter = value);
+                            setState(() {
+                              _statusFilter = value;
+                              _page = 1;
+                            });
                           }
                         },
                       ),
@@ -242,7 +258,7 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                                     ),
                                   ),
                                 ],
-                                rows: records.take(50).map((record) {
+                                rows: pageRecords.map((record) {
                                   return DataRow(
                                     cells: [
                                       DataCell(
@@ -281,7 +297,9 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                                         SizedBox(
                                           width: 160,
                                           child: Text(
-                                            _formatRelative(record.syncedAt),
+                                            _formatManilaTimestamp(
+                                              record.syncedAt,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -312,6 +330,18 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                             ),
                           ),
                         ),
+                      ),
+                    ),
+                  ),
+                ),
+            const SizedBox(height: 12),
+            _SyncLogPaginationBar(
+              page: safePage,
+              totalPages: totalPages,
+              totalRows: records.length,
+              rowsPerPage: _rowsPerPage,
+              onPageSelected: (page) => setState(() => _page = page),
+            ),
                 );
               },
             ),
@@ -335,13 +365,78 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
     }).toList();
   }
 
-  String _formatRelative(DateTime? value) {
+  String _formatManilaTimestamp(DateTime? value) {
     if (value == null) return 'Not synced yet';
-    final diff = DateTime.now().difference(value.toLocal());
-    if (diff.inSeconds < 60) return '${diff.inSeconds}s ago';
-    if (diff.inMinutes < 60) return '${diff.inMinutes}m ago';
-    if (diff.inHours < 24) return '${diff.inHours}h ago';
-    return '${diff.inDays}d ago';
+    final manilaTime = value.toUtc().add(const Duration(hours: 8));
+    return DateFormat('dd MMM yyyy, hh:mm a').format(manilaTime);
+  }
+}
+
+class _SyncLogPaginationBar extends StatelessWidget {
+  final int page;
+  final int totalPages;
+  final int totalRows;
+  final int rowsPerPage;
+  final ValueChanged<int> onPageSelected;
+
+  const _SyncLogPaginationBar({
+    required this.page,
+    required this.totalPages,
+    required this.totalRows,
+    required this.rowsPerPage,
+    required this.onPageSelected,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final pages = _visiblePages(page, totalPages);
+    final startRow = totalRows == 0 ? 0 : ((page - 1) * rowsPerPage) + 1;
+    final endRow = totalRows == 0
+        ? 0
+        : (page * rowsPerPage > totalRows ? totalRows : page * rowsPerPage);
+
+    return Wrap(
+      spacing: 10,
+      runSpacing: 10,
+      alignment: WrapAlignment.spaceBetween,
+      crossAxisAlignment: WrapCrossAlignment.center,
+      children: [
+        Text(
+          totalRows == 0
+              ? 'No rows to display'
+              : 'Showing $startRow-$endRow of $totalRows records',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+        Wrap(
+          spacing: 6,
+          children: [
+            IconButton(
+              onPressed: page > 1 ? () => onPageSelected(page - 1) : null,
+              icon: const Icon(Icons.chevron_left),
+            ),
+            ...pages.map(
+              (value) => FilledButton.tonal(
+                onPressed: value == page ? null : () => onPageSelected(value),
+                child: Text('$value'),
+              ),
+            ),
+            IconButton(
+              onPressed: page < totalPages ? () => onPageSelected(page + 1) : null,
+              icon: const Icon(Icons.chevron_right),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  List<int> _visiblePages(int page, int totalPages) {
+    if (totalPages <= 5) {
+      return List<int>.generate(totalPages, (index) => index + 1);
+    }
+
+    final start = (page - 2).clamp(1, totalPages - 4);
+    return List<int>.generate(5, (index) => start + index);
   }
 }
 
