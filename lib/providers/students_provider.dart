@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api_client.dart';
 import '../core/constants.dart';
@@ -49,12 +50,41 @@ final studentDetailProvider = FutureProvider.family<StudentDetail, int>((
   if (ApiConstants.frontendOnly) {
     return MockData.studentDetail(id);
   }
-  final resp = await dio.get(ApiConstants.student(id));
-  final data =
-      resp.data['data'] as Map<String, dynamic>? ??
-      resp.data as Map<String, dynamic>;
-  return StudentDetail.fromJson(data);
+  try {
+    final resp = await dio.get(ApiConstants.student(id));
+    final data =
+        resp.data['data'] as Map<String, dynamic>? ??
+        resp.data as Map<String, dynamic>;
+    return StudentDetail.fromJson(data);
+  } on DioException catch (error) {
+    if (error.response?.statusCode != 404) {
+      rethrow;
+    }
+    return _fallbackStudentDetail(ref, id);
+  }
 });
+
+Future<StudentDetail> _fallbackStudentDetail(Ref ref, int id) async {
+  final students = await ref.read(studentsProvider.future);
+  final matching = students.where((student) => student.studId == id);
+  if (matching.isEmpty) {
+    throw DioException(
+      requestOptions: RequestOptions(path: ApiConstants.student(id)),
+      response: Response(
+        requestOptions: RequestOptions(path: ApiConstants.student(id)),
+        statusCode: 404,
+        data: {'message': 'Learner not found'},
+      ),
+    );
+  }
+
+  return StudentDetail(
+    profile: matching.first,
+    progress: const [],
+    analytics: const [],
+    recentScores: const [],
+  );
+}
 
 Student _studentFromLeaderboard(LeaderboardEntry entry) {
   final nameParts = entry.fullName.trim().split(RegExp(r'\s+'));
