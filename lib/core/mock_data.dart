@@ -30,7 +30,7 @@ class MockData {
       area: 'Sauyo',
       birthday: '2019-09-08',
       age: 7,
-      gradelvl: 'Binhi (6-8)',
+      gradelvl: 'Binhi (6-7)',
       sex: 'Male',
       totalSessions: 10,
       avgScore: 9.1,
@@ -58,7 +58,7 @@ class MockData {
       area: 'Sauyo',
       birthday: '2020-06-18',
       age: 6,
-      gradelvl: 'Binhi (6-8)',
+      gradelvl: 'Binhi (6-7)',
       sex: 'Male',
       totalSessions: 9,
       avgScore: 7.4,
@@ -339,14 +339,14 @@ class MockData {
           passRatePct: 60.0,
         ),
         AgeGroupProgress(
-          gradelvl: 'Binhi (6-8)',
+          gradelvl: 'Binhi (6-7)',
           subject: 'Science',
           activeStudents: 2,
           avgScore: 8.9,
           passRatePct: 91.0,
         ),
         AgeGroupProgress(
-          gradelvl: 'Binhi (6-8)',
+          gradelvl: 'Binhi (6-7)',
           subject: 'Filipino',
           activeStudents: 2,
           avgScore: 6.3,
@@ -374,14 +374,14 @@ class MockData {
           progress: const [
             SubjectProgress(
               subject: 'Mathematics',
-              gradelvl: 'Binhi (6-8)',
+              gradelvl: 'Binhi (6-7)',
               highestDiffPassed: 3,
               totalTimePlayed: 1180,
               lastPlayedAt: '2026-04-18',
             ),
             SubjectProgress(
               subject: 'Science',
-              gradelvl: 'Binhi (6-8)',
+              gradelvl: 'Binhi (6-7)',
               highestDiffPassed: 2,
               totalTimePlayed: 940,
               lastPlayedAt: '2026-04-18',
@@ -391,7 +391,7 @@ class MockData {
           recentScores: const [
             ScoreRecord(
               subject: 'Mathematics',
-              gradelvl: 'Binhi (6-8)',
+              gradelvl: 'Binhi (6-7)',
               difficulty: 'Hard',
               score: 9,
               totalItems: 10,
@@ -400,7 +400,7 @@ class MockData {
             ),
             ScoreRecord(
               subject: 'Science',
-              gradelvl: 'Binhi (6-8)',
+              gradelvl: 'Binhi (6-7)',
               difficulty: 'Average',
               score: 8,
               totalItems: 10,

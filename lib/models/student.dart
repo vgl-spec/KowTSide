@@ -55,7 +55,7 @@ String _normalizeGradeLevelLabel(Object? value) {
     return 'Punla (4-5)';
   }
   if (lower.contains('binhi')) {
-    return 'Binhi (6-8)';
+    return 'Binhi (6-7)';
   }
   return label;
 }

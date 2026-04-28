@@ -165,7 +165,7 @@ class _StudentsViewState extends State<_StudentsView> {
               FlareMetricTile(
                 label: 'Binhi Learners',
                 value: '$binhiCount',
-                hint: 'Ages 6-8 grouping',
+                hint: 'Ages 6-7 grouping',
                 icon: Icons.grass_rounded,
                 color: AppTheme.tertiary,
               ),

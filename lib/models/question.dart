@@ -202,7 +202,7 @@ const subjectSelectionLabels = {
   3: 'Writing (Filipino)',
   4: 'Reading (English)',
 };
-const gradelvlLabels = {1: 'Punla (4-5)', 2: 'Binhi (6-8)'};
+const gradelvlLabels = {1: 'Punla (4-5)', 2: 'Binhi (6-7)'};
 const diffLabels = {1: 'Easy', 2: 'Average', 3: 'Hard'};
 
 int? _readInt(Object? value) {
