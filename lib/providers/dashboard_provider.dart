@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api_client.dart';
 import '../core/constants.dart';
@@ -8,6 +10,11 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
   if (ApiConstants.frontendOnly) {
     return MockData.dashboard();
   }
+  final timer = Timer.periodic(const Duration(seconds: 20), (_) {
+    ref.invalidateSelf();
+  });
+  ref.onDispose(timer.cancel);
+
   final resp = await dio.get(ApiConstants.dashboard);
   final data =
       resp.data['data'] as Map<String, dynamic>? ??

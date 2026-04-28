@@ -16,26 +16,20 @@ class DashboardData {
   });
 
   factory DashboardData.fromJson(Map<String, dynamic> j) => DashboardData(
-        totalStudents: _readInt(j['total_students']) ?? 0,
-        totalScores:
-            _readInt(j['total_scores']) ??
-            _readInt(j['total_sessions']) ??
-            0,
-        averageScore:
-            _readDouble(j['average_score']) ??
-            _readDouble(j['avg_score']) ??
-            0.0,
-        contentVersion:
-            j['content_version'] as String? ??
-            j['version_tag'] as String? ??
-            'v0',
-        ageGroupProgress: (j['age_group_progress'] as List? ?? [])
-            .map((e) => AgeGroupProgress.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        poolHealth: (j['pool_health'] as List? ?? [])
-            .map((e) => PoolHealthEntry.fromJson(e as Map<String, dynamic>))
-            .toList(),
-      );
+    totalStudents: _readInt(j['total_students']) ?? 0,
+    totalScores:
+        _readInt(j['total_scores']) ?? _readInt(j['total_sessions']) ?? 0,
+    averageScore:
+        _readDouble(j['average_score']) ?? _readDouble(j['avg_score']) ?? 0.0,
+    contentVersion:
+        j['content_version'] as String? ?? j['version_tag'] as String? ?? 'v0',
+    ageGroupProgress: (j['age_group_progress'] as List? ?? [])
+        .map((e) => AgeGroupProgress.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    poolHealth: (j['pool_health'] as List? ?? [])
+        .map((e) => PoolHealthEntry.fromJson(e as Map<String, dynamic>))
+        .toList(),
+  );
 }
 
 class AgeGroupProgress {
@@ -54,12 +48,12 @@ class AgeGroupProgress {
   });
 
   factory AgeGroupProgress.fromJson(Map<String, dynamic> j) => AgeGroupProgress(
-        gradelvl: j['gradelvl'] as String? ?? '',
-        subject: j['subject'] as String? ?? '',
-        activeStudents: _readInt(j['active_students']) ?? 0,
-        avgScore: _readDouble(j['avg_score']) ?? 0.0,
-        passRatePct: _readDouble(j['pass_rate_pct']) ?? 0.0,
-      );
+    gradelvl: _normalizeGradeLevelLabel(j['gradelvl']),
+    subject: j['subject'] as String? ?? '',
+    activeStudents: _readInt(j['active_students']) ?? 0,
+    avgScore: _readDouble(j['avg_score']) ?? 0.0,
+    passRatePct: _readDouble(j['pass_rate_pct']) ?? 0.0,
+  );
 }
 
 class PoolHealthEntry {
@@ -82,20 +76,32 @@ class PoolHealthEntry {
   });
 
   factory PoolHealthEntry.fromJson(Map<String, dynamic> j) => PoolHealthEntry(
-        gradelvlId: _readInt(j['gradelvl_id']) ?? 0,
-        subjectId: _readInt(j['subject_id']) ?? 0,
-        diffId: _readInt(j['diff_id']) ?? 0,
-        gradelvl: j['gradelvl'] as String? ?? '',
-        subject: j['subject'] as String? ?? '',
-        difficulty: j['difficulty'] as String? ?? '',
-        questionCount: _readInt(j['question_count']) ?? 0,
-      );
+    gradelvlId: _readInt(j['gradelvl_id']) ?? 0,
+    subjectId: _readInt(j['subject_id']) ?? 0,
+    diffId: _readInt(j['diff_id']) ?? 0,
+    gradelvl: _normalizeGradeLevelLabel(j['gradelvl']),
+    subject: j['subject'] as String? ?? '',
+    difficulty: j['difficulty'] as String? ?? '',
+    questionCount: _readInt(j['question_count']) ?? 0,
+  );
 
   String get healthLabel {
     if (questionCount >= 8) return 'Healthy';
     if (questionCount >= 5) return 'Low';
     return 'Critical';
   }
+}
+
+String _normalizeGradeLevelLabel(Object? value) {
+  final label = (value as String?)?.trim() ?? '';
+  final lower = label.toLowerCase();
+  if (lower.contains('punla')) {
+    return 'Punla (3-5)';
+  }
+  if (lower.contains('binhi')) {
+    return 'Binhi (6-8)';
+  }
+  return label;
 }
 
 int? _readInt(Object? value) {

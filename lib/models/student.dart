@@ -30,22 +30,34 @@ class Student {
   });
 
   factory Student.fromJson(Map<String, dynamic> j) => Student(
-        studId: parseStudentId(j['stud_id'] ?? j['studId']) ?? 0,
-        nickname: j['nickname'] as String? ?? '',
-        firstName: j['first_name'] as String? ?? '',
-        lastName: j['last_name'] as String? ?? '',
-        area: j['area'] as String? ?? j['barangay'] as String? ?? '',
-        birthday: j['birthday'] as String? ?? '',
-        age: _readInt(j['age']) ?? 0,
-        gradelvl: j['gradelvl'] as String? ?? '',
-        sex: j['sex'] as String? ?? '',
-        totalSessions: _readInt(j['total_sessions']) ?? 0,
-        avgScore: _readDouble(j['avg_score']) ?? 0.0,
-        proficiency: j['proficiency'] as String? ?? 'On track',
-      );
+    studId: parseStudentId(j['stud_id'] ?? j['studId']) ?? 0,
+    nickname: j['nickname'] as String? ?? '',
+    firstName: j['first_name'] as String? ?? '',
+    lastName: j['last_name'] as String? ?? '',
+    area: j['area'] as String? ?? j['barangay'] as String? ?? '',
+    birthday: j['birthday'] as String? ?? '',
+    age: _readInt(j['age']) ?? 0,
+    gradelvl: _normalizeGradeLevelLabel(j['gradelvl']),
+    sex: j['sex'] as String? ?? '',
+    totalSessions: _readInt(j['total_sessions']) ?? 0,
+    avgScore: _readDouble(j['avg_score']) ?? 0.0,
+    proficiency: j['proficiency'] as String? ?? 'On track',
+  );
 
   String get fullName => '$firstName $lastName';
   String get displayStudId => formatStudentId(studId);
+}
+
+String _normalizeGradeLevelLabel(Object? value) {
+  final label = (value as String?)?.trim() ?? '';
+  final lower = label.toLowerCase();
+  if (lower.contains('punla')) {
+    return 'Punla (3-5)';
+  }
+  if (lower.contains('binhi')) {
+    return 'Binhi (6-8)';
+  }
+  return label;
 }
 
 class StudentPage {
@@ -65,9 +77,7 @@ class StudentPage {
 
   factory StudentPage.fromJson(Map<String, dynamic> json) {
     final list =
-        json['students'] as List? ??
-        json['data'] as List? ??
-        const <dynamic>[];
+        json['students'] as List? ?? json['data'] as List? ?? const <dynamic>[];
     final total = _readInt(json['total']) ?? list.length;
     final rawLimit = _readInt(json['limit']) ?? list.length;
     final limit = rawLimit <= 0 ? 1 : rawLimit;
@@ -103,20 +113,20 @@ class StudentDetail {
   });
 
   factory StudentDetail.fromJson(Map<String, dynamic> j) => StudentDetail(
-        profile: Student.fromJson(j['profile'] as Map<String, dynamic>),
-        progress: (j['progress'] as List? ?? [])
-            .map((e) => SubjectProgress.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        analytics: (j['analytics'] as List? ?? [])
-            .map((e) => SubjectAnalytics.fromJson(e as Map<String, dynamic>))
-            .toList(),
-        recentScores:
-            (j['recent_scores'] as List? ??
-                    j['scores'] as List? ??
-                    const <dynamic>[])
+    profile: Student.fromJson(j['profile'] as Map<String, dynamic>),
+    progress: (j['progress'] as List? ?? [])
+        .map((e) => SubjectProgress.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    analytics: (j['analytics'] as List? ?? [])
+        .map((e) => SubjectAnalytics.fromJson(e as Map<String, dynamic>))
+        .toList(),
+    recentScores:
+        (j['recent_scores'] as List? ??
+                j['scores'] as List? ??
+                const <dynamic>[])
             .map((e) => ScoreRecord.fromJson(e as Map<String, dynamic>))
             .toList(),
-      );
+  );
 }
 
 class SubjectProgress {
@@ -135,22 +145,24 @@ class SubjectProgress {
   });
 
   factory SubjectProgress.fromJson(Map<String, dynamic> j) => SubjectProgress(
-        subject: j['subject'] as String? ?? '',
-        gradelvl: j['gradelvl'] as String? ?? '',
-        highestDiffPassed: _readInt(j['highest_diff_passed']) ?? 0,
-        totalTimePlayed: _readInt(j['total_time_played']) ?? 0,
-        lastPlayedAt:
-            j['last_played_at'] as String? ??
-            j['last_played'] as String? ??
-            '',
-      );
+    subject: j['subject'] as String? ?? '',
+    gradelvl: j['gradelvl'] as String? ?? '',
+    highestDiffPassed: _readInt(j['highest_diff_passed']) ?? 0,
+    totalTimePlayed: _readInt(j['total_time_played']) ?? 0,
+    lastPlayedAt:
+        j['last_played_at'] as String? ?? j['last_played'] as String? ?? '',
+  );
 
   String get diffLabel {
     switch (highestDiffPassed) {
-      case 1: return 'Easy';
-      case 2: return 'Average';
-      case 3: return 'Hard';
-      default: return 'None';
+      case 1:
+        return 'Easy';
+      case 2:
+        return 'Average';
+      case 3:
+        return 'Hard';
+      default:
+        return 'None';
     }
   }
 
@@ -179,13 +191,13 @@ class SubjectAnalytics {
   });
 
   factory SubjectAnalytics.fromJson(Map<String, dynamic> j) => SubjectAnalytics(
-        subject: j['subject'] as String? ?? '',
-        gradelvl: j['gradelvl'] as String? ?? '',
-        lowestScore: _readDouble(j['lowest_score']) ?? 0.0,
-        averageScore: _readDouble(j['average_score']) ?? 0.0,
-        highestScore: _readDouble(j['highest_score']) ?? 0.0,
-        totalAttempts: _readInt(j['total_attempts']) ?? 0,
-      );
+    subject: j['subject'] as String? ?? '',
+    gradelvl: j['gradelvl'] as String? ?? '',
+    lowestScore: _readDouble(j['lowest_score']) ?? 0.0,
+    averageScore: _readDouble(j['average_score']) ?? 0.0,
+    highestScore: _readDouble(j['highest_score']) ?? 0.0,
+    totalAttempts: _readInt(j['total_attempts']) ?? 0,
+  );
 }
 
 class ScoreRecord {
@@ -208,14 +220,14 @@ class ScoreRecord {
   });
 
   factory ScoreRecord.fromJson(Map<String, dynamic> j) => ScoreRecord(
-        subject: j['subject'] as String? ?? '',
-        gradelvl: j['gradelvl'] as String? ?? '',
-        difficulty: j['difficulty'] as String? ?? '',
-        score: _readDouble(j['score']) ?? 0.0,
-        totalItems: _readInt(j['total_items']) ?? 10,
-        passed: (_readInt(j['passed']) ?? 0) == 1 || j['passed'] == true,
-        playedAt: j['played_at'] as String? ?? '',
-      );
+    subject: j['subject'] as String? ?? '',
+    gradelvl: j['gradelvl'] as String? ?? '',
+    difficulty: j['difficulty'] as String? ?? '',
+    score: _readDouble(j['score']) ?? 0.0,
+    totalItems: _readInt(j['total_items']) ?? 10,
+    passed: (_readInt(j['passed']) ?? 0) == 1 || j['passed'] == true,
+    playedAt: j['played_at'] as String? ?? '',
+  );
 }
 
 int? _readInt(Object? value) {

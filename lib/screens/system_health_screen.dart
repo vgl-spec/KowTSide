@@ -168,11 +168,11 @@ class _SystemHealthBody extends ConsumerWidget {
             crossAxisCount: healthColumns,
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
-            childAspectRatio: width >= 1320
-                ? 3.35
+            mainAxisExtent: width >= 1320
+                ? 122
                 : width >= 900
-                ? 2.95
-                : 2.65,
+                ? 136
+                : 150,
             children: cards,
           ),
           const SizedBox(height: 14),
@@ -470,10 +470,16 @@ class _HealthCard extends StatelessWidget {
                 Expanded(
                   child: Text(
                     title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
                     style: const TextStyle(fontWeight: FontWeight.w700),
                   ),
                 ),
-                _StatusChip(label: status, color: color),
+                const SizedBox(width: 8),
+                ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 132),
+                  child: _StatusChip(label: status, color: color),
+                ),
               ],
             ),
             const SizedBox(height: 10),
@@ -486,7 +492,12 @@ class _HealthCard extends StatelessWidget {
               ),
             ),
             const SizedBox(height: 4),
-            Text(detail, style: Theme.of(context).textTheme.bodySmall),
+            Text(
+              detail,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
           ],
         ),
       ),
@@ -652,6 +663,8 @@ class _StatusChip extends StatelessWidget {
       ),
       child: Text(
         label,
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
         style: TextStyle(color: color, fontWeight: FontWeight.w700),
       ),
     );
