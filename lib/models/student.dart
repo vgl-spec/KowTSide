@@ -29,26 +29,29 @@ class Student {
     required this.proficiency,
   });
 
-  factory Student.fromJson(Map<String, dynamic> j) => Student(
-    studId: parseStudentId(j['stud_id'] ?? j['studId']) ?? 0,
-    nickname: j['nickname'] as String? ?? '',
-    firstName: j['first_name'] as String? ?? '',
-    lastName: j['last_name'] as String? ?? '',
-    area: j['area'] as String? ?? j['barangay'] as String? ?? '',
-    birthday: j['birthday'] as String? ?? '',
-    age: _readInt(j['age']) ?? 0,
-    gradelvl: _normalizeGradeLevelLabel(j['gradelvl']),
-    sex: _normalizeSexLabel(j['sex'] ?? j['sex_id']),
-    totalSessions: _readInt(j['total_sessions']) ?? 0,
-    avgScore: _readDouble(j['avg_score']) ?? 0.0,
-    proficiency: j['proficiency'] as String? ?? 'On track',
-  );
+  factory Student.fromJson(Map<String, dynamic> j) {
+    final age = _readInt(j['age']) ?? 0;
+    return Student(
+      studId: parseStudentId(j['stud_id'] ?? j['studId']) ?? 0,
+      nickname: j['nickname'] as String? ?? '',
+      firstName: j['first_name'] as String? ?? '',
+      lastName: j['last_name'] as String? ?? '',
+      area: j['area'] as String? ?? j['barangay'] as String? ?? '',
+      birthday: _dateOnly(j['birthday']),
+      age: age,
+      gradelvl: _normalizeGradeLevelLabel(j['gradelvl'], age: age),
+      sex: _normalizeSexLabel(j['sex'] ?? j['sex_id']),
+      totalSessions: _readInt(j['total_sessions']) ?? 0,
+      avgScore: _readDouble(j['avg_score']) ?? 0.0,
+      proficiency: j['proficiency'] as String? ?? 'On track',
+    );
+  }
 
   String get fullName => '$firstName $lastName';
   String get displayStudId => formatStudentId(studId);
 }
 
-String _normalizeGradeLevelLabel(Object? value) {
+String _normalizeGradeLevelLabel(Object? value, {int? age}) {
   final label = (value as String?)?.trim() ?? '';
   final lower = label.toLowerCase();
   if (lower.contains('punla')) {
@@ -56,6 +59,10 @@ String _normalizeGradeLevelLabel(Object? value) {
   }
   if (lower.contains('binhi')) {
     return 'Binhi (6-7)';
+  }
+  if (label.isEmpty && age != null) {
+    if (age >= 3 && age <= 5) return 'Punla (3-5)';
+    if (age >= 6 && age <= 8) return 'Binhi (6-8)';
   }
   return label;
 }
@@ -71,13 +78,25 @@ String _normalizeSexLabel(Object? value) {
 
   final label = (value as String?)?.trim() ?? '';
   final lower = label.toLowerCase();
-  if (lower == '1' || lower.contains('male')) {
-    return 'Male';
-  }
-  if (lower == '2' || lower.contains('female')) {
+  if (lower == '2' || lower == 'f' || lower == 'female') {
     return 'Female';
   }
+  if (lower == '1' || lower == 'm' || lower == 'male') {
+    return 'Male';
+  }
+  if (lower.contains('female')) {
+    return 'Female';
+  }
+  if (lower.contains('male')) return 'Male';
   return label;
+}
+
+String _dateOnly(Object? value) {
+  final raw = (value as String?)?.trim() ?? '';
+  if (raw.length >= 10 && RegExp(r'^\d{4}-\d{2}-\d{2}').hasMatch(raw)) {
+    return raw.substring(0, 10);
+  }
+  return raw;
 }
 
 class StudentPage {
