@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 
 import '../core/api_client.dart';
 import '../core/constants.dart';
@@ -12,44 +13,7 @@ final adminUsersProvider =
 class AdminUsersNotifier extends StateNotifier<AsyncValue<List<AdminUser>>> {
   AdminUsersNotifier() : super(const AsyncValue.loading());
 
-  final List<AdminUser> _demoUsers = <AdminUser>[
-    const AdminUser(
-      adminId: 2,
-      teacherId: 1,
-      username: 'teacher_mary',
-      role: 'teacher',
-      firstName: 'Mary Rose',
-      middleInitial: 'M.',
-      lastName: 'Manandeg',
-      isActive: true,
-      mustChangePassword: false,
-      mfaEnabled: false,
-    ),
-    const AdminUser(
-      adminId: 3,
-      teacherId: 2,
-      username: 'teacher_liza',
-      role: 'teacher',
-      firstName: 'Liza',
-      middleInitial: 'A.',
-      lastName: 'Cruz',
-      isActive: true,
-      mustChangePassword: true,
-      mfaEnabled: false,
-    ),
-    const AdminUser(
-      adminId: 4,
-      teacherId: 3,
-      username: 'teacher_joel',
-      role: 'teacher',
-      firstName: 'Joel',
-      middleInitial: '',
-      lastName: 'Dizon',
-      isActive: false,
-      mustChangePassword: true,
-      mfaEnabled: false,
-    ),
-  ];
+  final List<AdminUser> _demoUsers = <AdminUser>[];
 
   Future<void> load() async {
     state = const AsyncValue.loading();
@@ -70,8 +34,9 @@ class AdminUsersNotifier extends StateNotifier<AsyncValue<List<AdminUser>>> {
             .toList(),
       );
     } catch (error, stackTrace) {
-      if (!ApiConstants.frontendOnly) {
-        state = AsyncValue.data(List<AdminUser>.from(_demoUsers));
+      final code = error is DioException ? error.response?.statusCode : null;
+      if (!ApiConstants.frontendOnly && (code == 404 || code == 405)) {
+        state = const AsyncValue.data(<AdminUser>[]);
         return;
       }
       state = AsyncValue.error(error, stackTrace);

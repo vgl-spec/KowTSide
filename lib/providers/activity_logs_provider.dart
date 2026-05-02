@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 
 import '../core/api_client.dart';
 import '../core/constants.dart';
@@ -43,17 +44,32 @@ final activityLogsProvider = FutureProvider<ActivityLogPage>((ref) async {
     return _buildDemoPage(filter);
   }
 
-  final response = await dio.get(
-    ApiConstants.activityLogs,
-    queryParameters: {
-      'page': filter.page,
-      'limit': filter.limit,
-      if (filter.actorQuery.trim().isNotEmpty)
-        'actor': filter.actorQuery.trim(),
-      if (filter.status != 'All') 'status': filter.status,
-    },
+  try {
+    final response = await dio.get(
+      ApiConstants.activityLogs,
+      queryParameters: {
+        'page': filter.page,
+        'limit': filter.limit,
+        if (filter.actorQuery.trim().isNotEmpty)
+          'actor': filter.actorQuery.trim(),
+        if (filter.status != 'All') 'status': filter.status,
+      },
+    );
+    return ActivityLogPage.fromJson(response.data as Map<String, dynamic>);
+  } on DioException catch (error) {
+    final code = error.response?.statusCode;
+    if (code != 404 && code != 405) {
+      rethrow;
+    }
+  }
+
+  return ActivityLogPage(
+    page: filter.page,
+    limit: filter.limit,
+    total: 0,
+    totalPages: 1,
+    logs: const [],
   );
-  return ActivityLogPage.fromJson(response.data as Map<String, dynamic>);
 });
 
 ActivityLogPage _buildDemoPage(ActivityLogFilter filter) {
