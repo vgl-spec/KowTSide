@@ -118,6 +118,7 @@ class AdminUsersNotifier extends StateNotifier<AsyncValue<List<AdminUser>>> {
 
   Future<void> updateTeacher(
     AdminUser user, {
+    required String username,
     required String firstName,
     required String middleInitial,
     required String lastName,
@@ -141,6 +142,7 @@ class AdminUsersNotifier extends StateNotifier<AsyncValue<List<AdminUser>>> {
       await dio.put(
         ApiConstants.teacherUser(user.adminId),
         data: {
+          'username': username,
           'first_name': firstName,
           'middle_initial': middleInitial,
           'last_name': lastName,

@@ -29,7 +29,10 @@ final reportsSnapshotProvider = FutureProvider<ReportsSnapshot>((ref) async {
 
   final responses = await Future.wait([
     dio.get(ApiConstants.dashboard),
-    dio.get(ApiConstants.students),
+    dio.get(
+      ApiConstants.students,
+      queryParameters: const {'page': 1, 'limit': 100},
+    ),
   ]);
 
   final dashboardData = _readMap(responses[0].data);

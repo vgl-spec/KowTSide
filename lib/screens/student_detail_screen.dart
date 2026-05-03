@@ -44,14 +44,32 @@ class StudentDetailScreen extends ConsumerWidget {
   }
 }
 
-class _DetailBody extends StatelessWidget {
+class _DetailBody extends StatefulWidget {
   final StudentDetail detail;
   final VoidCallback onRefresh;
 
   const _DetailBody({required this.detail, required this.onRefresh});
 
   @override
+  State<_DetailBody> createState() => _DetailBodyState();
+}
+
+class _DetailBodyState extends State<_DetailBody> {
+  final GlobalKey _recentScoresKey = GlobalKey();
+
+  void _scrollToRecentScores() {
+    final ctx = _recentScoresKey.currentContext;
+    if (ctx == null) return;
+    Scrollable.ensureVisible(
+      ctx,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeInOut,
+    );
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final detail = widget.detail;
     final profile = detail.profile;
     final width = MediaQuery.of(context).size.width;
     final isWide = width >= 1220;
@@ -165,7 +183,7 @@ class _DetailBody extends StatelessWidget {
                 color: _proficiencyColor(profile.proficiency),
               ),
               FilledButton.tonalIcon(
-                onPressed: onRefresh,
+                onPressed: widget.onRefresh,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: const Text('Refresh'),
               ),
@@ -238,7 +256,9 @@ class _DetailBody extends StatelessWidget {
                         ),
                 ),
               ),
-              recentScoresSection,
+              // Wrap recent scores with a key so we can scroll to it from
+              // the profile info blocks (Sessions / Average).
+              Container(key: _recentScoresKey, child: recentScoresSection),
             ],
           ),
         ],
@@ -301,10 +321,11 @@ class _DetailBody extends StatelessWidget {
               _InfoBlock('Age', '${profile.age} years old'),
               _InfoBlock('Sex', profile.sex),
               _InfoBlock('Grade Group', profile.gradelvl),
-              _InfoBlock('Sessions', '${profile.totalSessions}'),
+              _InfoBlock('Sessions', '${profile.totalSessions}', onTap: _scrollToRecentScores),
               _InfoBlock(
                 'Average Score',
                 '${profile.avgScore.toStringAsFixed(1)} / 10',
+                onTap: _scrollToRecentScores,
               ),
               _InfoBlock('Proficiency', profile.proficiency),
             ],
@@ -612,22 +633,33 @@ class _SectionCard extends StatelessWidget {
 class _InfoBlock extends StatelessWidget {
   final String label;
   final String value;
+  final VoidCallback? onTap;
 
-  const _InfoBlock(this.label, this.value);
+  const _InfoBlock(this.label, this.value, {this.onTap});
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: 180,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(label, style: Theme.of(context).textTheme.bodySmall),
-          const SizedBox(height: 4),
-          Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
-        ],
-      ),
+    final content = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: Theme.of(context).textTheme.bodySmall),
+        const SizedBox(height: 4),
+        Text(value, style: const TextStyle(fontWeight: FontWeight.w700)),
+      ],
     );
+
+    if (onTap != null) {
+      return SizedBox(
+        width: 180,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: onTap,
+          child: Padding(padding: const EdgeInsets.all(2), child: content),
+        ),
+      );
+    }
+
+    return SizedBox(width: 180, child: content);
   }
 }
 

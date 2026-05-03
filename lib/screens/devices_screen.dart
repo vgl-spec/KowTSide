@@ -104,186 +104,195 @@ class DevicesScreen extends ConsumerWidget {
                               )
                             : Padding(
                                 padding: EdgeInsets.all(desktop ? 16 : 10),
-                                child: SingleChildScrollView(
-                                  scrollDirection: Axis.horizontal,
-                                  child: ConstrainedBox(
-                                    constraints: BoxConstraints(
-                                      minWidth: tableMinWidth,
-                                    ),
-                                    child: DataTable(
-                                      columnSpacing: desktop ? 32 : 18,
-                                      horizontalMargin: desktop ? 20 : 12,
-                                      headingRowHeight: 54,
-                                      dataRowMinHeight: desktop ? 62 : 52,
-                                      dataRowMaxHeight: desktop ? 72 : 60,
-                                      columns: const [
-                                        DataColumn(
-                                          label: SizedBox(
-                                            width: 280,
-                                            child: Text('Device Name'),
-                                          ),
+                                child: SizedBox(
+                                  height: constraints.maxHeight,
+                                  child: SingleChildScrollView(
+                                    // vertical scroll
+                                    child: SingleChildScrollView(
+                                      scrollDirection: Axis.horizontal,
+                                      child: ConstrainedBox(
+                                        constraints: BoxConstraints(
+                                          minWidth: tableMinWidth,
                                         ),
-                                        DataColumn(
-                                          label: SizedBox(
-                                            width: 260,
-                                            child: Text('UUID'),
-                                          ),
-                                        ),
-                                        DataColumn(
-                                          label: SizedBox(
-                                            width: 170,
-                                            child: Text('Registered At'),
-                                          ),
-                                        ),
-                                        DataColumn(
-                                          label: SizedBox(
-                                            width: 170,
-                                            child: Text('Last Synced'),
-                                          ),
-                                        ),
-                                        DataColumn(
-                                          numeric: true,
-                                          label: SizedBox(
-                                            width: 110,
-                                            child: Align(
-                                              alignment: Alignment.centerRight,
-                                              child: Text('Students'),
-                                            ),
-                                          ),
-                                        ),
-                                        DataColumn(
-                                          label: SizedBox(
-                                            width: 150,
-                                            child: Text('Status'),
-                                          ),
-                                        ),
-                                      ],
-                                      rows: devices.map((device) {
-                                        final synced = device.hasSynced;
-                                        return DataRow(
-                                          cells: [
-                                            DataCell(
-                                              SizedBox(
+                                        child: DataTable(
+                                          columnSpacing: desktop ? 32 : 18,
+                                          horizontalMargin: desktop ? 20 : 12,
+                                          headingRowHeight: 54,
+                                          dataRowMinHeight: desktop ? 62 : 52,
+                                          dataRowMaxHeight: desktop ? 72 : 60,
+                                          columns: const [
+                                            DataColumn(
+                                              label: SizedBox(
                                                 width: 280,
-                                                child: Row(
-                                                  children: [
-                                                    const Icon(
-                                                      Icons
-                                                          .tablet_android_outlined,
-                                                      size: 18,
+                                                child: Text('Device Name'),
+                                              ),
+                                            ),
+                                            DataColumn(
+                                              label: SizedBox(
+                                                width: 260,
+                                                child: Text('UUID'),
+                                              ),
+                                            ),
+                                            DataColumn(
+                                              label: SizedBox(
+                                                width: 170,
+                                                child: Text('Registered At'),
+                                              ),
+                                            ),
+                                            DataColumn(
+                                              label: SizedBox(
+                                                width: 170,
+                                                child: Text('Last Synced'),
+                                              ),
+                                            ),
+                                            DataColumn(
+                                              numeric: true,
+                                              label: SizedBox(
+                                                width: 110,
+                                                child: Align(
+                                                  alignment: Alignment.centerRight,
+                                                  child: Text('Students'),
+                                                ),
+                                              ),
+                                            ),
+                                            DataColumn(
+                                              label: SizedBox(
+                                                width: 150,
+                                                child: Text('Status'),
+                                              ),
+                                            ),
+                                          ],
+                                          rows: devices.map((device) {
+                                            final synced = device.hasSynced;
+                                            return DataRow(
+                                              cells: [
+                                                DataCell(
+                                                  SizedBox(
+                                                    width: 280,
+                                                    child: Row(
+                                                      children: [
+                                                        const Icon(
+                                                          Icons
+                                                              .tablet_android_outlined,
+                                                          size: 18,
+                                                        ),
+                                                        const SizedBox(width: 10),
+                                                        Expanded(
+                                                          child: Text(
+                                                            device.deviceName,
+                                                            overflow:
+                                                                TextOverflow
+                                                                    .ellipsis,
+                                                            style:
+                                                                const TextStyle(
+                                                              fontWeight:
+                                                                  FontWeight.w700,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      ],
                                                     ),
-                                                    const SizedBox(width: 10),
-                                                    Expanded(
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  SizedBox(
+                                                    width: 260,
+                                                    child: SelectableText(
+                                                      device.deviceUuid,
+                                                      style: const TextStyle(
+                                                        fontFamily: 'monospace',
+                                                        fontSize: 12,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  SizedBox(
+                                                    width: 170,
+                                                    child: Text(
+                                                      _formatTimestamp(
+                                                        device.registeredAt,
+                                                      ),
+                                                    ),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  SizedBox(
+                                                    width: 170,
+                                                    child: Text(
+                                                      synced
+                                                          ? _formatTimestamp(
+                                                              device.lastSyncedAt,
+                                                            )
+                                                          : '-',
+                                                    ),
+                                                  ),
+                                                ),
+                                                DataCell(
+                                                  Align(
+                                                    alignment:
+                                                        Alignment.centerRight,
+                                                    child: SizedBox(
+                                                      width: 110,
                                                       child: Text(
-                                                        device.deviceName,
-                                                        overflow: TextOverflow
-                                                            .ellipsis,
+                                                        '${device.studentsOnDevice}',
+                                                        textAlign:
+                                                            TextAlign.right,
                                                         style: const TextStyle(
                                                           fontWeight:
                                                               FontWeight.w700,
                                                         ),
                                                       ),
                                                     ),
-                                                  ],
-                                                ),
-                                              ),
-                                            ),
-                                            DataCell(
-                                              SizedBox(
-                                                width: 260,
-                                                child: SelectableText(
-                                                  device.deviceUuid,
-                                                  style: const TextStyle(
-                                                    fontFamily: 'monospace',
-                                                    fontSize: 12,
                                                   ),
                                                 ),
-                                              ),
-                                            ),
-                                            DataCell(
-                                              SizedBox(
-                                                width: 170,
-                                                child: Text(
-                                                  _formatTimestamp(
-                                                    device.registeredAt,
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            DataCell(
-                                              SizedBox(
-                                                width: 170,
-                                                child: Text(
-                                                  synced
-                                                      ? _formatTimestamp(
-                                                          device.lastSyncedAt,
-                                                        )
-                                                      : '-',
-                                                ),
-                                              ),
-                                            ),
-                                            DataCell(
-                                              Align(
-                                                alignment:
-                                                    Alignment.centerRight,
-                                                child: SizedBox(
-                                                  width: 110,
-                                                  child: Text(
-                                                    '${device.studentsOnDevice}',
-                                                    textAlign: TextAlign.right,
-                                                    style: const TextStyle(
-                                                      fontWeight:
-                                                          FontWeight.w700,
-                                                    ),
-                                                  ),
-                                                ),
-                                              ),
-                                            ),
-                                            DataCell(
-                                              SizedBox(
-                                                width: 150,
-                                                child: synced
-                                                    ? Chip(
-                                                        label: const Text(
-                                                          'Synced',
-                                                        ),
-                                                        backgroundColor:
-                                                            AppTheme.success
-                                                                .withValues(
-                                                                  alpha: 0.15,
-                                                                ),
-                                                        labelStyle:
-                                                            const TextStyle(
-                                                              color: AppTheme
-                                                                  .success,
+                                                DataCell(
+                                                  SizedBox(
+                                                    width: 150,
+                                                    child: synced
+                                                        ? Chip(
+                                                            label: const Text(
+                                                              'Synced',
+                                                            ),
+                                                            backgroundColor:
+                                                                AppTheme.success
+                                                                    .withValues(
+                                                                      alpha: 0.15,
+                                                                    ),
+                                                            labelStyle:
+                                                                const TextStyle(
+                                                              color:
+                                                                  AppTheme.success,
                                                               fontSize: 12,
                                                             ),
-                                                        padding:
-                                                            EdgeInsets.zero,
-                                                      )
-                                                    : Chip(
-                                                        label: const Text(
-                                                          'Never synced',
-                                                        ),
-                                                        backgroundColor:
-                                                            AppTheme.warning
-                                                                .withValues(
-                                                                  alpha: 0.16,
-                                                                ),
-                                                        labelStyle:
-                                                            const TextStyle(
-                                                              color: AppTheme
-                                                                  .warning,
+                                                            padding:
+                                                                EdgeInsets.zero,
+                                                          )
+                                                        : Chip(
+                                                            label: const Text(
+                                                              'Never synced',
+                                                            ),
+                                                            backgroundColor:
+                                                                AppTheme.warning
+                                                                    .withValues(
+                                                                      alpha: 0.16,
+                                                                    ),
+                                                            labelStyle:
+                                                                const TextStyle(
+                                                              color:
+                                                                  AppTheme.warning,
                                                               fontSize: 12,
                                                             ),
-                                                        padding:
-                                                            EdgeInsets.zero,
-                                                      ),
-                                              ),
-                                            ),
-                                          ],
-                                        );
-                                      }).toList(),
+                                                            padding:
+                                                                EdgeInsets.zero,
+                                                          ),
+                                                  ),
+                                                ),
+                                              ],
+                                            );
+                                          }).toList(),
+                                        ),
+                                      ),
                                     ),
                                   ),
                                 ),

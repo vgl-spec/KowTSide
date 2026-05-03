@@ -9,6 +9,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api_client.dart';
 import '../core/constants.dart';
 import '../core/import_file_service.dart';
+import '../core/question_export_service.dart';
 import '../core/question_image_service.dart';
 import '../core/theme.dart';
 import '../models/question.dart';
@@ -54,6 +55,7 @@ class _TeacherQuestionsScreenState
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
   bool _selectionMode = false;
+  bool _isExporting = false;
 
   @override
   void dispose() {
@@ -298,6 +300,11 @@ class _TeacherQuestionsScreenState
         icon: const Icon(Icons.upload_file_rounded, size: 18),
         label: const Text('Import Questions'),
       ),
+      OutlinedButton.icon(
+        onPressed: () => _showCsvImportDialog(context),
+        icon: const Icon(Icons.table_view_rounded, size: 18),
+        label: const Text('Import CSV'),
+      ),
       FilledButton.icon(
         onPressed: () => _showForm(context),
         icon: const Icon(Icons.add, size: 18),
@@ -307,6 +314,17 @@ class _TeacherQuestionsScreenState
         onPressed: _refreshQuestions,
         icon: const Icon(Icons.refresh_rounded, size: 18),
         label: const Text('Refresh'),
+      ),
+      FilledButton.tonalIcon(
+        onPressed: _isExporting ? null : _exportQuestions,
+        icon: _isExporting
+            ? const SizedBox(
+                width: 16,
+                height: 16,
+                child: CircularProgressIndicator(strokeWidth: 2),
+              )
+            : const Icon(Icons.download_rounded, size: 18),
+        label: Text(_isExporting ? 'Exporting...' : 'Export CSV'),
       ),
       OutlinedButton.icon(
         onPressed: _toggleSelectionMode,
@@ -320,6 +338,78 @@ class _TeacherQuestionsScreenState
     ref.invalidate(questionsProvider);
     ref.invalidate(allQuestionsProvider);
     ref.invalidate(dashboardProvider);
+  }
+
+  Future<void> _exportQuestions() async {
+    setState(() => _isExporting = true);
+    try {
+      final filter = ref.read(questionFilterProvider);
+      final questions = await fetchQuestionsForExport(filter);
+      final csv = _buildCsv(questions);
+      final timestamp = DateTime.now()
+          .toIso8601String()
+          .replaceAll(':', '-')
+          .replaceAll('.', '-');
+      await downloadCsvFile(
+        filename: 'questions_export_$timestamp.csv',
+        csvContent: csv,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Exported ${questions.length} question(s).')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to export questions: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+
+  String _buildCsv(List<Question> questions) {
+    final header = <String>[
+      'question_id',
+      'subject',
+      'grade_level',
+      'difficulty',
+      'question_txt',
+      'image_url',
+      'option_a',
+      'option_b',
+      'option_c',
+      'option_d',
+      'correct_opt',
+      'is_active',
+    ];
+    final rows = <String>[header.join(',')];
+    for (final question in questions) {
+      rows.add(
+        [
+          question.questionId.toString(),
+          subjectLabels[question.subjectId] ?? '',
+          gradelvlLabels[question.gradelvlId] ?? '',
+          diffLabels[question.diffId] ?? '',
+          question.questionTxt,
+          question.imageUrl ?? '',
+          question.optionA,
+          question.optionB,
+          question.optionC,
+          question.optionD,
+          question.correctOpt,
+          question.isActive ? '1' : '0',
+        ].map(_csvCell).join(','),
+      );
+    }
+    return '${rows.join('\n')}\n';
+  }
+
+  String _csvCell(String value) {
+    final escaped = value.replaceAll('"', '""');
+    return '"$escaped"';
   }
 
   void _onSearchChanged(String value) {
@@ -414,6 +504,14 @@ class _TeacherQuestionsScreenState
       context: context,
       barrierDismissible: false,
       builder: (_) => const _QuestionImportDialog(),
+    );
+  }
+
+  void _showCsvImportDialog(BuildContext context) {
+    showDialog<void>(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => const _CsvQuestionImportDialog(),
     );
   }
 
@@ -515,6 +613,325 @@ class _TeacherQuestionsScreenState
         ],
       ),
     );
+  }
+}
+
+class _CsvQuestionImportDialog extends ConsumerStatefulWidget {
+  const _CsvQuestionImportDialog();
+
+  @override
+  ConsumerState<_CsvQuestionImportDialog> createState() =>
+      _CsvQuestionImportDialogState();
+}
+
+class _CsvQuestionImportDialogState
+    extends ConsumerState<_CsvQuestionImportDialog> {
+  PickedImportFileData? _file;
+  bool _importing = false;
+  String _mode = 'ignore';
+  String? _message;
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('Import Questions from CSV'),
+      content: SizedBox(
+        width: 620,
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Use a CSV in the same format as the exported file. Duplicate question IDs can be ignored or replaced.',
+            ),
+            const SizedBox(height: 12),
+            Wrap(
+              spacing: 10,
+              runSpacing: 10,
+              children: [
+                FilledButton.tonalIcon(
+                  onPressed: _importing
+                      ? null
+                      : () async {
+                          final picked = await pickImportFileData();
+                          if (!mounted || picked == null) return;
+                          setState(() {
+                            _file = picked;
+                            _message = null;
+                          });
+                        },
+                  icon: const Icon(Icons.attach_file_rounded, size: 18),
+                  label: Text(
+                    _file == null ? 'Choose CSV File' : _file!.name,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+                SizedBox(
+                  width: 220,
+                  child: DropdownButtonFormField<String>(
+                    initialValue: _mode,
+                    decoration: const InputDecoration(labelText: 'Duplicate ID'),
+                    items: const [
+                      DropdownMenuItem(value: 'ignore', child: Text('Ignore existing')),
+                      DropdownMenuItem(value: 'replace', child: Text('Replace existing')),
+                    ],
+                    onChanged: _importing
+                        ? null
+                        : (value) {
+                            if (value != null) {
+                              setState(() => _mode = value);
+                            }
+                          },
+                  ),
+                ),
+              ],
+            ),
+            if (_message != null) ...[
+              const SizedBox(height: 10),
+              Text(_message!, style: const TextStyle(color: AppTheme.warning)),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: _importing ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton.icon(
+          onPressed: _importing ? null : _importCsv,
+          icon: _importing
+              ? const SizedBox(
+                  width: 16,
+                  height: 16,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Icon(Icons.upload_rounded, size: 18),
+          label: Text(_importing ? 'Importing...' : 'Import'),
+        ),
+      ],
+    );
+  }
+
+  Future<void> _importCsv() async {
+    final file = _file;
+    if (file == null) {
+      setState(() => _message = 'Please select a CSV file first.');
+      return;
+    }
+    if (!file.name.toLowerCase().endsWith('.csv')) {
+      setState(() => _message = 'Selected file is not a CSV.');
+      return;
+    }
+
+    setState(() {
+      _importing = true;
+      _message = null;
+    });
+
+    try {
+      final csvText = utf8.decode(file.bytes, allowMalformed: true);
+      final rows = _parseCsv(csvText);
+      if (rows.length <= 1) {
+        throw Exception('CSV has no data rows.');
+      }
+
+      final header = rows.first.map((v) => v.trim()).toList();
+      final required = const [
+        'question_id',
+        'subject',
+        'grade_level',
+        'difficulty',
+        'question_txt',
+        'image_url',
+        'option_a',
+        'option_b',
+        'option_c',
+        'option_d',
+        'correct_opt',
+        'is_active',
+      ];
+      for (final field in required) {
+        if (!header.contains(field)) {
+          throw Exception('Missing required column: $field');
+        }
+      }
+
+      final index = <String, int>{
+        for (var i = 0; i < header.length; i++) header[i]: i,
+      };
+
+      final existing = await ref.read(allQuestionsProvider.future);
+      final existingById = {
+        for (final question in existing) question.questionId: question,
+      };
+
+      var created = 0;
+      var replaced = 0;
+      var ignored = 0;
+
+      for (var r = 1; r < rows.length; r++) {
+        final row = rows[r];
+        if (row.every((cell) => cell.trim().isEmpty)) continue;
+
+        final payload = _toQuestionPayload(row, index);
+        final questionId = int.tryParse(_cell(row, index['question_id']));
+        if (payload == null || questionId == null) {
+          ignored++;
+          continue;
+        }
+
+        final exists = existingById.containsKey(questionId);
+        if (exists && _mode == 'ignore') {
+          ignored++;
+          continue;
+        }
+
+        if (exists && _mode == 'replace') {
+          await dio.put(ApiConstants.question(questionId), data: payload);
+          replaced++;
+          continue;
+        }
+
+        await dio.post(ApiConstants.questions, data: payload);
+        created++;
+      }
+
+      ref.invalidate(questionsProvider);
+      ref.invalidate(allQuestionsProvider);
+      ref.invalidate(dashboardProvider);
+
+      if (!mounted) return;
+      Navigator.pop(context);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            'CSV import done. Created: $created, Replaced: $replaced, Ignored: $ignored.',
+          ),
+        ),
+      );
+    } catch (error) {
+      setState(() => _message = 'Import failed: $error');
+    } finally {
+      if (mounted) {
+        setState(() => _importing = false);
+      }
+    }
+  }
+
+  Map<String, dynamic>? _toQuestionPayload(List<String> row, Map<String, int> i) {
+    final subject = _subjectId(_cell(row, i['subject']));
+    final grade = _gradeId(_cell(row, i['grade_level']));
+    final diff = _diffId(_cell(row, i['difficulty']));
+    final questionTxt = _cell(row, i['question_txt']).trim();
+    final optionA = _cell(row, i['option_a']).trim();
+    final optionB = _cell(row, i['option_b']).trim();
+    final optionC = _cell(row, i['option_c']).trim();
+    final optionD = _cell(row, i['option_d']).trim();
+    final correctOpt = _cell(row, i['correct_opt']).trim().toUpperCase();
+    final imageUrl = _cell(row, i['image_url']).trim();
+
+    if (subject == null ||
+        grade == null ||
+        diff == null ||
+        questionTxt.isEmpty ||
+        optionA.isEmpty ||
+        optionB.isEmpty ||
+        optionC.isEmpty ||
+        optionD.isEmpty ||
+        !const ['A', 'B', 'C', 'D'].contains(correctOpt)) {
+      return null;
+    }
+
+    return {
+      'subject_id': subject,
+      'gradelvl_id': grade,
+      'diff_id': diff,
+      'question_txt': questionTxt,
+      'image_url': imageUrl.isEmpty ? null : imageUrl,
+      'option_a': optionA,
+      'option_b': optionB,
+      'option_c': optionC,
+      'option_d': optionD,
+      'correct_opt': correctOpt,
+    };
+  }
+
+  String _cell(List<String> row, int? index) {
+    if (index == null || index < 0 || index >= row.length) return '';
+    return row[index];
+  }
+
+  int? _subjectId(String subject) {
+    final s = subject.toLowerCase();
+    if (s.contains('math')) return 1;
+    if (s.contains('filipino')) return 2;
+    if (s.contains('science')) return 3;
+    if (s.contains('english')) return 4;
+    return int.tryParse(subject);
+  }
+
+  int? _gradeId(String grade) {
+    final g = grade.toLowerCase();
+    if (g.contains('punla')) return 1;
+    if (g.contains('binhi')) return 2;
+    return int.tryParse(grade);
+  }
+
+  int? _diffId(String difficulty) {
+    final d = difficulty.toLowerCase();
+    if (d.contains('easy')) return 1;
+    if (d.contains('average') || d.contains('medium')) return 2;
+    if (d.contains('hard')) return 3;
+    return int.tryParse(difficulty);
+  }
+
+  List<List<String>> _parseCsv(String input) {
+    final rows = <List<String>>[];
+    var row = <String>[];
+    final cell = StringBuffer();
+    var inQuotes = false;
+
+    for (var i = 0; i < input.length; i++) {
+      final ch = input[i];
+
+      if (ch == '"') {
+        if (inQuotes && i + 1 < input.length && input[i + 1] == '"') {
+          cell.write('"');
+          i++;
+        } else {
+          inQuotes = !inQuotes;
+        }
+        continue;
+      }
+
+      if (ch == ',' && !inQuotes) {
+        row.add(cell.toString());
+        cell.clear();
+        continue;
+      }
+
+      if ((ch == '\n' || ch == '\r') && !inQuotes) {
+        if (ch == '\r' && i + 1 < input.length && input[i + 1] == '\n') {
+          i++;
+        }
+        row.add(cell.toString());
+        cell.clear();
+        if (row.isNotEmpty && !(row.length == 1 && row.first.isEmpty)) {
+          rows.add(row);
+        }
+        row = <String>[];
+        continue;
+      }
+
+      cell.write(ch);
+    }
+
+    row.add(cell.toString());
+    if (row.isNotEmpty && !(row.length == 1 && row.first.isEmpty)) {
+      rows.add(row);
+    }
+    return rows;
   }
 }
 

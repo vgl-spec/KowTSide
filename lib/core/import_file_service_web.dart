@@ -12,7 +12,7 @@ class PickedImportFileData {
 Future<PickedImportFileData?> pickImportFileData() async {
   final input = html.FileUploadInputElement()
     ..accept =
-        '.pdf,.doc,.docx,.ppt,.pptx,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
+        '.pdf,.doc,.docx,.ppt,.pptx,.csv,text/csv,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document'
     ..multiple = false;
   input.click();
 

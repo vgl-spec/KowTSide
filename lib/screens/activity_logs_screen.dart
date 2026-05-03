@@ -443,11 +443,12 @@ class _ActionChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = action.contains('LOGIN')
+    final normalized = action.trim().toUpperCase();
+    final color = normalized.contains('LOGIN')
         ? AppTheme.primary
-        : action.contains('FAILED')
+        : normalized.contains('FAILED')
         ? AppTheme.error
-        : action.contains('IMPORT') || action.contains('QUESTION')
+        : normalized.contains('IMPORT') || normalized.contains('QUESTION')
         ? AppTheme.tertiary
         : AppTheme.info;
 
@@ -462,19 +463,21 @@ class _StatusChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = status == 'failed'
+    final normalized = status.trim().toLowerCase();
+    final color = normalized == 'failed'
         ? AppTheme.error
-        : status == 'pending'
+        : normalized == 'pending'
         ? AppTheme.warning
         : AppTheme.success;
 
-    return FlarePill(label: _statusAlias(status), color: color);
+    return FlarePill(label: _statusAlias(normalized), color: color);
   }
 }
 
 String _actionAlias(String action) {
-  return _actionAliases[action] ??
-      action
+  final normalized = action.trim().toUpperCase();
+  return _actionAliases[normalized] ??
+      normalized
           .toLowerCase()
           .split('_')
           .map(

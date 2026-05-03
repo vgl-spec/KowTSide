@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/theme.dart';
+import '../core/question_export_service.dart';
 import '../models/question.dart';
 import '../providers/questions_provider.dart';
 import '../widgets/page_skeletons.dart';
@@ -19,6 +20,7 @@ class QuestionsScreen extends ConsumerStatefulWidget {
 class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
+  bool _isExporting = false;
 
   @override
   void dispose() {
@@ -59,6 +61,17 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                   onPressed: () => ref.invalidate(questionsProvider),
                   icon: const Icon(Icons.refresh_rounded, size: 18),
                   label: const Text('Refresh'),
+                ),
+                FilledButton.tonalIcon(
+                  onPressed: _isExporting ? null : () => _exportQuestions(),
+                  icon: _isExporting
+                      ? const SizedBox(
+                          width: 16,
+                          height: 16,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.download_rounded, size: 18),
+                  label: Text(_isExporting ? 'Exporting...' : 'Export CSV'),
                 ),
               ],
             ),
@@ -278,6 +291,79 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
       barrierDismissible: false,
       builder: (_) => QuestionFormDialog(existing: existing),
     );
+  }
+
+  Future<void> _exportQuestions() async {
+    setState(() => _isExporting = true);
+    try {
+      final filter = ref.read(questionFilterProvider);
+      final questions = await fetchQuestionsForExport(filter);
+      final csv = _buildCsv(questions);
+      final timestamp = DateTime.now()
+          .toIso8601String()
+          .replaceAll(':', '-')
+          .replaceAll('.', '-');
+      await downloadCsvFile(
+        filename: 'questions_export_$timestamp.csv',
+        csvContent: csv,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Exported ${questions.length} question(s).')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to export questions: $error')),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _isExporting = false);
+      }
+    }
+  }
+
+  String _buildCsv(List<Question> questions) {
+    final header = <String>[
+      'question_id',
+      'subject',
+      'grade_level',
+      'difficulty',
+      'question_txt',
+      'image_url',
+      'option_a',
+      'option_b',
+      'option_c',
+      'option_d',
+      'correct_opt',
+      'is_active',
+    ];
+
+    final rows = <String>[header.join(',')];
+    for (final question in questions) {
+      rows.add(
+        [
+          question.questionId.toString(),
+          subjectLabels[question.subjectId] ?? '',
+          gradelvlLabels[question.gradelvlId] ?? '',
+          diffLabels[question.diffId] ?? '',
+          question.questionTxt,
+          question.imageUrl ?? '',
+          question.optionA,
+          question.optionB,
+          question.optionC,
+          question.optionD,
+          question.correctOpt,
+          question.isActive ? '1' : '0',
+        ].map(_csvCell).join(','),
+      );
+    }
+    return '${rows.join('\n')}\n';
+  }
+
+  String _csvCell(String value) {
+    final escaped = value.replaceAll('"', '""');
+    return '"$escaped"';
   }
 }
 
