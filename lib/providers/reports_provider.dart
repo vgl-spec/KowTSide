@@ -1,4 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 import '../models/dashboard.dart';
 import '../models/student.dart';
 
@@ -25,6 +26,33 @@ final reportsSnapshotProvider = FutureProvider<ReportsSnapshot>((ref) async {
       students: MockData.students(),
       leaderboard: MockData.leaderboard(),
     );
+  }
+
+  try {
+    final response = await dio.get(ApiConstants.reports);
+    final payload = _readMap(response.data);
+    final dashboardMap =
+        _readMap(payload['dashboard']).isNotEmpty
+            ? _readMap(payload['dashboard'])
+            : payload;
+    final students = _readList(payload['students']).map(Student.fromJson).toList();
+    final leaderboard =
+        _readList(payload['leaderboard']).map(LeaderboardEntry.fromJson).toList();
+
+    return ReportsSnapshot(
+      dashboard: DashboardData.fromJson(
+        _enrichDashboardMap(dashboardMap, payload),
+      ),
+      students: students,
+      leaderboard: leaderboard.isNotEmpty
+          ? leaderboard
+          : buildLeaderboardFromStudents(students),
+    );
+  } on DioException catch (error) {
+    final code = error.response?.statusCode;
+    if (code != 404 && code != 405) {
+      rethrow;
+    }
   }
 
   final responses = await Future.wait([

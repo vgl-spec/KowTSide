@@ -39,7 +39,8 @@ class DevicesScreen extends ConsumerWidget {
             ],
           ),
         ),
-        data: (devices) {
+        data: (devicePage) {
+          final devices = devicePage.devices;
           final syncedCount = devices
               .where((device) => device.hasSynced)
               .length;
@@ -73,7 +74,7 @@ class DevicesScreen extends ConsumerWidget {
                   children: [
                     _SummaryChip(
                       label: 'Total',
-                      value: '${devices.length}',
+                      value: '${devicePage.total}',
                       color: AppTheme.primary,
                     ),
                     _SummaryChip(
@@ -85,6 +86,33 @@ class DevicesScreen extends ConsumerWidget {
                       label: 'Never Synced',
                       value: '$neverSyncedCount',
                       color: AppTheme.tertiary,
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Text(
+                      'Page ${devicePage.page} of ${devicePage.totalPages}',
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                    const Spacer(),
+                    OutlinedButton.icon(
+                      onPressed: devicePage.page > 1
+                          ? () => ref.read(devicesPageStateProvider.notifier).state =
+                                devicePage.page - 1
+                          : null,
+                      icon: const Icon(Icons.chevron_left_rounded, size: 18),
+                      label: const Text('Previous'),
+                    ),
+                    const SizedBox(width: 8),
+                    OutlinedButton.icon(
+                      onPressed: devicePage.page < devicePage.totalPages
+                          ? () => ref.read(devicesPageStateProvider.notifier).state =
+                                devicePage.page + 1
+                          : null,
+                      icon: const Icon(Icons.chevron_right_rounded, size: 18),
+                      label: const Text('Next'),
                     ),
                   ],
                 ),
