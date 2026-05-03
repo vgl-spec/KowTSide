@@ -72,7 +72,7 @@ class _SystemHealthBody extends ConsumerWidget {
             ? '${health.oracleDetails.responseMs} ms'
             : health.oracle.toUpperCase(),
         detail: health.dbHealthy
-            ? 'DB time ${_formatTimestamp(health.oracleDetails.dbTime)}'
+            ? 'DB time ${_formatTimestamp(health.oracleDetails.dbTime ?? health.timestamp)}'
             : (health.oracleDetails.error ?? 'Database connection failed'),
         color: health.dbHealthy ? AppTheme.success : AppTheme.error,
         icon: Icons.storage_rounded,

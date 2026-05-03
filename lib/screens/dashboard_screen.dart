@@ -252,34 +252,56 @@ class _DashboardView extends StatelessWidget {
           ],
           const SizedBox(height: 14),
           if (width >= 1240)
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Expanded(
-                    child: _chartSection(
-                      context,
-                      title: 'Question Pool Distribution',
-                      subtitle:
-                          'Balance across Healthy, Low, and Critical pools. Keep each pool at five or more active items.',
-                      child: DonutBreakdownChart(
-                        segments: poolSegments,
-                        centerLabel: 'Pools',
-                      ),
-                    ),
+            Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: _chartSection(
+                    context,
+                    title: 'Question Pool Distribution',
+                    subtitle:
+                        'Balance across Healthy, Low, and Critical pools. Keep each pool at five or more active items.',
+                    child: data.poolHealth.isEmpty
+                        ? const FlareEmptyState(
+                            message: 'No pool data available yet.',
+                          )
+                        : Column(
+                            mainAxisSize: MainAxisSize.min,
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              DonutBreakdownChart(
+                                segments: poolSegments,
+                                centerLabel: 'Pools',
+                              ),
+                              const SizedBox(height: 10),
+                              Text(
+                                'Recommendation: keep at least 9-10 questions for each subject and difficulty level.',
+                                style: Theme.of(context).textTheme.bodySmall
+                                    ?.copyWith(
+                                      color: Theme.of(context)
+                                          .colorScheme
+                                          .onSurfaceVariant,
+                                    ),
+                              ),
+                            ],
+                          ),
                   ),
-                  const SizedBox(width: 14),
-                  Expanded(
-                    child: _chartSection(
-                      context,
-                      title: 'Pool Matrix',
-                      subtitle:
-                          'Detailed health view by grade group, subject, and difficulty.',
-                      child: PoolHealthMatrix(entries: data.poolHealth),
-                    ),
+                ),
+                const SizedBox(width: 14),
+                Expanded(
+                  child: _chartSection(
+                    context,
+                    title: 'Pool Matrix',
+                    subtitle:
+                        'Detailed health view by grade group, subject, and difficulty.',
+                    child: data.poolHealth.isEmpty
+                        ? const FlareEmptyState(
+                            message: 'No pool health data available yet.',
+                          )
+                        : PoolHealthMatrix(entries: data.poolHealth),
                   ),
-                ],
-              ),
+                ),
+              ],
             )
           else ...[
             _chartSection(
@@ -287,10 +309,29 @@ class _DashboardView extends StatelessWidget {
               title: 'Question Pool Distribution',
               subtitle:
                   'Balance across Healthy, Low, and Critical pools. Keep each pool at five or more active items.',
-              child: DonutBreakdownChart(
-                segments: poolSegments,
-                centerLabel: 'Pools',
-              ),
+              child: data.poolHealth.isEmpty
+                  ? const FlareEmptyState(
+                      message: 'No pool data available yet.',
+                    )
+                  : Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        DonutBreakdownChart(
+                          segments: poolSegments,
+                          centerLabel: 'Pools',
+                        ),
+                        const SizedBox(height: 10),
+                        Text(
+                          'Recommendation: keep at least 9-10 questions for each subject and difficulty level.',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(context)
+                                    .colorScheme
+                                    .onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ),
             ),
             const SizedBox(height: 14),
             _chartSection(
@@ -298,8 +339,12 @@ class _DashboardView extends StatelessWidget {
               title: 'Pool Matrix',
               subtitle:
                   'Detailed health view by grade group, subject, and difficulty.',
-              child: PoolHealthMatrix(entries: data.poolHealth),
-            ),
+              child: data.poolHealth.isEmpty
+                  ? const FlareEmptyState(
+                      message: 'No pool health data available yet.',
+                    )
+                  : PoolHealthMatrix(entries: data.poolHealth),
+            )
           ],
           const SizedBox(height: 14),
           FlareSurfaceCard(

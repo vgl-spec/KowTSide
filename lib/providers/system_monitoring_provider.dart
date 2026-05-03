@@ -136,11 +136,16 @@ final systemHealthProvider = FutureProvider<SystemHealthData>((ref) async {
     return syncedAt != null && syncedAt.isNotEmpty;
   }).length;
 
+  final existingRowCounts = _readMap(health['row_counts']);
   return SystemHealthData.fromJson({
     ...health,
     'active_devices': activeDevices,
     'synced_devices': syncedDevices,
-    'row_counts': {'devices': activeDevices, 'synced_devices': syncedDevices},
+    'row_counts': {
+      ...existingRowCounts,
+      'devices': activeDevices,
+      'synced_devices': syncedDevices,
+    },
   });
 });
 

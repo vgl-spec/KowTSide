@@ -22,6 +22,7 @@ This bypasses backend calls and uses mock data, so local CORS does not block log
 Mock credentials:
 - Username: kow_admin
 - Password: Admin@KOW2026
+<!-- BRO, You know this ain't mock data. This is the real password -->
 
 ## Build for Production
 flutter build web --release --dart-define-from-file=.env.prod

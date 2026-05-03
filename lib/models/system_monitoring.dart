@@ -112,12 +112,18 @@ class OracleDetails {
 
   factory OracleDetails.fromJson(Map<String, dynamic> json) {
     final poolMap = _readMap(json['pool']);
+    final dbTimeRaw =
+        _pickValue(json, const ['db_time', 'DB_TIME', 'dbTime', 'time']);
     return OracleDetails(
       connected:
           json['connected'] == true ||
           (json['status'] as String?) == 'connected',
-      responseMs: _readInt(json['response_ms']) ?? 0,
-      dbTime: _readDateTime(json['db_time']),
+      responseMs:
+          _readInt(
+            _pickValue(json, const ['response_ms', 'RESPONSE_MS', 'responseMs']),
+          ) ??
+          0,
+      dbTime: _readDateTime(dbTimeRaw),
       pool: poolMap.isEmpty ? null : OraclePoolSnapshot.fromJson(poolMap),
       error: json['error'] as String?,
     );
@@ -145,13 +151,31 @@ class SystemRowCounts {
 
   factory SystemRowCounts.fromJson(Map<String, dynamic> json) {
     return SystemRowCounts(
-      students: _readInt(json['students']) ?? 0,
-      scores: _readInt(json['scores']) ?? 0,
-      activeQuestions: _readInt(json['active_questions']) ?? 0,
-      devices: _readInt(json['devices']) ?? 0,
-      syncedDevices: _readInt(json['synced_devices']) ?? 0,
-      syncLogs: _readInt(json['sync_logs']) ?? 0,
-      admins: _readInt(json['admins']) ?? 0,
+      students:
+          _readInt(_pickValue(json, const ['students', 'STUDENTS'])) ?? 0,
+      scores: _readInt(_pickValue(json, const ['scores', 'SCORES'])) ?? 0,
+      activeQuestions:
+          _readInt(
+            _pickValue(
+              json,
+              const [
+                'active_questions',
+                'ACTIVE_QUESTIONS',
+                'questions',
+                'QUESTION_COUNT',
+              ],
+            ),
+          ) ??
+          0,
+      devices: _readInt(_pickValue(json, const ['devices', 'DEVICES'])) ?? 0,
+      syncedDevices:
+          _readInt(
+            _pickValue(json, const ['synced_devices', 'SYNCED_DEVICES']),
+          ) ??
+          0,
+      syncLogs:
+          _readInt(_pickValue(json, const ['sync_logs', 'SYNC_LOGS'])) ?? 0,
+      admins: _readInt(_pickValue(json, const ['admins', 'ADMINS'])) ?? 0,
     );
   }
 }
@@ -234,9 +258,13 @@ class SystemHealthData {
 
   factory SystemHealthData.fromJson(Map<String, dynamic> json) {
     final oracleField = json['oracle'];
-    final oracleDetailsMap = _readMap(json['oracle_details']);
-    final memory = _readMap(json['memory']);
-    final rowCountsMap = _readMap(json['row_counts']);
+    final oracleDetailsMap = _readMap(
+      _pickValue(json, const ['oracle_details', 'oracleDetails']),
+    );
+    final memory = _readMap(_pickValue(json, const ['memory', 'MEMORY']));
+    final rowCountsMap = _readMap(
+      _pickValue(json, const ['row_counts', 'rowCounts', 'ROW_COUNTS']),
+    );
 
     final effectiveOracle = oracleField is String
         ? oracleField
@@ -251,22 +279,43 @@ class SystemHealthData {
         'connected': effectiveOracle == 'connected',
         ...oracleDetailsMap,
       }),
-      wsClients: _readInt(json['ws_clients']) ?? 0,
-      uptimeSeconds: _readInt(json['uptime_seconds']) ?? 0,
+      wsClients:
+          _readInt(_pickValue(json, const ['ws_clients', 'wsClients'])) ?? 0,
+      uptimeSeconds:
+          _readInt(_pickValue(json, const ['uptime_seconds', 'uptimeSeconds'])) ??
+          0,
       timestamp: _readDateTime(
-        json['checked_at'] ?? json['timestamp'] ?? oracleDetailsMap['db_time'],
+        _pickValue(
+              json,
+              const ['checked_at', 'checkedAt', 'timestamp', 'TIMESTAMP'],
+            ) ??
+            _pickValue(
+              oracleDetailsMap,
+              const ['db_time', 'DB_TIME', 'dbTime', 'time'],
+            ),
       ),
       activeDevices:
-          _readInt(json['active_devices']) ??
-          _readInt(rowCountsMap['devices']) ??
+          _readInt(_pickValue(json, const ['active_devices', 'activeDevices'])) ??
+          _readInt(_pickValue(rowCountsMap, const ['devices', 'DEVICES'])) ??
           0,
       syncedDevices:
-          _readInt(json['synced_devices']) ??
-          _readInt(rowCountsMap['synced_devices']) ??
+          _readInt(_pickValue(json, const ['synced_devices', 'syncedDevices'])) ??
+          _readInt(
+            _pickValue(rowCountsMap, const ['synced_devices', 'SYNCED_DEVICES']),
+          ) ??
           0,
-      rssBytes: _readInt(memory['rss_bytes']) ?? 0,
-      heapUsedBytes: _readInt(memory['heap_used_bytes']) ?? 0,
-      heapTotalBytes: _readInt(memory['heap_total_bytes']) ?? 0,
+      rssBytes:
+          _readInt(_pickValue(memory, const ['rss_bytes', 'rssBytes'])) ?? 0,
+      heapUsedBytes:
+          _readInt(
+            _pickValue(memory, const ['heap_used_bytes', 'heapUsedBytes']),
+          ) ??
+          0,
+      heapTotalBytes:
+          _readInt(
+            _pickValue(memory, const ['heap_total_bytes', 'heapTotalBytes']),
+          ) ??
+          0,
       rowCounts: SystemRowCounts.fromJson(rowCountsMap),
       objectStatusSummary: _readList(
         json['object_status_summary'],
@@ -333,6 +382,15 @@ DateTime? _readDateTime(Object? value) {
   if (value is DateTime) return value;
   if (value is String && value.isNotEmpty) {
     return DateTime.tryParse(value);
+  }
+  return null;
+}
+
+Object? _pickValue(Map<String, dynamic> source, List<String> keys) {
+  for (final key in keys) {
+    if (source.containsKey(key)) {
+      return source[key];
+    }
   }
   return null;
 }

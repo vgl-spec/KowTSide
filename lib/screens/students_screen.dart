@@ -54,6 +54,7 @@ class _StudentsViewState extends State<_StudentsView> {
   String _search = '';
   String _groupFilter = 'All';
   String _supportFilter = 'All';
+  String _sortBy = 'Name';
   int _page = 0;
   static const int _rowsPerPage = 8;
 
@@ -67,7 +68,7 @@ class _StudentsViewState extends State<_StudentsView> {
       final matchesGroup =
           _groupFilter == 'All' || student.gradelvl.contains(_groupFilter);
       final matchesSupport = switch (_supportFilter) {
-        'Needs support' => student.proficiency == 'Needs support',
+        'Needs support' => _isNeedsSupport(student),
         'On track' => student.proficiency == 'On track',
         'Excelling' => student.proficiency == 'Excelling',
         _ => true,
@@ -76,14 +77,26 @@ class _StudentsViewState extends State<_StudentsView> {
       return matchesSearch && matchesGroup && matchesSupport;
     }).toList();
 
+    // Sort learners according to selected sort mode.
     results.sort((a, b) {
-      final supportCompare = _supportPriority(
-        a.proficiency,
-      ).compareTo(_supportPriority(b.proficiency));
-      if (supportCompare != 0) {
-        return supportCompare;
+      switch (_sortBy) {
+        case 'Name':
+          final nameCompare = a.nickname.toLowerCase().compareTo(b.nickname.toLowerCase());
+          if (nameCompare != 0) return nameCompare;
+          return a.avgScore.compareTo(b.avgScore);
+        case 'Age':
+          final ageCompare = a.age.compareTo(b.age);
+          if (ageCompare != 0) return ageCompare;
+          return a.nickname.toLowerCase().compareTo(b.nickname.toLowerCase());
+        case 'Support':
+          final supportCompare = _supportPriority(a.proficiency).compareTo(_supportPriority(b.proficiency));
+          if (supportCompare != 0) return supportCompare;
+          return a.avgScore.compareTo(b.avgScore);
+        default:
+          final nameCompare = a.nickname.toLowerCase().compareTo(b.nickname.toLowerCase());
+          if (nameCompare != 0) return nameCompare;
+          return a.avgScore.compareTo(b.avgScore);
       }
-      return a.avgScore.compareTo(b.avgScore);
     });
 
     return results;
@@ -98,9 +111,6 @@ class _StudentsViewState extends State<_StudentsView> {
     if (_page > maxPage) {
       _page = maxPage;
     }
-    final width = MediaQuery.of(context).size.width;
-    final isWide = width >= 1320;
-
     final supportQueue =
         widget.students
             .where((student) => student.proficiency != 'Excelling')
@@ -115,13 +125,13 @@ class _StudentsViewState extends State<_StudentsView> {
             return a.avgScore.compareTo(b.avgScore);
           });
     final punlaCount = widget.students
-        .where((student) => student.gradelvl.contains('Punla'))
+        .where(_isPunla)
         .length;
     final binhiCount = widget.students
         .where((student) => student.gradelvl.contains('Binhi'))
         .length;
     final needsSupportCount = widget.students
-        .where((student) => student.proficiency == 'Needs support')
+        .where(_isNeedsSupport)
         .length;
 
     return Padding(
@@ -180,27 +190,31 @@ class _StudentsViewState extends State<_StudentsView> {
           ),
           const SizedBox(height: 14),
           Expanded(
-            child: isWide
-                ? Row(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Expanded(child: _buildMainContent(context, filtered)),
-                      const SizedBox(width: 16),
-                      SizedBox(
-                        width: 320,
-                        child: _SupportPanel(students: supportQueue),
-                      ),
-                    ],
-                  )
-                : SingleChildScrollView(
+            child: LayoutBuilder(
+              builder: (context, constraints) {
+                final viewportHeight = constraints.maxHeight;
+                final preferredMainHeight = viewportHeight * 0.66;
+                final mainHeight = preferredMainHeight < 520
+                    ? 520.0
+                    : preferredMainHeight;
+
+                return Scrollbar(
+                  thumbVisibility: true,
+                  child: SingleChildScrollView(
                     child: Column(
                       children: [
-                        _buildMainContent(context, filtered),
+                        SizedBox(
+                          height: mainHeight,
+                          child: _buildMainContent(context, filtered),
+                        ),
                         const SizedBox(height: 16),
-                        _SupportPanel(students: supportQueue),
+                        _SupportPanelPaged(students: supportQueue),
                       ],
                     ),
                   ),
+                );
+              },
+            ),
           ),
         ],
       ),
@@ -254,6 +268,12 @@ class _StudentsViewState extends State<_StudentsView> {
                     'Excelling',
                   ],
                   onChanged: (value) => setState(() => _supportFilter = value),
+                ),
+                _SimpleDropdown(
+                  label: 'Sort',
+                  value: _sortBy,
+                  options: const ['Name', 'Age', 'Support'],
+                  onChanged: (value) => setState(() => _sortBy = value),
                 ),
               ],
             ),
@@ -438,16 +458,26 @@ class _StudentsViewState extends State<_StudentsView> {
   }
 
   int _supportPriority(String proficiency) {
-    switch (proficiency) {
-      case 'Needs support':
-        return 0;
-      case 'On track':
-        return 1;
-      case 'Excelling':
-        return 2;
-      default:
-        return 3;
-    }
+    final normalized = proficiency.trim().toLowerCase();
+    if (normalized.contains('needs support')) return 0;
+    if (normalized == 'on track') return 1;
+    if (normalized == 'excelling') return 2;
+    return 3;
+  }
+
+  bool _isPunla(Student student) {
+    final grade = student.gradelvl.trim().toLowerCase();
+    if (grade.contains('punla')) return true;
+    return student.age >= 3 && student.age <= 5;
+  }
+
+  bool _isNeedsSupport(Student student) {
+    final normalized = student.proficiency.trim().toLowerCase();
+    final flaggedByLabel =
+        (normalized.contains('needs') && normalized.contains('support')) ||
+        normalized.contains('at risk');
+    if (flaggedByLabel) return true;
+    return student.avgScore < 7.0;
   }
 }
 
@@ -458,47 +488,176 @@ class _SupportPanel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final highlighted = students.take(5).toList();
+    final highlighted = students.take(12).toList();
+
+    // Give this panel more vertical space so teachers can view more follow-up
+    // rows without extra navigation.
+    final maxHeight = MediaQuery.of(context).size.height * 0.62;
 
     return FlareSurfaceCard(
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          const FlareSectionTitle(
-            title: 'Teacher follow-up',
-            subtitle:
-                'Learners who may need extra review based on current proficiency and average score.',
-          ),
-          const SizedBox(height: 12),
-          if (highlighted.isEmpty)
-            const Text('No follow-up learners identified right now.')
-          else
-            ...highlighted.map((student) {
-              return ListTile(
-                contentPadding: EdgeInsets.zero,
-                leading: CircleAvatar(
-                  backgroundColor: _proficiencyColor(
-                    student.proficiency,
-                  ).withValues(alpha: 0.16),
-                  child: Text(
-                    student.nickname.isEmpty
-                        ? '?'
-                        : student.nickname.substring(0, 1).toUpperCase(),
-                    style: TextStyle(
-                      color: _proficiencyColor(student.proficiency),
-                      fontWeight: FontWeight.w700,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const FlareSectionTitle(
+                title: 'Teacher follow-up',
+                subtitle:
+                    'Learners who may need extra review based on current proficiency and average score.',
+              ),
+              const SizedBox(height: 12),
+              if (highlighted.isEmpty)
+                const Text('No follow-up learners identified right now.')
+              else
+                ...highlighted.map((student) {
+                  return ListTile(
+                    contentPadding: EdgeInsets.zero,
+                    leading: CircleAvatar(
+                      backgroundColor: _proficiencyColor(
+                        student.proficiency,
+                      ).withValues(alpha: 0.16),
+                      child: Text(
+                        student.nickname.isEmpty
+                            ? '?'
+                            : student.nickname.substring(0, 1).toUpperCase(),
+                        style: TextStyle(
+                          color: _proficiencyColor(student.proficiency),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
                     ),
-                  ),
+                    title: Text(student.fullName),
+                    subtitle: Text(
+                      '${student.gradelvl} • ${student.avgScore.toStringAsFixed(1)}/10 average',
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    trailing: _ProficiencyChip(proficiency: student.proficiency),
+                  );
+                }),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SupportPanelPaged extends StatefulWidget {
+  final List<Student> students;
+
+  const _SupportPanelPaged({required this.students});
+
+  @override
+  State<_SupportPanelPaged> createState() => _SupportPanelPagedState();
+}
+
+class _SupportPanelPagedState extends State<_SupportPanelPaged> {
+  static const int _rowsPerPage = 100;
+  int _page = 0;
+
+  @override
+  Widget build(BuildContext context) {
+    final total = widget.students.length;
+    final maxPage = total == 0 ? 0 : ((total - 1) / _rowsPerPage).floor();
+    if (_page > maxPage) {
+      _page = maxPage;
+    }
+    final pageItems = widget.students
+        .skip(_page * _rowsPerPage)
+        .take(_rowsPerPage)
+        .toList();
+
+    final maxHeight = MediaQuery.of(context).size.height * 0.52;
+
+    return FlareSurfaceCard(
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: maxHeight),
+        child: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const FlareSectionTitle(
+                title: 'Teacher follow-up',
+                subtitle:
+                    'Learners who may need extra review based on current proficiency and average score.',
+              ),
+              const SizedBox(height: 12),
+              if (pageItems.isEmpty)
+                const Text('No follow-up learners identified right now.')
+              else
+                Column(
+                  children: [
+                    ...pageItems.map((student) {
+                      return ListTile(
+                        contentPadding: EdgeInsets.zero,
+                        leading: CircleAvatar(
+                          backgroundColor: _proficiencyColor(
+                            student.proficiency,
+                          ).withValues(alpha: 0.16),
+                          child: Text(
+                            student.nickname.isEmpty
+                                ? '?'
+                                : student.nickname.substring(0, 1).toUpperCase(),
+                            style: TextStyle(
+                              color: _proficiencyColor(student.proficiency),
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                        ),
+                        title: Text(student.fullName),
+                        subtitle: Text(
+                          '${student.gradelvl} • ${student.avgScore.toStringAsFixed(1)}/10 average',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        trailing: _ProficiencyChip(proficiency: student.proficiency),
+                      );
+                    }),
+                    if (total > _rowsPerPage) ...[
+                      const SizedBox(height: 8),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Text(
+                            'Showing ${_page * _rowsPerPage + 1}-${_page * _rowsPerPage + pageItems.length} of $total',
+                            style: Theme.of(
+                              context,
+                            ).textTheme.bodySmall?.copyWith(color: Colors.grey),
+                          ),
+                          Row(
+                            children: [
+                              IconButton(
+                                tooltip: 'Previous page',
+                                onPressed: _page == 0
+                                    ? null
+                                    : () => setState(() => _page -= 1),
+                                icon: const Icon(Icons.chevron_left_rounded),
+                              ),
+                              Text(
+                                'Page ${_page + 1} of ${maxPage + 1}',
+                                style: Theme.of(context).textTheme.bodySmall,
+                              ),
+                              IconButton(
+                                tooltip: 'Next page',
+                                onPressed: _page >= maxPage
+                                    ? null
+                                    : () => setState(() => _page += 1),
+                                icon: const Icon(Icons.chevron_right_rounded),
+                              ),
+                            ],
+                          ),
+                        ],
+                      ),
+                    ],
+                  ],
                 ),
-                title: Text(student.fullName),
-                subtitle: Text(
-                  '${student.gradelvl} • ${student.avgScore.toStringAsFixed(1)}/10 average',
-                ),
-                trailing: _ProficiencyChip(proficiency: student.proficiency),
-              );
-            }),
-        ],
+            ],
+          ),
+        ),
       ),
     );
   }
@@ -618,3 +777,4 @@ Color _proficiencyColor(String proficiency) {
       return AppTheme.tertiary;
   }
 }
+
