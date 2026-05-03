@@ -257,6 +257,12 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                                       child: Text('Status'),
                                     ),
                                   ),
+                                  DataColumn(
+                                    label: SizedBox(
+                                      width: 320,
+                                      child: Text('Error'),
+                                    ),
+                                  ),
                                 ],
                                 rows: pageRecords.map((record) {
                                   return DataRow(
@@ -320,6 +326,29 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                                           width: 130,
                                           child: _StatusPill(
                                             status: record.status,
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        SizedBox(
+                                          width: 320,
+                                          child: Text(
+                                            (record.errorMessage ??
+                                                    record.errorPayload ??
+                                                    '')
+                                                .trim()
+                                                .isEmpty
+                                                ? '-'
+                                                : (record.errorMessage ??
+                                                      record.errorPayload ??
+                                                      ''),
+                                            overflow: TextOverflow.ellipsis,
+                                            style: TextStyle(
+                                              color: record.isFailed
+                                                  ? AppTheme.error
+                                                  : null,
+                                              fontSize: 12,
+                                            ),
                                           ),
                                         ),
                                       ),

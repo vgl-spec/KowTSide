@@ -195,12 +195,14 @@ const subjectLabels = {
   2: 'Science',
   3: 'Filipino',
   4: 'English',
+  5: 'Writing',
 };
 const subjectSelectionLabels = {
   1: 'Mathematics',
   2: 'Science',
-  3: 'Writing (Filipino)',
-  4: 'Reading (English)',
+  3: 'Filipino',
+  4: 'English',
+  5: 'Writing',
 };
 const gradelvlLabels = {1: 'Punla (4-5)', 2: 'Binhi (6-7)'};
 const diffLabels = {1: 'Easy', 2: 'Average', 3: 'Hard'};

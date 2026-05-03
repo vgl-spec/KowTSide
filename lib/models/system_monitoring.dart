@@ -8,6 +8,7 @@ class SyncLogRecord {
   final DateTime? syncedAt;
   final int studentsSynced;
   final String? errorPayload;
+  final String? errorMessage;
 
   const SyncLogRecord({
     required this.deviceUuid,
@@ -19,6 +20,7 @@ class SyncLogRecord {
     required this.syncedAt,
     required this.studentsSynced,
     this.errorPayload,
+    this.errorMessage,
   });
 
   factory SyncLogRecord.fromJson(Map<String, dynamic> json) {
@@ -46,6 +48,7 @@ class SyncLogRecord {
           _readInt(json['students_on_device']) ??
           0,
       errorPayload: json['error_payload'] as String?,
+      errorMessage: json['error_message'] as String?,
     );
   }
 
