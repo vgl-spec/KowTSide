@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/score_utils.dart';
 import '../core/theme.dart';
 import '../models/student.dart';
 import '../providers/live_updates_provider.dart';
@@ -252,7 +253,7 @@ class _DetailBodyState extends State<_DetailBody> {
                                 ),
                               )
                               .toList(),
-                          maxY: 10,
+                          maxY: kFivePointScoreMax,
                         ),
                 ),
               ),
@@ -297,7 +298,9 @@ class _DetailBodyState extends State<_DetailBody> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      profile.fullName,
+                      profile.fullName.trim().isEmpty
+                          ? profile.nickname
+                          : profile.fullName,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
@@ -321,10 +324,14 @@ class _DetailBodyState extends State<_DetailBody> {
               _InfoBlock('Age', '${profile.age} years old'),
               _InfoBlock('Sex', profile.sex),
               _InfoBlock('Grade Group', profile.gradelvl),
-              _InfoBlock('Sessions', '${profile.totalSessions}', onTap: _scrollToRecentScores),
+              _InfoBlock(
+                'Sessions',
+                '${profile.totalSessions}',
+                onTap: _scrollToRecentScores,
+              ),
               _InfoBlock(
                 'Average Score',
-                '${profile.avgScore.toStringAsFixed(1)} / 10',
+                '${profile.avgScore.toStringAsFixed(1)} / 5',
                 onTap: _scrollToRecentScores,
               ),
               _InfoBlock('Proficiency', profile.proficiency),
@@ -367,7 +374,7 @@ class _DetailBodyState extends State<_DetailBody> {
   List<String> _teacherFollowUps(StudentDetail detail) {
     final items = <String>[];
 
-    if (detail.profile.proficiency == 'Needs support') {
+    if (detail.profile.proficiency.toLowerCase().contains('needs')) {
       items.add(
         'This learner is currently flagged as needing support. Review the most recent failed attempts and reinforce the weakest subject first.',
       );
@@ -716,6 +723,7 @@ Color _proficiencyColor(String proficiency) {
       return AppTheme.accent;
     case 'On track':
       return AppTheme.primary;
+    case 'Needs significant support':
     case 'Needs support':
       return AppTheme.error;
     default:

@@ -68,10 +68,7 @@ class FlareSurfaceCard extends StatelessWidget {
           ],
         ),
       ),
-      child: Padding(
-        padding: padding,
-        child: child,
-      ),
+      child: Padding(padding: padding, child: child),
     );
   }
 }
@@ -100,19 +97,16 @@ class FlareSectionTitle extends StatelessWidget {
               Text(
                 title,
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.w700,
-                      fontSize: 16,
-                    ),
+                  fontWeight: FontWeight.w700,
+                  fontSize: 16,
+                ),
               ),
               const SizedBox(height: 4),
               Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
             ],
           ),
         ),
-        if (trailing != null) ...[
-          const SizedBox(width: 10),
-          trailing!,
-        ],
+        if (trailing != null) ...[const SizedBox(width: 10), trailing!],
       ],
     );
   }
@@ -124,6 +118,8 @@ class FlareMetricTile extends StatelessWidget {
   final String hint;
   final IconData icon;
   final Color color;
+  final VoidCallback? onTap;
+  final String? actionLabel;
 
   const FlareMetricTile({
     super.key,
@@ -132,48 +128,72 @@ class FlareMetricTile extends StatelessWidget {
     required this.hint,
     required this.icon,
     required this.color,
+    this.onTap,
+    this.actionLabel,
   });
 
   @override
   Widget build(BuildContext context) {
-    return FlareSurfaceCard(
-      padding: const EdgeInsets.all(18),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  label,
-                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                        fontWeight: FontWeight.w900,
-                        color: color,
-                      ),
-                ),
-              ),
-              Container(
-                width: 38,
-                height: 38,
-                decoration: BoxDecoration(
-                  color: color.withValues(alpha: 0.15),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                child: Icon(icon, color: color, size: 21),
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          Text(
-            value,
-            style: Theme.of(context).textTheme.displaySmall?.copyWith(
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                label,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w900,
                   color: color,
                 ),
+              ),
+            ),
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: color.withValues(alpha: 0.15),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Icon(icon, color: color, size: 21),
+            ),
+          ],
+        ),
+        const SizedBox(height: 12),
+        Text(
+          value,
+          style: Theme.of(context).textTheme.displaySmall?.copyWith(
+            fontWeight: FontWeight.w900,
+            color: color,
           ),
-          const SizedBox(height: 4),
-          Text(hint, style: Theme.of(context).textTheme.bodySmall),
+        ),
+        const SizedBox(height: 4),
+        Text(hint, style: Theme.of(context).textTheme.bodySmall),
+        if (onTap != null) ...[
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Text(
+                actionLabel ?? 'Open details',
+                style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: color,
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Icon(Icons.arrow_forward_rounded, size: 16, color: color),
+            ],
+          ),
         ],
+      ],
+    );
+
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: FlareSurfaceCard(padding: const EdgeInsets.all(18), child: body),
       ),
     );
   }
@@ -183,11 +203,7 @@ class FlarePill extends StatelessWidget {
   final String label;
   final Color color;
 
-  const FlarePill({
-    super.key,
-    required this.label,
-    required this.color,
-  });
+  const FlarePill({super.key, required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {

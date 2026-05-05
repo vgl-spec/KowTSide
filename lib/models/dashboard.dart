@@ -1,3 +1,5 @@
+import '../core/score_utils.dart';
+
 class DashboardData {
   final int totalStudents;
   final int totalScores;
@@ -21,8 +23,9 @@ class DashboardData {
     totalStudents: _readInt(j['total_students']) ?? 0,
     totalScores:
         _readInt(j['total_scores']) ?? _readInt(j['total_sessions']) ?? 0,
-    averageScore:
-        _readDouble(j['average_score']) ?? _readDouble(j['avg_score']) ?? 0.0,
+    averageScore: normalizeAverageScore(
+      _readDouble(j['average_score']) ?? _readDouble(j['avg_score']) ?? 0.0,
+    ),
     passRatePct: _readDouble(j['pass_rate_pct']) ?? 0.0,
     contentVersion:
         j['content_version'] as String? ?? j['version_tag'] as String? ?? 'v0',
@@ -34,16 +37,16 @@ class DashboardData {
 }
 
 List<AgeGroupProgress> _readAgeGroupProgress(Map<String, dynamic> json) {
-  final directRows = _readList(json['age_group_progress'])
-      .map((e) => AgeGroupProgress.fromJson(e))
-      .toList();
+  final directRows = _readList(
+    json['age_group_progress'],
+  ).map((e) => AgeGroupProgress.fromJson(e)).toList();
   if (directRows.isNotEmpty) {
     return directRows;
   }
 
-  final summaryRows = _readList(json['subject_level_summary'])
-      .map((e) => _AgeGroupProgressSeed.fromJson(e))
-      .toList();
+  final summaryRows = _readList(
+    json['subject_level_summary'],
+  ).map((e) => _AgeGroupProgressSeed.fromJson(e)).toList();
   if (summaryRows.isEmpty) {
     return const [];
   }
@@ -56,7 +59,10 @@ List<AgeGroupProgress> _readAgeGroupProgress(Map<String, dynamic> json) {
 
   return grouped.entries.map((entry) {
     final rows = entry.value;
-    final totalStudents = rows.fold<int>(0, (sum, row) => sum + row.activeStudents);
+    final totalStudents = rows.fold<int>(
+      0,
+      (sum, row) => sum + row.activeStudents,
+    );
     final avgScore = _weightedAverage(
       values: rows.map((row) => row.avgScore).toList(),
       weights: rows.map((row) => row.activeStudents.toDouble()).toList(),
@@ -96,7 +102,7 @@ class AgeGroupProgress {
     gradelvl: _normalizeGradeLevelLabel(j['gradelvl']),
     subject: j['subject'] as String? ?? '',
     activeStudents: _readInt(j['active_students']) ?? 0,
-    avgScore: _readDouble(j['avg_score']) ?? 0.0,
+    avgScore: normalizeAverageScore(_readDouble(j['avg_score']) ?? 0.0),
     passRatePct: _readDouble(j['pass_rate_pct']) ?? 0.0,
   );
 }
@@ -140,11 +146,14 @@ class PoolHealthEntry {
 String _normalizeGradeLevelLabel(Object? value) {
   final label = (value as String?)?.trim() ?? '';
   final lower = label.toLowerCase();
-  if (lower.contains('punla')) {
-    return 'Punla (4-5)';
+  if (lower.contains('(4-5)') || lower.contains('(6-7)')) {
+    return label;
   }
   if (lower.contains('binhi')) {
-    return 'Binhi (6-7)';
+    return 'Binhi (4-5)';
+  }
+  if (lower.contains('punla')) {
+    return 'Punla (6-7)';
   }
   return label;
 }
@@ -183,7 +192,8 @@ double _weightedAverage({
 
   final totalWeight = weights.fold<double>(0.0, (sum, weight) => sum + weight);
   if (totalWeight <= 0) {
-    return values.fold<double>(0.0, (sum, value) => sum + value) / values.length;
+    return values.fold<double>(0.0, (sum, value) => sum + value) /
+        values.length;
   }
 
   var weightedSum = 0.0;
@@ -213,8 +223,10 @@ class _AgeGroupProgressSeed {
       gradelvl: _normalizeGradeLevelLabel(json['gradelvl']),
       subject: json['subject'] as String? ?? '',
       activeStudents:
-          _readInt(json['student_groups']) ?? _readInt(json['active_students']) ?? 0,
-      avgScore: _readDouble(json['avg_score']) ?? 0.0,
+          _readInt(json['student_groups']) ??
+          _readInt(json['active_students']) ??
+          0,
+      avgScore: normalizeAverageScore(_readDouble(json['avg_score']) ?? 0.0),
       passRatePct: _readDouble(json['pass_rate_pct']) ?? 0.0,
     );
   }

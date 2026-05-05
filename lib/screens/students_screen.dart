@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/score_utils.dart';
 import '../core/theme.dart';
 import '../models/student.dart';
 import '../providers/live_updates_provider.dart';
@@ -81,7 +82,9 @@ class _StudentsViewState extends State<_StudentsView> {
     results.sort((a, b) {
       switch (_sortBy) {
         case 'Name':
-          final nameCompare = a.nickname.toLowerCase().compareTo(b.nickname.toLowerCase());
+          final nameCompare = a.nickname.toLowerCase().compareTo(
+            b.nickname.toLowerCase(),
+          );
           if (nameCompare != 0) return nameCompare;
           return a.avgScore.compareTo(b.avgScore);
         case 'Age':
@@ -89,11 +92,15 @@ class _StudentsViewState extends State<_StudentsView> {
           if (ageCompare != 0) return ageCompare;
           return a.nickname.toLowerCase().compareTo(b.nickname.toLowerCase());
         case 'Support':
-          final supportCompare = _supportPriority(a.proficiency).compareTo(_supportPriority(b.proficiency));
+          final supportCompare = _supportPriority(
+            a.proficiency,
+          ).compareTo(_supportPriority(b.proficiency));
           if (supportCompare != 0) return supportCompare;
           return a.avgScore.compareTo(b.avgScore);
         default:
-          final nameCompare = a.nickname.toLowerCase().compareTo(b.nickname.toLowerCase());
+          final nameCompare = a.nickname.toLowerCase().compareTo(
+            b.nickname.toLowerCase(),
+          );
           if (nameCompare != 0) return nameCompare;
           return a.avgScore.compareTo(b.avgScore);
       }
@@ -124,15 +131,9 @@ class _StudentsViewState extends State<_StudentsView> {
             }
             return a.avgScore.compareTo(b.avgScore);
           });
-    final punlaCount = widget.students
-        .where(_isPunla)
-        .length;
-    final binhiCount = widget.students
-        .where((student) => student.gradelvl.contains('Binhi'))
-        .length;
-    final needsSupportCount = widget.students
-        .where(_isNeedsSupport)
-        .length;
+    final binhiCount = widget.students.where(_isBinhi).length;
+    final punlaCount = widget.students.where(_isPunla).length;
+    final needsSupportCount = widget.students.where(_isNeedsSupport).length;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
@@ -166,15 +167,15 @@ class _StudentsViewState extends State<_StudentsView> {
                 color: AppTheme.primary,
               ),
               FlareMetricTile(
-                label: 'Punla Learners',
-                value: '$punlaCount',
+                label: 'Binhi Learners',
+                value: '$binhiCount',
                 hint: 'Ages 4-5 grouping',
                 icon: Icons.eco_rounded,
                 color: AppTheme.success,
               ),
               FlareMetricTile(
-                label: 'Binhi Learners',
-                value: '$binhiCount',
+                label: 'Punla Learners',
+                value: '$punlaCount',
                 hint: 'Ages 6-7 grouping',
                 icon: Icons.grass_rounded,
                 color: AppTheme.tertiary,
@@ -459,89 +460,34 @@ class _StudentsViewState extends State<_StudentsView> {
 
   int _supportPriority(String proficiency) {
     final normalized = proficiency.trim().toLowerCase();
-    if (normalized.contains('needs support')) return 0;
+    if (_hasSupportNeed(proficiency)) return 0;
     if (normalized == 'on track') return 1;
     if (normalized == 'excelling') return 2;
     return 3;
   }
 
+  bool _isBinhi(Student student) {
+    final grade = student.gradelvl.trim().toLowerCase();
+    if (grade.contains('binhi')) return true;
+    return student.age >= 4 && student.age <= 5;
+  }
+
   bool _isPunla(Student student) {
     final grade = student.gradelvl.trim().toLowerCase();
     if (grade.contains('punla')) return true;
-    return student.age >= 3 && student.age <= 5;
+    return student.age >= 6 && student.age <= 7;
   }
 
   bool _isNeedsSupport(Student student) {
-    final normalized = student.proficiency.trim().toLowerCase();
-    final flaggedByLabel =
-        (normalized.contains('needs') && normalized.contains('support')) ||
-        normalized.contains('at risk');
+    final flaggedByLabel = _hasSupportNeed(student.proficiency);
     if (flaggedByLabel) return true;
-    return student.avgScore < 7.0;
+    return student.avgScore < kFivePointOnTrackThreshold;
   }
-}
 
-class _SupportPanel extends StatelessWidget {
-  final List<Student> students;
-
-  const _SupportPanel({required this.students});
-
-  @override
-  Widget build(BuildContext context) {
-    final highlighted = students.take(12).toList();
-
-    // Give this panel more vertical space so teachers can view more follow-up
-    // rows without extra navigation.
-    final maxHeight = MediaQuery.of(context).size.height * 0.62;
-
-    return FlareSurfaceCard(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(maxHeight: maxHeight),
-        child: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const FlareSectionTitle(
-                title: 'Teacher follow-up',
-                subtitle:
-                    'Learners who may need extra review based on current proficiency and average score.',
-              ),
-              const SizedBox(height: 12),
-              if (highlighted.isEmpty)
-                const Text('No follow-up learners identified right now.')
-              else
-                ...highlighted.map((student) {
-                  return ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    leading: CircleAvatar(
-                      backgroundColor: _proficiencyColor(
-                        student.proficiency,
-                      ).withValues(alpha: 0.16),
-                      child: Text(
-                        student.nickname.isEmpty
-                            ? '?'
-                            : student.nickname.substring(0, 1).toUpperCase(),
-                        style: TextStyle(
-                          color: _proficiencyColor(student.proficiency),
-                          fontWeight: FontWeight.w700,
-                        ),
-                      ),
-                    ),
-                    title: Text(student.fullName),
-                    subtitle: Text(
-                      '${student.gradelvl} • ${student.avgScore.toStringAsFixed(1)}/10 average',
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    trailing: _ProficiencyChip(proficiency: student.proficiency),
-                  );
-                }),
-            ],
-          ),
-        ),
-      ),
-    );
+  bool _hasSupportNeed(String proficiency) {
+    final normalized = proficiency.trim().toLowerCase();
+    return (normalized.contains('needs') && normalized.contains('support')) ||
+        normalized.contains('at risk');
   }
 }
 
@@ -601,7 +547,9 @@ class _SupportPanelPagedState extends State<_SupportPanelPaged> {
                           child: Text(
                             student.nickname.isEmpty
                                 ? '?'
-                                : student.nickname.substring(0, 1).toUpperCase(),
+                                : student.nickname
+                                      .substring(0, 1)
+                                      .toUpperCase(),
                             style: TextStyle(
                               color: _proficiencyColor(student.proficiency),
                               fontWeight: FontWeight.w700,
@@ -610,11 +558,13 @@ class _SupportPanelPagedState extends State<_SupportPanelPaged> {
                         ),
                         title: Text(student.fullName),
                         subtitle: Text(
-                          '${student.gradelvl} • ${student.avgScore.toStringAsFixed(1)}/10 average',
+                          '${student.gradelvl} • ${student.avgScore.toStringAsFixed(1)}/5 average',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        trailing: _ProficiencyChip(proficiency: student.proficiency),
+                        trailing: _ProficiencyChip(
+                          proficiency: student.proficiency,
+                        ),
                       );
                     }),
                     if (total > _rowsPerPage) ...[
@@ -771,10 +721,10 @@ Color _proficiencyColor(String proficiency) {
       return AppTheme.accent;
     case 'On track':
       return AppTheme.primary;
+    case 'Needs significant support':
     case 'Needs support':
       return AppTheme.error;
     default:
       return AppTheme.tertiary;
   }
 }
-

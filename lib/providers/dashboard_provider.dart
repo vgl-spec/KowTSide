@@ -17,9 +17,11 @@ final dashboardProvider = FutureProvider<DashboardData>((ref) async {
   ref.onDispose(timer.cancel);
 
   final resp = await dio.get(ApiConstants.dashboard);
-  final data =
-      resp.data['data'] as Map<String, dynamic>? ??
-      resp.data as Map<String, dynamic>;
+  final payload = _readMap(resp.data);
+  final data = _enrichDashboardPayload(
+    _readMap(payload['data']).isNotEmpty ? _readMap(payload['data']) : payload,
+    payload,
+  );
   final dashboard = DashboardData.fromJson(data);
   if (dashboard.poolHealth.isNotEmpty) {
     return dashboard;
@@ -84,4 +86,30 @@ List<PoolHealthEntry> _buildPoolHealthFallback(List<Question> questions) {
                 .length,
           ),
   ];
+}
+
+Map<String, dynamic> _readMap(Object? value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) {
+    return value.map((key, entry) => MapEntry(key.toString(), entry));
+  }
+  return <String, dynamic>{};
+}
+
+Map<String, dynamic> _enrichDashboardPayload(
+  Map<String, dynamic> dashboard,
+  Map<String, dynamic> payload,
+) {
+  final existingAgeRows = dashboard['age_group_progress'];
+  if (existingAgeRows is List && existingAgeRows.isNotEmpty) {
+    return dashboard;
+  }
+
+  final summaryRows =
+      payload['subject_level_summary'] ?? dashboard['subject_level_summary'];
+  if (summaryRows != null) {
+    return {...dashboard, 'subject_level_summary': summaryRows};
+  }
+
+  return dashboard;
 }

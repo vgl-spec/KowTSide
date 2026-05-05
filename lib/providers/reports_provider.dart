@@ -31,13 +31,15 @@ final reportsSnapshotProvider = FutureProvider<ReportsSnapshot>((ref) async {
   try {
     final response = await dio.get(ApiConstants.reports);
     final payload = _readMap(response.data);
-    final dashboardMap =
-        _readMap(payload['dashboard']).isNotEmpty
-            ? _readMap(payload['dashboard'])
-            : payload;
-    final students = _readList(payload['students']).map(Student.fromJson).toList();
-    final leaderboard =
-        _readList(payload['leaderboard']).map(LeaderboardEntry.fromJson).toList();
+    final dashboardMap = _readMap(payload['dashboard']).isNotEmpty
+        ? _readMap(payload['dashboard'])
+        : payload;
+    final students = _readList(
+      payload['students'],
+    ).map(Student.fromJson).toList();
+    final leaderboard = _readList(
+      payload['leaderboard'],
+    ).map(LeaderboardEntry.fromJson).toList();
 
     return ReportsSnapshot(
       dashboard: DashboardData.fromJson(
@@ -204,11 +206,14 @@ double _weightedAverage(List<double> values, List<double> weights) {
 String _normalizeGradeLevelLabel(Object? value) {
   final label = (value as String?)?.trim() ?? '';
   final lower = label.toLowerCase();
-  if (lower.contains('punla')) {
-    return 'Punla (4-5)';
+  if (lower.contains('(4-5)') || lower.contains('(6-7)')) {
+    return label;
   }
   if (lower.contains('binhi')) {
-    return 'Binhi (6-7)';
+    return 'Binhi (4-5)';
+  }
+  if (lower.contains('punla')) {
+    return 'Punla (6-7)';
   }
   return label;
 }

@@ -16,7 +16,11 @@ void main() {
 
     expect(dashboardProvider, isNot(contains('ApiConstants.leaderboard')));
     expect(reportsProvider, isNot(contains('ApiConstants.leaderboard')));
-    expect(reportsProvider, isNot(contains('ApiConstants.reports')));
+    expect(reportsProvider, contains('ApiConstants.reports'));
+    expect(reportsProvider, contains('code != 404 && code != 405'));
+    expect(reportsProvider, contains('Future.wait(['));
+    expect(reportsProvider, contains('ApiConstants.dashboard'));
+    expect(reportsProvider, contains('ApiConstants.students'));
     expect(studentsProvider, isNot(contains('ApiConstants.leaderboard')));
   });
 }

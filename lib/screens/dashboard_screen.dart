@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
 
+import '../core/score_utils.dart';
 import '../core/theme.dart';
 import '../models/dashboard.dart';
 import '../providers/dashboard_provider.dart';
@@ -50,8 +52,8 @@ class _DashboardView extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final width = MediaQuery.of(context).size.width;
-    final scoreBySubject = _groupBySubject(data.ageGroupProgress);
-    final scoreByGroup = _groupByAgeGroup(data.ageGroupProgress);
+    final scoreBySubject = _buildSubjectRows(data);
+    final scoreByGroup = _buildAgeGroupRows(data);
     final averagePassRate = data.ageGroupProgress.isEmpty
         ? data.passRatePct
         : data.ageGroupProgress
@@ -114,6 +116,8 @@ class _DashboardView extends StatelessWidget {
                 hint: 'Students synced from learning devices',
                 icon: Icons.groups_rounded,
                 color: AppTheme.primary,
+                onTap: () => context.go('/students'),
+                actionLabel: 'Open learner roster',
               ),
               FlareMetricTile(
                 label: 'Quiz Attempts',
@@ -121,13 +125,18 @@ class _DashboardView extends StatelessWidget {
                 hint: 'Total recorded classroom sessions',
                 icon: Icons.fact_check_rounded,
                 color: AppTheme.info,
+                onTap: () => context.go('/reports?focus=sessions'),
+                actionLabel: 'Open session reports',
               ),
               FlareMetricTile(
                 label: 'Average Score',
-                value: '${data.averageScore.toStringAsFixed(1)} / 10',
-                hint: 'Weighted mean across attempts',
+                value: '${data.averageScore.toStringAsFixed(1)} / 5',
+                hint:
+                    'Weighted mean across synced attempts on the 5-point scale',
                 icon: Icons.auto_graph_rounded,
                 color: AppTheme.success,
+                onTap: () => context.go('/reports?focus=score'),
+                actionLabel: 'Open score trends',
               ),
               FlareMetricTile(
                 label: 'Average Pass Rate',
@@ -135,6 +144,8 @@ class _DashboardView extends StatelessWidget {
                 hint: 'Across all age-group/subject pools',
                 icon: Icons.check_circle_outline_rounded,
                 color: AppTheme.tertiary,
+                onTap: () => context.go('/reports?focus=pass-rate'),
+                actionLabel: 'Open pass-rate charts',
               ),
             ],
           ),
@@ -148,7 +159,7 @@ class _DashboardView extends StatelessWidget {
                     context,
                     title: 'Subject Score Profile',
                     subtitle:
-                        'Average learner score per subject, aggregated from existing age-group records.',
+                        'Average learner score per subject on the 5-point scale, aggregated from age-group records.',
                     child: scoreBySubject.isEmpty
                         ? const FlareEmptyState(
                             message: 'No performance data available yet.',
@@ -163,7 +174,7 @@ class _DashboardView extends StatelessWidget {
                                   ),
                                 )
                                 .toList(),
-                            maxY: 10,
+                            maxY: kFivePointScoreMax,
                           ),
                   ),
                 ),
@@ -205,7 +216,7 @@ class _DashboardView extends StatelessWidget {
               context,
               title: 'Subject Score Profile',
               subtitle:
-                  'Average learner score per subject, aggregated from existing age-group records.',
+                  'Average learner score per subject on the 5-point scale, aggregated from age-group records.',
               child: scoreBySubject.isEmpty
                   ? const FlareEmptyState(
                       message: 'No performance data available yet.',
@@ -220,7 +231,7 @@ class _DashboardView extends StatelessWidget {
                             ),
                           )
                           .toList(),
-                      maxY: 10,
+                      maxY: kFivePointScoreMax,
                     ),
             ),
             const SizedBox(height: 14),
@@ -278,9 +289,9 @@ class _DashboardView extends StatelessWidget {
                                 'Recommendation: keep at least 9-10 questions for each subject and difficulty level.',
                                 style: Theme.of(context).textTheme.bodySmall
                                     ?.copyWith(
-                                      color: Theme.of(context)
-                                          .colorScheme
-                                          .onSurfaceVariant,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.onSurfaceVariant,
                                     ),
                               ),
                             ],
@@ -325,9 +336,9 @@ class _DashboardView extends StatelessWidget {
                           'Recommendation: keep at least 9-10 questions for each subject and difficulty level.',
                           style: Theme.of(context).textTheme.bodySmall
                               ?.copyWith(
-                                color: Theme.of(context)
-                                    .colorScheme
-                                    .onSurfaceVariant,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
                               ),
                         ),
                       ],
@@ -344,7 +355,7 @@ class _DashboardView extends StatelessWidget {
                       message: 'No pool health data available yet.',
                     )
                   : PoolHealthMatrix(entries: data.poolHealth),
-            )
+            ),
           ],
           const SizedBox(height: 14),
           FlareSurfaceCard(
@@ -417,6 +428,42 @@ class _DashboardView extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  List<_PerformanceRow> _buildSubjectRows(DashboardData data) {
+    final rows = _groupBySubject(data.ageGroupProgress);
+    if (rows.isNotEmpty) {
+      return rows;
+    }
+    if (data.totalScores <= 0 && data.totalStudents <= 0) {
+      return const [];
+    }
+    return [
+      _PerformanceRow(
+        label: 'Overall',
+        activeStudents: data.totalStudents,
+        averageScore: data.averageScore,
+        passRate: data.passRatePct,
+      ),
+    ];
+  }
+
+  List<_PerformanceRow> _buildAgeGroupRows(DashboardData data) {
+    final rows = _groupByAgeGroup(data.ageGroupProgress);
+    if (rows.isNotEmpty) {
+      return rows;
+    }
+    if (data.totalScores <= 0 && data.totalStudents <= 0) {
+      return const [];
+    }
+    return [
+      _PerformanceRow(
+        label: 'All Learners',
+        activeStudents: data.totalStudents,
+        averageScore: data.averageScore,
+        passRate: data.passRatePct,
+      ),
+    ];
   }
 
   List<_PerformanceRow> _groupBySubject(List<AgeGroupProgress> source) {

@@ -1,4 +1,5 @@
 import '../core/student_id.dart';
+import '../core/score_utils.dart';
 
 class Student {
   final int studId;
@@ -29,8 +30,39 @@ class Student {
     required this.proficiency,
   });
 
+  Student copyWith({
+    int? studId,
+    String? nickname,
+    String? firstName,
+    String? lastName,
+    String? area,
+    String? birthday,
+    int? age,
+    String? gradelvl,
+    String? sex,
+    int? totalSessions,
+    double? avgScore,
+    String? proficiency,
+  }) {
+    return Student(
+      studId: studId ?? this.studId,
+      nickname: nickname ?? this.nickname,
+      firstName: firstName ?? this.firstName,
+      lastName: lastName ?? this.lastName,
+      area: area ?? this.area,
+      birthday: birthday ?? this.birthday,
+      age: age ?? this.age,
+      gradelvl: gradelvl ?? this.gradelvl,
+      sex: sex ?? this.sex,
+      totalSessions: totalSessions ?? this.totalSessions,
+      avgScore: avgScore ?? this.avgScore,
+      proficiency: proficiency ?? this.proficiency,
+    );
+  }
+
   factory Student.fromJson(Map<String, dynamic> j) {
     final age = _readInt(j['age']) ?? 0;
+    final avgScore = normalizeAverageScore(_readDouble(j['avg_score']) ?? 0.0);
     return Student(
       studId: parseStudentId(j['stud_id'] ?? j['studId']) ?? 0,
       nickname: j['nickname'] as String? ?? '',
@@ -42,8 +74,11 @@ class Student {
       gradelvl: _normalizeGradeLevelLabel(j['gradelvl'], age: age),
       sex: _normalizeSexLabel(j['sex'] ?? j['sex_id']),
       totalSessions: _readInt(j['total_sessions']) ?? 0,
-      avgScore: _readDouble(j['avg_score']) ?? 0.0,
-      proficiency: j['proficiency'] as String? ?? 'On track',
+      avgScore: avgScore,
+      proficiency: resolveProficiencyLabel(
+        j['proficiency'] as String?,
+        avgScore,
+      ),
     );
   }
 
@@ -54,15 +89,18 @@ class Student {
 String _normalizeGradeLevelLabel(Object? value, {int? age}) {
   final label = (value as String?)?.trim() ?? '';
   final lower = label.toLowerCase();
-  if (lower.contains('punla')) {
-    return 'Punla (4-5)';
+  if (lower.contains('(4-5)') || lower.contains('(6-7)')) {
+    return label;
   }
   if (lower.contains('binhi')) {
-    return 'Binhi (6-7)';
+    return 'Binhi (4-5)';
+  }
+  if (lower.contains('punla')) {
+    return 'Punla (6-7)';
   }
   if (label.isEmpty && age != null) {
-    if (age >= 3 && age <= 5) return 'Punla (3-5)';
-    if (age >= 6 && age <= 8) return 'Binhi (6-8)';
+    if (age >= 4 && age <= 5) return 'Binhi (4-5)';
+    if (age >= 6 && age <= 7) return 'Punla (6-7)';
   }
   return label;
 }
@@ -152,19 +190,14 @@ class StudentDetail {
   });
 
   factory StudentDetail.fromJson(Map<String, dynamic> j) => StudentDetail(
-    profile: Student.fromJson(j['profile'] as Map<String, dynamic>),
-    progress: (j['progress'] as List? ?? [])
-        .map((e) => SubjectProgress.fromJson(e as Map<String, dynamic>))
-        .toList(),
-    analytics: (j['analytics'] as List? ?? [])
-        .map((e) => SubjectAnalytics.fromJson(e as Map<String, dynamic>))
-        .toList(),
-    recentScores:
-        (j['recent_scores'] as List? ??
-                j['scores'] as List? ??
-                const <dynamic>[])
-            .map((e) => ScoreRecord.fromJson(e as Map<String, dynamic>))
-            .toList(),
+    profile: Student.fromJson(
+      _readMap(j['profile']).isNotEmpty ? _readMap(j['profile']) : j,
+    ),
+    progress: _readList(j['progress']).map(SubjectProgress.fromJson).toList(),
+    analytics: _readList(
+      j['analytics'],
+    ).map(SubjectAnalytics.fromJson).toList(),
+    recentScores: _readStudentScoreList(j).map(ScoreRecord.fromJson).toList(),
   );
 }
 
@@ -185,7 +218,7 @@ class SubjectProgress {
 
   factory SubjectProgress.fromJson(Map<String, dynamic> j) => SubjectProgress(
     subject: j['subject'] as String? ?? '',
-    gradelvl: j['gradelvl'] as String? ?? '',
+    gradelvl: _normalizeGradeLevelLabel(j['gradelvl']),
     highestDiffPassed: _readInt(j['highest_diff_passed']) ?? 0,
     totalTimePlayed: _readInt(j['total_time_played']) ?? 0,
     lastPlayedAt:
@@ -232,9 +265,9 @@ class SubjectAnalytics {
   factory SubjectAnalytics.fromJson(Map<String, dynamic> j) => SubjectAnalytics(
     subject: j['subject'] as String? ?? '',
     gradelvl: j['gradelvl'] as String? ?? '',
-    lowestScore: _readDouble(j['lowest_score']) ?? 0.0,
-    averageScore: _readDouble(j['average_score']) ?? 0.0,
-    highestScore: _readDouble(j['highest_score']) ?? 0.0,
+    lowestScore: normalizeAverageScore(_readDouble(j['lowest_score']) ?? 0.0),
+    averageScore: normalizeAverageScore(_readDouble(j['average_score']) ?? 0.0),
+    highestScore: normalizeAverageScore(_readDouble(j['highest_score']) ?? 0.0),
     totalAttempts: _readInt(j['total_attempts']) ?? 0,
   );
 }
@@ -260,11 +293,14 @@ class ScoreRecord {
 
   factory ScoreRecord.fromJson(Map<String, dynamic> j) => ScoreRecord(
     subject: j['subject'] as String? ?? '',
-    gradelvl: j['gradelvl'] as String? ?? '',
-    difficulty: j['difficulty'] as String? ?? '',
-    score: _readDouble(j['score']) ?? 0.0,
-    totalItems: _readInt(j['total_items']) ?? 10,
-    passed: (_readInt(j['passed']) ?? 0) == 1 || j['passed'] == true,
+    gradelvl: _normalizeGradeLevelLabel(j['gradelvl']),
+    difficulty: _normalizeDifficultyLabel(j['difficulty'] ?? j['diff_id']),
+    score: normalizeScoreValue(
+      _readDouble(j['score']) ?? 0.0,
+      sourceMax: (_readInt(j['total_items']) ?? 0).toDouble(),
+    ),
+    totalItems: normalizeScoreTotalItems(_readInt(j['total_items']) ?? 0),
+    passed: _readPassedFlag(j),
     playedAt: j['played_at'] as String? ?? '',
   );
 }
@@ -281,4 +317,72 @@ double? _readDouble(Object? value) {
   if (value is num) return value.toDouble();
   if (value is String) return double.tryParse(value);
   return null;
+}
+
+Map<String, dynamic> _readMap(Object? value) {
+  if (value is Map<String, dynamic>) return value;
+  if (value is Map) {
+    return value.map((key, entry) => MapEntry(key.toString(), entry));
+  }
+  return <String, dynamic>{};
+}
+
+List<Map<String, dynamic>> _readList(Object? value) {
+  if (value is List) {
+    return value
+        .whereType<Map>()
+        .map((entry) => Map<String, dynamic>.from(entry))
+        .toList(growable: false);
+  }
+  return const <Map<String, dynamic>>[];
+}
+
+List<Map<String, dynamic>> _readStudentScoreList(Map<String, dynamic> json) {
+  const candidates = [
+    'recent_scores',
+    'scores',
+    'score_history',
+    'recentScores',
+  ];
+
+  for (final key in candidates) {
+    final rows = _readList(json[key]);
+    if (rows.isNotEmpty) {
+      return rows;
+    }
+  }
+
+  return const <Map<String, dynamic>>[];
+}
+
+String _normalizeDifficultyLabel(Object? value) {
+  if (value is num) {
+    return switch (value.toInt()) {
+      1 => 'Easy',
+      2 => 'Average',
+      3 => 'Hard',
+      _ => '',
+    };
+  }
+
+  final label = (value as String?)?.trim() ?? '';
+  final lower = label.toLowerCase();
+  if (lower.contains('easy')) return 'Easy';
+  if (lower.contains('average')) return 'Average';
+  if (lower.contains('hard')) return 'Hard';
+  return label;
+}
+
+bool _readPassedFlag(Map<String, dynamic> json) {
+  final explicit =
+      (_readInt(json['passed']) ?? 0) == 1 || json['passed'] == true;
+  if (explicit) {
+    return true;
+  }
+
+  final score = normalizeScoreValue(
+    _readDouble(json['score']) ?? 0.0,
+    sourceMax: (_readInt(json['total_items']) ?? 0).toDouble(),
+  );
+  return isPassingFivePointScore(score);
 }

@@ -73,14 +73,17 @@ double? _readDouble(Object? value) {
 String _normalizeGradeLevelLabel(Object? value) {
   final label = (value as String?)?.trim() ?? '';
   final lower = label.toLowerCase();
-  if (lower.contains('punla')) {
-    return 'Punla (4-5)';
+  if (lower.contains('(4-5)') || lower.contains('(6-7)')) {
+    return label;
   }
   if (lower.contains('binhi')) {
-    return 'Binhi (6-7)';
+    return 'Binhi (4-5)';
+  }
+  if (lower.contains('punla')) {
+    return 'Punla (6-7)';
   }
   if (lower.isEmpty || lower == 'unknown') {
-    return 'Binhi (6-7)';
+    return 'Unknown';
   }
   return label;
 }

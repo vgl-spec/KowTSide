@@ -1,3 +1,4 @@
+import '../core/score_utils.dart';
 import '../models/reporting.dart';
 import '../models/student.dart';
 
@@ -56,10 +57,7 @@ Student studentFromLeaderboard(LeaderboardEntry entry) {
 }
 
 String proficiencyForAverage(double avgScore) {
-  if (avgScore >= 9.0) return 'Excelling';
-  if (avgScore >= 7.0) return 'On track';
-  if (avgScore >= 5.0) return 'Needs support';
-  return 'Needs significant support';
+  return resolveProficiencyLabel(null, avgScore);
 }
 
 double _estimatedTotalScore(Student student) {

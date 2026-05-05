@@ -32,6 +32,7 @@ class KowAdminApp extends ConsumerStatefulWidget {
 
 class _KowAdminAppState extends ConsumerState<KowAdminApp> {
   late final GoRouter _router;
+  static const _bootstrapRoute = '/bootstrap';
 
   @override
   void initState() {
@@ -46,13 +47,17 @@ class _KowAdminAppState extends ConsumerState<KowAdminApp> {
   GoRouter _buildRouter() {
     return GoRouter(
       navigatorKey: _rootKey,
-      initialLocation: '/dashboard',
+      initialLocation: _bootstrapRoute,
       redirect: (context, state) {
         final auth = ref.read(authProvider);
-        if (auth.isLoading) return null;
+        final location = state.matchedLocation;
+        final isBootstrapRoute = location == _bootstrapRoute;
+        if (auth.isLoading) {
+          return isBootstrapRoute ? null : _bootstrapRoute;
+        }
 
         final isLoggedIn = auth.isAuthenticated;
-        final isLoginRoute = state.matchedLocation == '/login';
+        final isLoginRoute = location == '/login';
         final isSuperadmin = isSuperadminRole(auth.role);
         final superadminOnly = {
           '/userbase',
@@ -61,17 +66,26 @@ class _KowAdminAppState extends ConsumerState<KowAdminApp> {
           '/system-health',
         };
 
+        if (isBootstrapRoute) {
+          return isLoggedIn ? '/dashboard' : '/login';
+        }
         if (!isLoggedIn && !isLoginRoute) return '/login';
         if (isLoggedIn && isLoginRoute) return '/dashboard';
         if (isLoggedIn &&
             !isSuperadmin &&
-            superadminOnly
-                .any((route) => state.matchedLocation.startsWith(route))) {
+            superadminOnly.any(
+              (route) => state.matchedLocation.startsWith(route),
+            )) {
           return '/dashboard';
         }
         return null;
       },
       routes: [
+        GoRoute(
+          path: _bootstrapRoute,
+          pageBuilder: (context, state) =>
+              _page(state, const _BootstrapScreen()),
+        ),
         GoRoute(
           path: '/login',
           pageBuilder: (context, state) => _page(state, const LoginScreen()),
@@ -112,8 +126,10 @@ class _KowAdminAppState extends ConsumerState<KowAdminApp> {
             ),
             GoRoute(
               path: '/reports',
-              pageBuilder: (context, state) =>
-                  _page(state, const ReportsScreen()),
+              pageBuilder: (context, state) => _page(
+                state,
+                ReportsScreen(focusSection: state.uri.queryParameters['focus']),
+              ),
             ),
             GoRoute(
               path: '/activity-logs',
@@ -162,6 +178,25 @@ class _KowAdminAppState extends ConsumerState<KowAdminApp> {
       themeAnimationDuration: Duration.zero,
       themeAnimationCurve: Curves.linear,
       routerConfig: _router,
+    );
+  }
+}
+
+class _BootstrapScreen extends StatelessWidget {
+  const _BootstrapScreen();
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      body: SafeArea(
+        child: Center(
+          child: SizedBox(
+            width: 28,
+            height: 28,
+            child: CircularProgressIndicator(strokeWidth: 3),
+          ),
+        ),
+      ),
     );
   }
 }
