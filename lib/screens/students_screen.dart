@@ -52,12 +52,19 @@ class _StudentsView extends StatefulWidget {
 }
 
 class _StudentsViewState extends State<_StudentsView> {
+  final ScrollController _pageScrollController = ScrollController();
   String _search = '';
   String _groupFilter = 'All';
   String _supportFilter = 'All';
   String _sortBy = 'Name';
   int _page = 0;
   static const int _rowsPerPage = 8;
+
+  @override
+  void dispose() {
+    _pageScrollController.dispose();
+    super.dispose();
+  }
 
   List<Student> get _filtered {
     final searchLower = _search.trim().toLowerCase();
@@ -200,8 +207,10 @@ class _StudentsViewState extends State<_StudentsView> {
                     : preferredMainHeight;
 
                 return Scrollbar(
+                  controller: _pageScrollController,
                   thumbVisibility: true,
                   child: SingleChildScrollView(
+                    controller: _pageScrollController,
                     child: Column(
                       children: [
                         SizedBox(
