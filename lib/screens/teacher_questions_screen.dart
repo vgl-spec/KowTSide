@@ -394,7 +394,7 @@ class _TeacherQuestionsScreenState
           gradelvlLabels[question.gradelvlId] ?? '',
           diffLabels[question.diffId] ?? '',
           question.questionTxt,
-          question.imageUrl ?? '',
+          question.imageUrl,
           question.optionA,
           question.optionB,
           question.optionC,

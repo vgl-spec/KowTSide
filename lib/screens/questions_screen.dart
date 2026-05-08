@@ -103,30 +103,33 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                       value: filter.subjectId,
                       items: subjectLabels,
                       onChanged: (v) =>
-                          ref.read(questionFilterProvider.notifier).state =
-                              v == null
-                              ? filter.copyWith(clearSubject: true, page: 1)
-                              : filter.copyWith(subjectId: v, page: 1),
+                          ref
+                              .read(questionFilterProvider.notifier)
+                              .state = v == null
+                          ? filter.copyWith(clearSubject: true, page: 1)
+                          : filter.copyWith(subjectId: v, page: 1),
                     ),
                     _FilterDropdown<int>(
                       label: 'Grade Level',
                       value: filter.gradelvlId,
                       items: gradelvlLabels,
                       onChanged: (v) =>
-                          ref.read(questionFilterProvider.notifier).state =
-                              v == null
-                              ? filter.copyWith(clearGrade: true, page: 1)
-                              : filter.copyWith(gradelvlId: v, page: 1),
+                          ref
+                              .read(questionFilterProvider.notifier)
+                              .state = v == null
+                          ? filter.copyWith(clearGrade: true, page: 1)
+                          : filter.copyWith(gradelvlId: v, page: 1),
                     ),
                     _FilterDropdown<int>(
                       label: 'Difficulty',
                       value: filter.diffId,
                       items: diffLabels,
                       onChanged: (v) =>
-                          ref.read(questionFilterProvider.notifier).state =
-                              v == null
-                              ? filter.copyWith(clearDiff: true, page: 1)
-                              : filter.copyWith(diffId: v, page: 1),
+                          ref
+                              .read(questionFilterProvider.notifier)
+                              .state = v == null
+                          ? filter.copyWith(clearDiff: true, page: 1)
+                          : filter.copyWith(diffId: v, page: 1),
                     ),
                     FilterChip(
                       label: const Text('Show inactive'),
@@ -348,7 +351,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
           gradelvlLabels[question.gradelvlId] ?? '',
           diffLabels[question.diffId] ?? '',
           question.questionTxt,
-          question.imageUrl ?? '',
+          question.imageUrl,
           question.optionA,
           question.optionB,
           question.optionC,

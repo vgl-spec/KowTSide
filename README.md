@@ -26,7 +26,7 @@ Mock credentials:
 
 ## Build for Production
 flutter build web --release --dart-define-from-file=.env.prod
-flutter run -d chrome --web-hostname localhost --web-port 5000 --dart-define-from-file=.env.dev
+
 Serve the `build/web` folder using a static file server (e.g., `serve` npm package, Vercel, Netlify).
 
 ## Environment Files
@@ -42,3 +42,6 @@ The project includes `vercel.json` and is ready for static deployment to Vercel.
 ## Notes
 - This folder was migrated from `kow-admin-web` as requested.
 - Backend APIs are expected to follow the KOW documentation contracts.
+
+flutter run -d chrome --web-hostname localhost --web-port 3000 --dart-define-from-file=.env.dev
+-- This command runs the Flutter web app on localhost:3000 with environment variables from .env.dev. To resolve the cors issue.

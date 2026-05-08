@@ -6,6 +6,7 @@ build/
 .flutter-plugins
 .flutter-plugins-dependencies
 .flutter-versions
+android/
 
 # Generated
 **/generated_plugin_registrant.dart
@@ -40,3 +41,4 @@ AGENTS.md
 memory.md
 .vercel
 README.md
+docs
