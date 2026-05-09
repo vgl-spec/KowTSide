@@ -131,44 +131,31 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                         mainAxisSize: MainAxisSize.min,
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Row(
-                            children: [
-                              Container(
-                                height: 52,
-                                width: 52,
-                                decoration: BoxDecoration(
-                                  color: cs.primary.withValues(alpha: 0.12),
-                                  borderRadius: BorderRadius.circular(14),
-                                  border: Border.all(
-                                    color: cs.primary.withValues(alpha: 0.22),
+                          Center(
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  'Admin Side',
+                                  style: textTheme.headlineSmall?.copyWith(
+                                    color: cs.primary,
+                                    fontWeight: FontWeight.w900,
                                   ),
                                 ),
-                                child: Icon(
-                                  Icons.school_rounded,
-                                  size: 30,
-                                  color: cs.primary,
-                                ),
+                                const SizedBox(height: 2),
+                              ],
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+                          Center(
+                            child: SizedBox(
+                              height: 200,
+                              width: 300,
+                              child: Image.asset(
+                                'assets/images/kow_official.png',
+                                fit: BoxFit.contain,
                               ),
-                              const SizedBox(width: 12),
-                              Expanded(
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Text(
-                                      'KOW Admin',
-                                      style: textTheme.headlineSmall?.copyWith(
-                                        color: cs.primary,
-                                        fontWeight: FontWeight.w900,
-                                      ),
-                                    ),
-                                    Text(
-                                      'Karunungan on Wheels Control Center',
-                                      style: textTheme.bodySmall,
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            ],
+                            ),
                           ),
                           const SizedBox(height: 24),
                           Text(

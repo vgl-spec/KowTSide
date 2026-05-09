@@ -378,7 +378,7 @@ class ReportsScreen extends ConsumerWidget {
       );
       if (!context.mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Analytics XLSX export complete.')),
+        const SnackBar(content: Text('Analytics Spreadsheets Downloaded.')),
       );
     } catch (error) {
       if (!context.mounted) return;
@@ -543,7 +543,7 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Area leaderboard XLSX export complete.')),
+        const SnackBar(content: Text('Area leaderboard spreadsheets downloaded.')),
       );
     } catch (error) {
       if (!mounted) return;
