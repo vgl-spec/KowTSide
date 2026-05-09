@@ -2,6 +2,9 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:html' as html;
 
+const int _maxImageBytes = 5 * 1024 * 1024;
+const _allowedImageExtensions = <String>{'.png', '.jpg', '.jpeg', '.webp', '.gif'};
+
 class PickedImageData {
   final String name;
   final List<int> bytes;
@@ -22,6 +25,16 @@ Future<PickedImageData?> pickImageData() async {
   final file = input.files?.isNotEmpty == true ? input.files!.first : null;
   if (file == null) {
     return null;
+  }
+  final name = file.name.toLowerCase();
+  final hasAllowedExtension = _allowedImageExtensions.any(name.endsWith);
+  if (!hasAllowedExtension) {
+    throw const FormatException(
+      'Unsupported image format. Use PNG, JPG, JPEG, WEBP, or GIF.',
+    );
+  }
+  if (file.size > _maxImageBytes) {
+    throw const FormatException('Image exceeds 5MB limit.');
   }
 
   final reader = html.FileReader();

@@ -394,7 +394,7 @@ class _TeacherQuestionsScreenState
           gradelvlLabels[question.gradelvlId] ?? '',
           diffLabels[question.diffId] ?? '',
           question.questionTxt,
-          question.imageUrl ?? '',
+          question.imageUrl,
           question.optionA,
           question.optionB,
           question.optionC,
@@ -644,6 +644,11 @@ class _CsvQuestionImportDialogState
             const Text(
               'Use a CSV in the same format as the exported file. Duplicate question IDs can be ignored or replaced.',
             ),
+            const SizedBox(height: 8),
+            Text(
+              'Before selecting a file: max 20MB. For this dialog, upload CSV only.',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 12),
             Wrap(
               spacing: 10,
@@ -653,12 +658,19 @@ class _CsvQuestionImportDialogState
                   onPressed: _importing
                       ? null
                       : () async {
-                          final picked = await pickImportFileData();
-                          if (!mounted || picked == null) return;
-                          setState(() {
-                            _file = picked;
-                            _message = null;
-                          });
+                          try {
+                            final picked = await pickImportFileData();
+                            if (!mounted || picked == null) return;
+                            setState(() {
+                              _file = picked;
+                              _message = null;
+                            });
+                          } catch (error) {
+                            if (!mounted) return;
+                            setState(() {
+                              _message = 'Cannot select file: $error';
+                            });
+                          }
                         },
                   icon: const Icon(Icons.attach_file_rounded, size: 18),
                   label: Text(
@@ -670,10 +682,18 @@ class _CsvQuestionImportDialogState
                   width: 220,
                   child: DropdownButtonFormField<String>(
                     initialValue: _mode,
-                    decoration: const InputDecoration(labelText: 'Duplicate ID'),
+                    decoration: const InputDecoration(
+                      labelText: 'Duplicate ID',
+                    ),
                     items: const [
-                      DropdownMenuItem(value: 'ignore', child: Text('Ignore existing')),
-                      DropdownMenuItem(value: 'replace', child: Text('Replace existing')),
+                      DropdownMenuItem(
+                        value: 'ignore',
+                        child: Text('Ignore existing'),
+                      ),
+                      DropdownMenuItem(
+                        value: 'replace',
+                        child: Text('Replace existing'),
+                      ),
                     ],
                     onChanged: _importing
                         ? null
@@ -819,7 +839,10 @@ class _CsvQuestionImportDialogState
     }
   }
 
-  Map<String, dynamic>? _toQuestionPayload(List<String> row, Map<String, int> i) {
+  Map<String, dynamic>? _toQuestionPayload(
+    List<String> row,
+    Map<String, int> i,
+  ) {
     final subject = _subjectId(_cell(row, i['subject']));
     final grade = _gradeId(_cell(row, i['grade_level']));
     final diff = _diffId(_cell(row, i['difficulty']));
@@ -2029,6 +2052,11 @@ class _QuestionImportDialogState extends ConsumerState<_QuestionImportDialog> {
           subtitle:
               'Click the upload field to open file manager, then generate editable draft questions before saving.',
         ),
+        const SizedBox(height: 8),
+        Text(
+          'Before selecting a file: max 20MB. AI lesson import works best with PDF or DOCX.',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
         const SizedBox(height: 18),
         InkWell(
           borderRadius: BorderRadius.circular(16),
@@ -2241,16 +2269,23 @@ class _QuestionImportDialogState extends ConsumerState<_QuestionImportDialog> {
   }
 
   Future<void> _pickImportFile() async {
-    final file = await pickImportFileData();
-    if (file == null || !mounted) {
-      return;
+    try {
+      final file = await pickImportFileData();
+      if (file == null || !mounted) {
+        return;
+      }
+      setState(() {
+        _selectedFile = file;
+        _generated = false;
+        _errorMessage = null;
+        _generatedModel = null;
+      });
+    } catch (error) {
+      if (!mounted) return;
+      setState(() {
+        _errorMessage = 'Cannot select file: $error';
+      });
     }
-    setState(() {
-      _selectedFile = file;
-      _generated = false;
-      _errorMessage = null;
-      _generatedModel = null;
-    });
   }
 
   Future<void> _generatePreview() async {

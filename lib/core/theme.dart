@@ -115,18 +115,18 @@ class AppTheme {
         color: scheme.onSurface,
       ),
       titleMedium: GoogleFonts.spaceGrotesk(
-        fontSize: 15,
+        fontSize: 16,
         fontWeight: FontWeight.w600,
         color: scheme.onSurface,
       ),
       bodyMedium: GoogleFonts.manrope(
-        fontSize: 14,
+        fontSize: 15,
         fontWeight: FontWeight.w500,
         height: 1.45,
         color: scheme.onSurface,
       ),
       bodySmall: GoogleFonts.manrope(
-        fontSize: 12,
+        fontSize: 13,
         fontWeight: FontWeight.w500,
         color: scheme.onSurfaceVariant,
       ),
@@ -191,7 +191,7 @@ class AppTheme {
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
-          minimumSize: const Size(0, 44),
+          minimumSize: const Size(0, 46),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),

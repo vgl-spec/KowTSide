@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:go_router/go_router.dart';
+import 'package:excel/excel.dart' as xls;
+import 'package:intl/intl.dart';
 
+import '../core/question_export_service.dart';
 import '../core/score_utils.dart';
 import '../core/theme.dart';
 import '../models/dashboard.dart';
@@ -8,6 +12,7 @@ import '../models/reporting.dart';
 import '../models/student.dart';
 import '../providers/live_updates_provider.dart';
 import '../providers/reports_provider.dart';
+import '../providers/students_provider.dart';
 import '../widgets/admin_charts.dart';
 import '../widgets/flareline_components.dart';
 import '../widgets/page_skeletons.dart';
@@ -89,6 +94,12 @@ class ReportsScreen extends ConsumerWidget {
               subtitle:
                   'Use these analytics to prioritize interventions, identify content gaps, and monitor learner momentum.',
               actions: [
+                FilledButton.tonalIcon(
+                  onPressed: () =>
+                      _exportOverallXlsx(context, dashboard, students),
+                  icon: const Icon(Icons.file_download_outlined, size: 18),
+                  label: const Text('Export Analytics'),
+                ),
                 FilledButton.tonalIcon(
                   onPressed: () => _refreshAll(ref),
                   icon: const Icon(Icons.refresh_rounded, size: 18),
@@ -245,6 +256,8 @@ class ReportsScreen extends ConsumerWidget {
               ),
             ),
             const SizedBox(height: 14),
+            _AreaPerformanceCard(students: students),
+            const SizedBox(height: 14),
             _PrioritySupportQueueCard(items: supportList),
             const SizedBox(height: 14),
             _LeaderboardDetailsCard(entries: leaderboard),
@@ -258,6 +271,424 @@ class ReportsScreen extends ConsumerWidget {
     ref.invalidate(reportsSnapshotProvider);
     await ref.read(reportsSnapshotProvider.future);
   }
+
+  static Future<void> _exportOverallXlsx(
+    BuildContext context,
+    DashboardData dashboard,
+    List<Student> students,
+  ) async {
+    try {
+      final now = DateTime.now();
+      final sortedStudents = [...students]
+        ..sort((a, b) {
+          final areaSort = a.area.toLowerCase().compareTo(b.area.toLowerCase());
+          if (areaSort != 0) return areaSort;
+          final scoreSort = b.avgScore.compareTo(a.avgScore);
+          if (scoreSort != 0) return scoreSort;
+          return b.totalSessions.compareTo(a.totalSessions);
+        });
+      final excel = xls.Excel.createExcel();
+      final defaultSheetName = excel.getDefaultSheet() ?? 'Sheet1';
+      final sheet = excel[defaultSheetName];
+      final headerStyle = xls.CellStyle(
+        bold: true,
+        backgroundColorHex: xls.ExcelColor.fromHexString('#DCEBFF'),
+        horizontalAlign: xls.HorizontalAlign.Center,
+      );
+
+      sheet.appendRow(<xls.CellValue>[
+        xls.TextCellValue('Generated At'),
+        xls.TextCellValue('Total Learners'),
+        xls.TextCellValue('Total Sessions'),
+        xls.TextCellValue('Average Score'),
+        xls.TextCellValue('Overall Pass Rate (%)'),
+      ]);
+      sheet.appendRow(<xls.CellValue>[
+        xls.TextCellValue(_sanitizeExcelText(now.toIso8601String())),
+        xls.IntCellValue(dashboard.totalStudents),
+        xls.IntCellValue(dashboard.totalScores),
+        xls.DoubleCellValue(dashboard.averageScore),
+        xls.DoubleCellValue(dashboard.passRatePct),
+      ]);
+
+      sheet.appendRow(<xls.CellValue>[
+        xls.TextCellValue(''),
+        xls.TextCellValue(''),
+        xls.TextCellValue(''),
+        xls.TextCellValue(''),
+        xls.TextCellValue(''),
+      ]);
+
+      final learnerHeader = <xls.CellValue>[
+        xls.TextCellValue('Student ID'),
+        xls.TextCellValue('Nickname'),
+        xls.TextCellValue('Full Name'),
+        xls.TextCellValue('Area'),
+        xls.TextCellValue('Grade Level'),
+        xls.TextCellValue('Age'),
+        xls.TextCellValue('Sessions'),
+        xls.TextCellValue('Average Score'),
+        xls.TextCellValue('Proficiency'),
+      ];
+      sheet.appendRow(learnerHeader);
+      for (final student in sortedStudents) {
+        sheet.appendRow(<xls.CellValue>[
+          xls.TextCellValue(_sanitizeExcelText(student.displayStudId)),
+          xls.TextCellValue(_sanitizeExcelText(student.nickname)),
+          xls.TextCellValue(_sanitizeExcelText(student.fullName)),
+          xls.TextCellValue(_sanitizeExcelText(student.area)),
+          xls.TextCellValue(_sanitizeExcelText(student.gradelvl)),
+          xls.IntCellValue(student.age),
+          xls.IntCellValue(student.totalSessions),
+          xls.DoubleCellValue(student.avgScore),
+          xls.TextCellValue(_sanitizeExcelText(student.proficiency)),
+        ]);
+      }
+      final learnerHeaderRow = 3;
+      for (var col = 0; col < learnerHeader.length; col++) {
+        sheet
+                .cell(
+                  xls.CellIndex.indexByColumnRow(
+                    columnIndex: col,
+                    rowIndex: learnerHeaderRow,
+                  ),
+                )
+                .cellStyle =
+            headerStyle;
+      }
+      for (var col = 0; col < 5; col++) {
+        sheet
+                .cell(
+                  xls.CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0),
+                )
+                .cellStyle =
+            headerStyle;
+      }
+      sheet.setDefaultColumnWidth(22);
+      final bytes = excel.encode();
+      if (bytes == null) {
+        throw StateError('Excel encoding returned empty result.');
+      }
+      final stamp = DateFormat('yyyyMMdd_HHmmss').format(now);
+      await downloadBinaryFile(
+        filename: 'analytics_overall_$stamp.xlsx',
+        bytes: bytes,
+        mimeType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Analytics XLSX export complete.')),
+      );
+    } catch (error) {
+      if (!context.mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Export failed: $error')));
+    }
+  }
+}
+
+class _AreaPerformanceCard extends ConsumerStatefulWidget {
+  final List<Student> students;
+  const _AreaPerformanceCard({required this.students});
+
+  @override
+  ConsumerState<_AreaPerformanceCard> createState() =>
+      _AreaPerformanceCardState();
+}
+
+class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
+  DateTimeRange? _range;
+
+  @override
+  Widget build(BuildContext context) {
+    final groups = <String, List<Student>>{};
+    for (final student in widget.students) {
+      final area = student.area.trim().isEmpty
+          ? 'Unspecified Area'
+          : student.area.trim();
+      groups.putIfAbsent(area, () => <Student>[]).add(student);
+    }
+    final rows = groups.entries.map((entry) {
+      final totalSessions = entry.value.fold<int>(
+        0,
+        (sum, s) => sum + s.totalSessions,
+      );
+      final avg = entry.value.isEmpty
+          ? 0.0
+          : entry.value.fold<double>(0, (sum, s) => sum + s.avgScore) /
+                entry.value.length;
+      return _AreaSummary(
+        area: entry.key,
+        learners: entry.value.length,
+        sessions: totalSessions,
+        averageScore: avg,
+      );
+    }).toList()..sort((a, b) => b.averageScore.compareTo(a.averageScore));
+
+    return FlareSurfaceCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const FlareSectionTitle(
+            title: 'Area Performance and Leaderboard',
+            subtitle:
+                'Click an area for visit-by-visit comparison and learner session breakdown.',
+          ),
+          const SizedBox(height: 12),
+          Wrap(
+            spacing: 10,
+            runSpacing: 10,
+            children: [
+              OutlinedButton.icon(
+                onPressed: _pickDateRange,
+                icon: const Icon(Icons.date_range_outlined, size: 16),
+                label: Text(
+                  _range == null
+                      ? 'Select date range'
+                      : '${DateFormat('yyyy-MM-dd').format(_range!.start)} to ${DateFormat('yyyy-MM-dd').format(_range!.end)}',
+                ),
+              ),
+              FilledButton.tonalIcon(
+                onPressed: () => _exportAreaXlsx(rows),
+                icon: const Icon(Icons.download_rounded, size: 16),
+                label: const Text('Export Area Leaderboard'),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          rows.isEmpty
+              ? const FlareEmptyState(
+                  message: 'No area performance rows available.',
+                )
+              : Column(
+                  children: rows
+                      .map(
+                        (row) => ListTile(
+                          contentPadding: EdgeInsets.zero,
+                          title: Text(row.area),
+                          subtitle: Text(
+                            '${row.learners} learners | ${row.sessions} sessions | ${row.averageScore.toStringAsFixed(2)} avg score',
+                          ),
+                          trailing: const Icon(Icons.chevron_right_rounded),
+                          onTap: () => _openAreaDrilldown(row.area),
+                        ),
+                      )
+                      .toList(),
+                ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _pickDateRange() async {
+    final now = DateTime.now();
+    final picked = await showDateRangePicker(
+      context: context,
+      firstDate: DateTime(now.year - 5),
+      lastDate: now,
+      initialDateRange: _range,
+    );
+    if (picked != null && mounted) {
+      setState(() => _range = picked);
+    }
+  }
+
+  Future<void> _exportAreaXlsx(List<_AreaSummary> rows) async {
+    try {
+      final excel = xls.Excel.createExcel();
+      final defaultSheetName = excel.getDefaultSheet() ?? 'Sheet1';
+      final sheet = excel[defaultSheetName];
+      final headerStyle = xls.CellStyle(
+        bold: true,
+        backgroundColorHex: xls.ExcelColor.fromHexString('#DCEBFF'),
+        horizontalAlign: xls.HorizontalAlign.Center,
+      );
+      sheet.appendRow(<xls.CellValue>[
+        xls.TextCellValue('Area'),
+        xls.TextCellValue('Total Learners'),
+        xls.TextCellValue('Total Sessions'),
+        xls.TextCellValue('Average Score'),
+      ]);
+      final sortedRows = [...rows]
+        ..sort((a, b) => b.averageScore.compareTo(a.averageScore));
+      for (final row in sortedRows) {
+        sheet.appendRow(<xls.CellValue>[
+          xls.TextCellValue(_sanitizeExcelText(row.area)),
+          xls.IntCellValue(row.learners),
+          xls.IntCellValue(row.sessions),
+          xls.DoubleCellValue(row.averageScore),
+        ]);
+      }
+      for (var col = 0; col < 4; col++) {
+        sheet
+                .cell(
+                  xls.CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0),
+                )
+                .cellStyle =
+            headerStyle;
+      }
+      sheet.setDefaultColumnWidth(24);
+      final bytes = excel.encode();
+      if (bytes == null) {
+        throw StateError('Excel encoding returned empty result.');
+      }
+      final stamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
+      await downloadBinaryFile(
+        filename: 'leaderboard_by_area_$stamp.xlsx',
+        bytes: bytes,
+        mimeType:
+            'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Area leaderboard XLSX export complete.')),
+      );
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Area export failed: $error')));
+    }
+  }
+
+  Future<void> _openAreaDrilldown(String area) async {
+    final areaStudents = widget.students
+        .where(
+          (s) =>
+              (s.area.trim().isEmpty ? 'Unspecified Area' : s.area.trim()) ==
+              area,
+        )
+        .toList();
+    final details = await Future.wait(
+      areaStudents.map(
+        (student) => ref.read(studentDetailProvider(student.studId).future),
+      ),
+    );
+    if (!mounted) return;
+    showDialog<void>(
+      context: context,
+      builder: (_) =>
+          _AreaDrilldownDialog(area: area, details: details, range: _range),
+    );
+  }
+}
+
+class _AreaDrilldownDialog extends StatelessWidget {
+  final String area;
+  final List<StudentDetail> details;
+  final DateTimeRange? range;
+
+  const _AreaDrilldownDialog({
+    required this.area,
+    required this.details,
+    required this.range,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final visitsByDay = <String, List<double>>{};
+    for (final detail in details) {
+      for (final score in detail.recentScores) {
+        final playedAt = DateTime.tryParse(score.playedAt);
+        if (playedAt == null) continue;
+        if (range != null &&
+            (playedAt.isBefore(range!.start) ||
+                playedAt.isAfter(range!.end.add(const Duration(days: 1))))) {
+          continue;
+        }
+        final key = DateFormat('yyyy-MM-dd').format(playedAt);
+        visitsByDay.putIfAbsent(key, () => <double>[]).add(score.score);
+      }
+    }
+    final sortedDays = visitsByDay.keys.toList()..sort();
+    final chartData = sortedDays
+        .map(
+          (day) => SimpleBarDatum(
+            label: day.substring(5),
+            value:
+                visitsByDay[day]!.reduce((a, b) => a + b) /
+                visitsByDay[day]!.length,
+            color: AppTheme.primary,
+          ),
+        )
+        .toList();
+
+    return Dialog(
+      child: SizedBox(
+        width: 1100,
+        height: 760,
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                area,
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 6),
+              Text(
+                'Visit comparison, learner sessions, unlocked progress, and profile shortcuts.',
+              ),
+              const SizedBox(height: 14),
+              Expanded(
+                child: chartData.isEmpty
+                    ? const FlareEmptyState(
+                        message: 'No score visits found in selected range.',
+                      )
+                    : SingleBarChart(data: chartData, maxY: 5),
+              ),
+              const SizedBox(height: 14),
+              Expanded(
+                child: ListView.builder(
+                  itemCount: details.length,
+                  itemBuilder: (context, index) {
+                    final detail = details[index];
+                    final highestUnlocked = detail.progress.isEmpty
+                        ? 'None'
+                        : detail.progress.map((p) => p.diffLabel).join(', ');
+                    return Card(
+                      child: ListTile(
+                        title: Text(
+                          '${detail.profile.fullName} (${detail.profile.displayStudId})',
+                        ),
+                        subtitle: Text(
+                          'Age ${detail.profile.age} | ${detail.profile.gradelvl} | Sessions ${detail.profile.totalSessions} | Unlocked: $highestUnlocked',
+                        ),
+                        trailing: FilledButton.tonal(
+                          onPressed: () =>
+                              context.go('/students/${detail.profile.studId}'),
+                          child: const Text('View Learner Profile'),
+                        ),
+                      ),
+                    );
+                  },
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _AreaSummary {
+  final String area;
+  final int learners;
+  final int sessions;
+  final double averageScore;
+
+  const _AreaSummary({
+    required this.area,
+    required this.learners,
+    required this.sessions,
+    required this.averageScore,
+  });
 }
 
 class _PrioritySupportQueueCard extends StatelessWidget {
@@ -883,4 +1314,18 @@ double _leaderboardMax(List<LeaderboardEntry> rows) {
       .map((row) => row.totalScore)
       .reduce((a, b) => a > b ? a : b);
   return (maxScore + 10).clamp(20, 1000).toDouble();
+}
+
+String _sanitizeExcelText(String input) {
+  if (input.isEmpty) return input;
+  final buffer = StringBuffer();
+  for (final codePoint in input.runes) {
+    final isAllowedControl =
+        codePoint == 0x09 || codePoint == 0x0A || codePoint == 0x0D;
+    final isInvalidControl = codePoint < 0x20 && !isAllowedControl;
+    if (!isInvalidControl) {
+      buffer.writeCharCode(codePoint);
+    }
+  }
+  return buffer.toString();
 }

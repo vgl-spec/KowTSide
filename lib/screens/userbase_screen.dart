@@ -7,6 +7,7 @@ import '../core/theme.dart';
 import '../models/admin_user.dart';
 import '../models/student.dart';
 import '../providers/admin_users_provider.dart';
+import '../providers/auth_provider.dart';
 import '../providers/students_provider.dart';
 import '../widgets/flareline_components.dart';
 
@@ -311,10 +312,14 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
   }
 
   void _showTeacherDialog(BuildContext context, WidgetRef ref, {AdminUser? existing}) {
+    final canManageAdmins = ref.read(authProvider).isSuperadmin;
     showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => _TeacherFormDialog(existing: existing),
+      builder: (_) => _TeacherFormDialog(
+        existing: existing,
+        canCreateAdmin: canManageAdmins,
+      ),
     );
   }
 }
@@ -367,7 +372,8 @@ Color _kindColor(String kind) {
 
 class _TeacherFormDialog extends ConsumerStatefulWidget {
   final AdminUser? existing;
-  const _TeacherFormDialog({this.existing});
+  final bool canCreateAdmin;
+  const _TeacherFormDialog({this.existing, required this.canCreateAdmin});
 
   @override
   ConsumerState<_TeacherFormDialog> createState() => _TeacherFormDialogState();
@@ -381,6 +387,7 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
   late final TextEditingController _middleInitial;
   late final TextEditingController _lastName;
   bool _saving = false;
+  late String _role;
 
   @override
   void initState() {
@@ -391,6 +398,7 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
     _firstName = TextEditingController(text: user?.firstName ?? '');
     _middleInitial = TextEditingController(text: user?.middleInitial ?? '');
     _lastName = TextEditingController(text: user?.lastName ?? '');
+    _role = user?.role.toLowerCase() == 'admin' ? 'admin' : 'teacher';
   }
 
   @override
@@ -407,7 +415,7 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
   Widget build(BuildContext context) {
     final isEdit = widget.existing != null;
     return AlertDialog(
-      title: Text(isEdit ? 'Edit Account' : 'Register Teacher'),
+      title: Text(isEdit ? 'Edit Account' : 'Register Account'),
       content: SizedBox(
         width: 520,
         child: Form(
@@ -430,6 +438,24 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
                 ),
               ],
               const SizedBox(height: 12),
+              DropdownButtonFormField<String>(
+                initialValue: _role,
+                decoration: const InputDecoration(labelText: 'Account role'),
+                items: <DropdownMenuItem<String>>[
+                  const DropdownMenuItem(
+                    value: 'teacher',
+                    child: Text('Teacher'),
+                  ),
+                  if (widget.canCreateAdmin)
+                    const DropdownMenuItem(value: 'admin', child: Text('Admin')),
+                ],
+                onChanged: (value) {
+                  if (value != null) {
+                    setState(() => _role = value);
+                  }
+                },
+              ),
+              const SizedBox(height: 12),
               TextFormField(controller: _firstName, decoration: const InputDecoration(labelText: 'First name')),
               const SizedBox(height: 12),
               TextFormField(controller: _middleInitial, decoration: const InputDecoration(labelText: 'Middle initial')),
@@ -441,7 +467,7 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
       ),
       actions: [
         TextButton(onPressed: _saving ? null : () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(onPressed: _saving ? null : _save, child: Text(isEdit ? 'Save Changes' : 'Create Teacher')),
+        FilledButton(onPressed: _saving ? null : _save, child: Text(isEdit ? 'Save Changes' : 'Create Account')),
       ],
     );
   }
@@ -452,13 +478,23 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
     final notifier = ref.read(adminUsersProvider.notifier);
     final existing = widget.existing;
     if (existing == null) {
-      await notifier.registerTeacher(
-        username: _username.text.trim(),
-        password: _password.text,
-        firstName: _firstName.text.trim(),
-        middleInitial: _middleInitial.text.trim(),
-        lastName: _lastName.text.trim(),
-      );
+      if (_role == 'admin' && widget.canCreateAdmin) {
+        await notifier.registerAdmin(
+          username: _username.text.trim(),
+          password: _password.text,
+          firstName: _firstName.text.trim(),
+          middleInitial: _middleInitial.text.trim(),
+          lastName: _lastName.text.trim(),
+        );
+      } else {
+        await notifier.registerTeacher(
+          username: _username.text.trim(),
+          password: _password.text,
+          firstName: _firstName.text.trim(),
+          middleInitial: _middleInitial.text.trim(),
+          lastName: _lastName.text.trim(),
+        );
+      }
     } else {
       final safeFirst = _firstName.text.trim().isEmpty
           ? _username.text.trim()

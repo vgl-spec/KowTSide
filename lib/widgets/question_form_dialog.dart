@@ -345,25 +345,38 @@ class _QuestionFormDialogState extends ConsumerState<QuestionFormDialog> {
                                       children: [
                                         Align(
                                           alignment: Alignment.centerLeft,
-                                          child: FilledButton.tonalIcon(
-                                            onPressed: _uploading
-                                                ? null
-                                                : _pickImage,
-                                            icon: _uploading
-                                                ? const SizedBox(
-                                                    height: 16,
-                                                    width: 16,
-                                                    child:
-                                                        CircularProgressIndicator(
-                                                          strokeWidth: 2,
-                                                        ),
-                                                  )
-                                                : const Icon(
-                                                    Icons.upload_rounded,
-                                                  ),
-                                            label: const Text(
-                                              'Upload or choose image',
-                                            ),
+                                          child: Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              FilledButton.tonalIcon(
+                                                onPressed: _uploading
+                                                    ? null
+                                                    : _pickImage,
+                                                icon: _uploading
+                                                    ? const SizedBox(
+                                                        height: 16,
+                                                        width: 16,
+                                                        child:
+                                                            CircularProgressIndicator(
+                                                              strokeWidth: 2,
+                                                            ),
+                                                      )
+                                                    : const Icon(
+                                                        Icons.upload_rounded,
+                                                      ),
+                                                label: const Text(
+                                                  'Upload or choose image',
+                                                ),
+                                              ),
+                                              const SizedBox(height: 8),
+                                              Text(
+                                                'Before upload: max 5MB. Allowed formats: PNG, JPG, JPEG, WEBP, GIF.',
+                                                style: Theme.of(
+                                                  context,
+                                                ).textTheme.bodySmall,
+                                              ),
+                                            ],
                                           ),
                                         ),
                                         const SizedBox(height: 12),

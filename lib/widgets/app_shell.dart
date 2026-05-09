@@ -126,50 +126,22 @@ class _AppShellState extends ConsumerState<AppShell> {
                   children: [
                     Padding(
                       padding: EdgeInsets.fromLTRB(
-                        showLabels ? 20 : 0,
-                        20,
+                        showLabels ? 14 : 8,
+                        12,
                         16,
-                        16,
+                        10,
                       ),
                       child: Row(
-                        mainAxisAlignment: showLabels
-                            ? MainAxisAlignment.start
-                            : MainAxisAlignment.center,
+                        mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          Container(
-                            height: 44,
-                            width: 44,
-                            decoration: BoxDecoration(
-                              color: AppTheme.primary.withValues(alpha: 0.16),
-                              borderRadius: BorderRadius.circular(14),
-                              border: Border.all(
-                                color: AppTheme.primary.withValues(alpha: 0.26),
-                              ),
-                            ),
-                            child: const Icon(
-                              Icons.menu_book_rounded,
-                              color: AppTheme.primary,
+                          SizedBox(
+                            width: showLabels ? 228 : 56,
+                            height: showLabels ? 120 : 56,
+                            child: Image.asset(
+                              'assets/images/kow_official.png',
+                              fit: BoxFit.contain,
                             ),
                           ),
-                          if (showLabels) ...[
-                            const SizedBox(width: 12),
-                            Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  'KOW Teacher',
-                                  style: Theme.of(context).textTheme.titleLarge
-                                      ?.copyWith(fontWeight: FontWeight.w800),
-                                ),
-                                Text(
-                                  'Classroom Console',
-                                  style: Theme.of(
-                                    context,
-                                  ).textTheme.bodySmall?.copyWith(fontSize: 11),
-                                ),
-                              ],
-                            ),
-                          ],
                         ],
                       ),
                     ),
@@ -255,37 +227,24 @@ class _AppShellState extends ConsumerState<AppShell> {
                         child: showLabels
                             ? Row(
                                 children: [
-                                  CircleAvatar(
-                                    radius: 18,
-                                    backgroundColor: AppTheme.primary
-                                        .withValues(alpha: 0.2),
-                                    child: Text(
-                                      _initials(auth.username),
-                                      style: const TextStyle(
-                                        color: AppTheme.primary,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ),
-                                  const SizedBox(width: 10),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment:
                                           CrossAxisAlignment.start,
                                       children: [
                                         Text(
-                                          auth.username,
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                        Text(
-                                          roleDisplayName(auth.role),
+                                          'Account Type',
                                           style: Theme.of(
                                             context,
                                           ).textTheme.bodySmall,
+                                        ),
+                                        Text(
+                                          roleDisplayName(auth.role),
+                                          maxLines: 1,
+                                          overflow: TextOverflow.ellipsis,
+                                          style: const TextStyle(
+                                            fontWeight: FontWeight.w800,
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -379,19 +338,6 @@ class _AppShellState extends ConsumerState<AppShell> {
     );
   }
 
-  String _initials(String value) {
-    final trimmed = value.trim();
-    if (trimmed.isEmpty) return 'A';
-
-    final parts = trimmed.split(RegExp(r'\s+'));
-    if (parts.length == 1) {
-      return parts.first.substring(0, 1).toUpperCase();
-    }
-
-    return (parts.first.substring(0, 1) + parts.last.substring(0, 1))
-        .toUpperCase();
-  }
-
   void _navigateTo(String route) {
     if (widget.currentRoute == route) {
       return;
@@ -424,8 +370,7 @@ class _AppShellState extends ConsumerState<AppShell> {
     if (route.startsWith('/reports')) {
       return const ReportsLoadingSkeleton();
     }
-    if (route.startsWith('/activity-logs') ||
-        route.startsWith('/userbase')) {
+    if (route.startsWith('/activity-logs') || route.startsWith('/userbase')) {
       return const StandardPageLoadingSkeleton();
     }
     if (route.startsWith('/devices')) {

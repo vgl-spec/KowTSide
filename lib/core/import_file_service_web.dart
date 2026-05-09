@@ -2,6 +2,17 @@ import 'dart:async';
 import 'dart:html' as html;
 import 'dart:typed_data';
 
+const int _maxImportFileBytes = 20 * 1024 * 1024;
+const _allowedImportExtensions = <String>{
+  '.pdf',
+  '.doc',
+  '.docx',
+  '.ppt',
+  '.pptx',
+  '.csv',
+  '.xlsx',
+};
+
 class PickedImportFileData {
   final String name;
   final List<int> bytes;
@@ -21,6 +32,7 @@ Future<PickedImportFileData?> pickImportFileData() async {
   if (file == null) {
     return null;
   }
+  _validateImportFile(file);
 
   final reader = html.FileReader();
   final completer = Completer<PickedImportFileData?>();
@@ -64,6 +76,7 @@ Stream<PickedImportFileData> watchImportFileDrops() {
       if (file == null) {
         return;
       }
+      _validateImportFile(file);
 
       final picked = await _readFile(file);
       if (picked != null) {
@@ -72,6 +85,19 @@ Stream<PickedImportFileData> watchImportFileDrops() {
     });
   }
   return _dropController.stream;
+}
+
+void _validateImportFile(html.File file) {
+  final lowerName = file.name.toLowerCase();
+  final hasAllowedExtension = _allowedImportExtensions.any(lowerName.endsWith);
+  if (!hasAllowedExtension) {
+    throw const FormatException(
+      'Unsupported file format. Use PDF, DOC, DOCX, PPT, PPTX, CSV, or XLSX.',
+    );
+  }
+  if (file.size > _maxImportFileBytes) {
+    throw const FormatException('File exceeds 20MB limit.');
+  }
 }
 
 Future<PickedImportFileData?> _readFile(html.File file) {
