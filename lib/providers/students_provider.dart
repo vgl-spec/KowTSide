@@ -123,7 +123,7 @@ Student _mergeProfile(
   List<ScoreRecord> recentScores,
 ) {
   final scoreAverage = averageScoreFromValues(
-    recentScores.map((score) => score.score),
+    recentScores.map((score) => score.normalizedScore),
   );
   final effectiveSessions =
       summaryProfile?.totalSessions ??
@@ -222,7 +222,9 @@ List<SubjectAnalytics> _deriveAnalyticsFromScores(
   return grouped.entries
       .map((entry) {
         final rows = entry.value;
-        final values = rows.map((score) => score.score).toList(growable: false);
+        final values = rows
+            .map((score) => score.normalizedScore)
+            .toList(growable: false);
         final first = rows.first;
         return SubjectAnalytics(
           subject: first.subject,

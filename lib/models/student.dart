@@ -291,15 +291,17 @@ class ScoreRecord {
     required this.playedAt,
   });
 
+  double get normalizedScore => normalizeScoreValue(
+    score,
+    sourceMax: totalItems.toDouble(),
+  );
+
   factory ScoreRecord.fromJson(Map<String, dynamic> j) => ScoreRecord(
     subject: j['subject'] as String? ?? '',
     gradelvl: _normalizeGradeLevelLabel(j['gradelvl']),
     difficulty: _normalizeDifficultyLabel(j['difficulty'] ?? j['diff_id']),
-    score: normalizeScoreValue(
-      _readDouble(j['score']) ?? 0.0,
-      sourceMax: (_readInt(j['total_items']) ?? 0).toDouble(),
-    ),
-    totalItems: normalizeScoreTotalItems(_readInt(j['total_items']) ?? 0),
+    score: _readDouble(j['score']) ?? 0.0,
+    totalItems: _readInt(j['total_items']) ?? 0,
     passed: _readPassedFlag(j),
     playedAt: j['played_at'] as String? ?? '',
   );
