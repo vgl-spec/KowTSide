@@ -149,11 +149,11 @@ List<Question> _applyLocalFilters(List<Question> source, QuestionFilter filter) 
   }).toList();
 
   int compareByCreatedAsc(Question a, Question b) =>
-      _parseDate(a.createdDate).compareTo(_parseDate(b.createdDate));
+      _compareQuestionDateAsc(a, b, preferUpdatedFallback: true);
   int compareByCreatedDesc(Question a, Question b) =>
-      compareByCreatedAsc(b, a);
+      _compareQuestionDateDesc(a, b, preferUpdatedFallback: true);
   int compareByUpdatedDesc(Question a, Question b) =>
-      _parseDate(b.updatedDate).compareTo(_parseDate(a.updatedDate));
+      _compareQuestionDateDesc(a, b, preferUpdatedFallback: false);
   int compareByPool(Question a, Question b) {
     final gradeCompare = a.gradelvlId.compareTo(b.gradelvlId);
     if (gradeCompare != 0) return gradeCompare;
@@ -186,6 +186,80 @@ DateTime _parseDate(String value) =>
     DateTime.tryParse(value.trim()) ??
     _parseOracleDate(value.trim()) ??
     DateTime.fromMillisecondsSinceEpoch(0);
+
+DateTime _parseDateTime(String date, String time) {
+  final d = date.trim();
+  if (d.isEmpty) return DateTime.fromMillisecondsSinceEpoch(0);
+
+  final direct = DateTime.tryParse(d);
+  if (direct != null) return direct;
+
+  final oracleDate = _parseOracleDate(d);
+  if (oracleDate != null) {
+    final t = time.trim();
+    if (t.isEmpty) return oracleDate;
+    final tm = RegExp(r'^(\d{1,2}):(\d{2})(?::(\d{2}))?$').firstMatch(t);
+    if (tm == null) return oracleDate;
+    final hour = int.tryParse(tm.group(1) ?? '') ?? 0;
+    final minute = int.tryParse(tm.group(2) ?? '') ?? 0;
+    final second = int.tryParse(tm.group(3) ?? '') ?? 0;
+    return DateTime(
+      oracleDate.year,
+      oracleDate.month,
+      oracleDate.day,
+      hour,
+      minute,
+      second,
+    );
+  }
+
+  return _parseDate(d);
+}
+
+DateTime _resolveQuestionDate(
+  Question q, {
+  required bool preferUpdatedFallback,
+}) {
+  final primary = _parseDateTime(q.createdDate, q.createdTime);
+  if (preferUpdatedFallback &&
+      primary == DateTime.fromMillisecondsSinceEpoch(0)) {
+    return _parseDateTime(q.updatedDate, q.updatedTime);
+  }
+  if (!preferUpdatedFallback) {
+    return _parseDateTime(q.updatedDate, q.updatedTime);
+  }
+  return primary;
+}
+
+int _compareQuestionDateAsc(
+  Question a,
+  Question b, {
+  required bool preferUpdatedFallback,
+}) {
+  final left = _resolveQuestionDate(a, preferUpdatedFallback: preferUpdatedFallback);
+  final right = _resolveQuestionDate(
+    b,
+    preferUpdatedFallback: preferUpdatedFallback,
+  );
+  final dateCompare = left.compareTo(right);
+  if (dateCompare != 0) return dateCompare;
+  return a.questionId.compareTo(b.questionId);
+}
+
+int _compareQuestionDateDesc(
+  Question a,
+  Question b, {
+  required bool preferUpdatedFallback,
+}) {
+  final left = _resolveQuestionDate(a, preferUpdatedFallback: preferUpdatedFallback);
+  final right = _resolveQuestionDate(
+    b,
+    preferUpdatedFallback: preferUpdatedFallback,
+  );
+  final dateCompare = right.compareTo(left);
+  if (dateCompare != 0) return dateCompare;
+  return b.questionId.compareTo(a.questionId);
+}
 
 DateTime? _parseOracleDate(String value) {
   final match = RegExp(r'^(\d{1,2})-([A-Za-z]{3})-(\d{2})$').firstMatch(value);
