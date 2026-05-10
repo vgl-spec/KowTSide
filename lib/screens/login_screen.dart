@@ -162,21 +162,6 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             'Sign in to manage dashboards, sync logs, and learning analytics.',
                             style: textTheme.bodySmall,
                           ),
-                          const SizedBox(height: 12),
-                          const Wrap(
-                            spacing: 8,
-                            runSpacing: 8,
-                            children: [
-                              FlarePill(
-                                label: 'Read-only learner records',
-                                color: AppTheme.primary,
-                              ),
-                              FlarePill(
-                                label: 'Question version tracking',
-                                color: AppTheme.tertiary,
-                              ),
-                            ],
-                          ),
                           const SizedBox(height: 18),
                           TextFormField(
                             controller: _userCtrl,

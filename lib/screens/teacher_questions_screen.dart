@@ -1325,13 +1325,20 @@ class _QuestionAddedMeta extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final dateText = question.createdDate.isEmpty
-        ? 'No date'
-        : question.createdDate;
-    final timeText = question.createdTime;
-    final username = question.createdByUsername.trim().isEmpty
-        ? 'Unknown user'
-        : question.createdByUsername;
+    final createdDate = question.createdDate.trim();
+    final createdTime = question.createdTime.trim();
+    final createdUser = question.createdByUsername.trim();
+    final updatedDate = question.updatedDate.trim();
+    final updatedTime = question.updatedTime.trim();
+    final updatedUser = question.updatedByUsername.trim();
+
+    final dateText = createdDate.isNotEmpty
+        ? createdDate
+        : (updatedDate.isNotEmpty ? updatedDate : 'No date');
+    final timeText = createdTime.isNotEmpty ? createdTime : updatedTime;
+    final username = createdUser.isNotEmpty
+        ? createdUser
+        : (updatedUser.isNotEmpty ? updatedUser : 'Unknown user');
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -1664,14 +1671,19 @@ class _QuestionDetailsDialog extends StatelessWidget {
                 children: [
                   _QuestionDetailCard(
                     label: 'Added',
-                    value:
-                        '${question.createdDate}\n${question.createdTime}\n${question.createdByUsername}',
+                    value: _formatAuditValue(
+                      date: question.createdDate,
+                      time: question.createdTime,
+                      username: question.createdByUsername,
+                    ),
                   ),
                   _QuestionDetailCard(
                     label: 'Updated',
-                    value: question.updatedDate.isEmpty
-                        ? 'Not available'
-                        : '${question.updatedDate}\n${question.updatedTime}\n${question.updatedByUsername}',
+                    value: _formatAuditValue(
+                      date: question.updatedDate,
+                      time: question.updatedTime,
+                      username: question.updatedByUsername,
+                    ),
                   ),
                   if (question.wordType.trim().isNotEmpty)
                     _QuestionDetailCard(
@@ -1789,6 +1801,29 @@ class _QuestionDetailCard extends StatelessWidget {
       ),
     );
   }
+}
+
+String _formatAuditValue({
+  required String date,
+  required String time,
+  required String username,
+}) {
+  final lines = <String>[];
+  final safeDate = date.trim();
+  final safeTime = time.trim();
+  final safeUser = username.trim();
+
+  if (safeDate.isNotEmpty) {
+    lines.add(safeDate);
+  }
+  if (safeTime.isNotEmpty) {
+    lines.add(safeTime);
+  }
+  if (safeUser.isNotEmpty) {
+    lines.add(safeUser);
+  }
+
+  return lines.isEmpty ? 'Not available' : lines.join('\n');
 }
 
 class _QuestionOptionTile extends StatelessWidget {
@@ -2062,7 +2097,7 @@ class _QuestionImportDialogState extends ConsumerState<_QuestionImportDialog> {
           borderRadius: BorderRadius.circular(16),
           onTap: _pickImportFile,
           child: Container(
-            height: 230,
+            height: 450,
             width: double.infinity,
             padding: const EdgeInsets.all(22),
             decoration: BoxDecoration(
@@ -2113,16 +2148,6 @@ class _QuestionImportDialogState extends ConsumerState<_QuestionImportDialog> {
               ],
             ),
           ),
-        ),
-        const SizedBox(height: 14),
-        const Wrap(
-          spacing: 8,
-          runSpacing: 8,
-          children: [
-            FlarePill(label: 'Backend AI generation', color: AppTheme.primary),
-            FlarePill(label: 'Editable preview first', color: AppTheme.success),
-            FlarePill(label: 'Answer key validation', color: AppTheme.tertiary),
-          ],
         ),
         if (ApiConstants.frontendOnly) ...[
           const SizedBox(height: 14),

@@ -45,31 +45,46 @@ class Question {
     this.updatedByUsername = 'System import',
   });
 
-  factory Question.fromJson(Map<String, dynamic> j) => Question(
-    questionId: _readInt(j['question_id']) ?? 0,
-    subjectId: _readInt(j['subject_id']) ?? 0,
-    gradelvlId: _readInt(j['gradelvl_id']) ?? 0,
-    diffId: _readInt(j['diff_id']) ?? 0,
-    questionTxt: j['question_txt'] as String? ?? '',
-    imageUrl: j['image_url'] as String? ?? '',
-    funFact: j['fun_fact'] as String? ?? '',
-    wordType: j['word_type'] as String? ?? '',
-    subPrompt: j['sub_prompt'] as String? ?? '',
-    optionA: j['option_a'] as String? ?? '',
-    optionB: j['option_b'] as String? ?? '',
-    optionC: j['option_c'] as String? ?? '',
-    optionD: j['option_d'] as String? ?? '',
-    correctOpt: j['correct_opt'] as String? ?? 'A',
-    isActive: (_readInt(j['is_active']) ?? 1) == 1,
-    createdDate:
-        j['created_date'] as String? ?? j['created_at'] as String? ?? '',
-    createdTime: j['created_time'] as String? ?? '',
-    updatedDate:
-        j['updated_date'] as String? ?? j['updated_at'] as String? ?? '',
-    updatedTime: j['updated_time'] as String? ?? '',
-    createdByUsername: j['created_by_username'] as String? ?? 'System import',
-    updatedByUsername: j['updated_by_username'] as String? ?? 'System import',
-  );
+  factory Question.fromJson(Map<String, dynamic> j) {
+    final createdRaw = _readString(j['created_date'], j['created_at']);
+    final updatedRaw = _readString(j['updated_date'], j['updated_at']);
+
+    final createdDate = _extractDatePart(createdRaw);
+    final createdTime =
+        _readString(j['created_time']).isNotEmpty
+            ? _readString(j['created_time'])
+            : _extractTimePart(createdRaw);
+
+    final updatedDate = _extractDatePart(updatedRaw);
+    final updatedTime =
+        _readString(j['updated_time']).isNotEmpty
+            ? _readString(j['updated_time'])
+            : _extractTimePart(updatedRaw);
+
+    return Question(
+      questionId: _readInt(j['question_id']) ?? 0,
+      subjectId: _readInt(j['subject_id']) ?? 0,
+      gradelvlId: _readInt(j['gradelvl_id']) ?? 0,
+      diffId: _readInt(j['diff_id']) ?? 0,
+      questionTxt: j['question_txt'] as String? ?? '',
+      imageUrl: j['image_url'] as String? ?? '',
+      funFact: j['fun_fact'] as String? ?? '',
+      wordType: j['word_type'] as String? ?? '',
+      subPrompt: j['sub_prompt'] as String? ?? '',
+      optionA: j['option_a'] as String? ?? '',
+      optionB: j['option_b'] as String? ?? '',
+      optionC: j['option_c'] as String? ?? '',
+      optionD: j['option_d'] as String? ?? '',
+      correctOpt: j['correct_opt'] as String? ?? 'A',
+      isActive: (_readInt(j['is_active']) ?? 1) == 1,
+      createdDate: createdDate,
+      createdTime: createdTime,
+      updatedDate: updatedDate,
+      updatedTime: updatedTime,
+      createdByUsername: j['created_by_username'] as String? ?? 'System import',
+      updatedByUsername: j['updated_by_username'] as String? ?? 'System import',
+    );
+  }
 
   Map<String, dynamic> toJson() => {
     'subject_id': subjectId,
@@ -212,4 +227,84 @@ int? _readInt(Object? value) {
   if (value is num) return value.toInt();
   if (value is String) return int.tryParse(value);
   return null;
+}
+
+String _readString([Object? first, Object? second]) {
+  String normalize(Object? value) => value?.toString().trim() ?? '';
+  final a = normalize(first);
+  if (a.isNotEmpty) return a;
+  return normalize(second);
+}
+
+String _extractDatePart(String raw) {
+  if (raw.isEmpty) return '';
+  final parsed = DateTime.tryParse(raw);
+  if (parsed != null) {
+    final month = parsed.month.toString().padLeft(2, '0');
+    final day = parsed.day.toString().padLeft(2, '0');
+    return '${parsed.year}-$month-$day';
+  }
+  final oracleDate = _parseOracleDate(raw);
+  if (oracleDate != null) {
+    final month = oracleDate.month.toString().padLeft(2, '0');
+    final day = oracleDate.day.toString().padLeft(2, '0');
+    return '${oracleDate.year}-$month-$day';
+  }
+  if (raw.contains('T')) {
+    return raw.split('T').first.trim();
+  }
+  if (raw.contains(' ')) {
+    return raw.split(' ').first.trim();
+  }
+  return raw;
+}
+
+String _extractTimePart(String raw) {
+  if (raw.isEmpty) return '';
+  final parsed = DateTime.tryParse(raw);
+  if (parsed != null) {
+    final hour = parsed.hour.toString().padLeft(2, '0');
+    final minute = parsed.minute.toString().padLeft(2, '0');
+    final second = parsed.second.toString().padLeft(2, '0');
+    return '$hour:$minute:$second';
+  }
+  final value = raw.contains('T') ? raw.split('T').last : raw.split(' ').last;
+  final clean = value.trim();
+  if (clean.isEmpty || clean == raw) return '';
+  return clean.split('.').first.replaceAll('Z', '');
+}
+
+DateTime? _parseOracleDate(String value) {
+  final match = RegExp(
+    r'^(\d{1,2})-([A-Za-z]{3})-(\d{2})(?:\s+(\d{2}):(\d{2}):(\d{2}))?$',
+  ).firstMatch(value.trim());
+  if (match == null) return null;
+
+  final day = int.tryParse(match.group(1) ?? '');
+  final monthToken = (match.group(2) ?? '').toUpperCase();
+  final yearTwo = int.tryParse(match.group(3) ?? '');
+  if (day == null || yearTwo == null) return null;
+
+  const monthMap = {
+    'JAN': 1,
+    'FEB': 2,
+    'MAR': 3,
+    'APR': 4,
+    'MAY': 5,
+    'JUN': 6,
+    'JUL': 7,
+    'AUG': 8,
+    'SEP': 9,
+    'OCT': 10,
+    'NOV': 11,
+    'DEC': 12,
+  };
+  final month = monthMap[monthToken];
+  if (month == null) return null;
+
+  final year = yearTwo >= 70 ? 1900 + yearTwo : 2000 + yearTwo;
+  final hour = int.tryParse(match.group(4) ?? '') ?? 0;
+  final minute = int.tryParse(match.group(5) ?? '') ?? 0;
+  final second = int.tryParse(match.group(6) ?? '') ?? 0;
+  return DateTime(year, month, day, hour, minute, second);
 }

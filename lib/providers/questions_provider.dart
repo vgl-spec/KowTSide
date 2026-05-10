@@ -183,7 +183,36 @@ List<Question> _applyLocalFilters(List<Question> source, QuestionFilter filter) 
 }
 
 DateTime _parseDate(String value) =>
-    DateTime.tryParse(value.trim()) ?? DateTime.fromMillisecondsSinceEpoch(0);
+    DateTime.tryParse(value.trim()) ??
+    _parseOracleDate(value.trim()) ??
+    DateTime.fromMillisecondsSinceEpoch(0);
+
+DateTime? _parseOracleDate(String value) {
+  final match = RegExp(r'^(\d{1,2})-([A-Za-z]{3})-(\d{2})$').firstMatch(value);
+  if (match == null) return null;
+  final day = int.tryParse(match.group(1) ?? '');
+  final monthToken = (match.group(2) ?? '').toUpperCase();
+  final yearTwo = int.tryParse(match.group(3) ?? '');
+  if (day == null || yearTwo == null) return null;
+  const monthMap = {
+    'JAN': 1,
+    'FEB': 2,
+    'MAR': 3,
+    'APR': 4,
+    'MAY': 5,
+    'JUN': 6,
+    'JUL': 7,
+    'AUG': 8,
+    'SEP': 9,
+    'OCT': 10,
+    'NOV': 11,
+    'DEC': 12,
+  };
+  final month = monthMap[monthToken];
+  if (month == null) return null;
+  final year = yearTwo >= 70 ? 1900 + yearTwo : 2000 + yearTwo;
+  return DateTime(year, month, day);
+}
 
 Future<List<Question>> _fetchAllRowsForFilter(QuestionFilter filter) async {
   const perPage = 500;
