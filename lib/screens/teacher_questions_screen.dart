@@ -756,7 +756,7 @@ class _CsvQuestionImportDialogState
         throw Exception('CSV has no data rows.');
       }
 
-      final header = rows.first.map((v) => v.trim()).toList();
+      final header = rows.first.map(_normalizeCsvHeader).toList();
       final required = const [
         'question_id',
         'subject',
@@ -888,9 +888,10 @@ class _CsvQuestionImportDialogState
   int? _subjectId(String subject) {
     final s = subject.toLowerCase();
     if (s.contains('math')) return 1;
-    if (s.contains('filipino')) return 2;
-    if (s.contains('science')) return 3;
+    if (s.contains('science')) return 2;
+    if (s.contains('filipino')) return 3;
     if (s.contains('english')) return 4;
+    if (s.contains('writing')) return 5;
     return int.tryParse(subject);
   }
 
@@ -956,6 +957,9 @@ class _CsvQuestionImportDialogState
     }
     return rows;
   }
+
+  String _normalizeCsvHeader(String value) =>
+      value.trim().replaceAll('\uFEFF', '').toLowerCase();
 }
 
 class _FilterDropdown<T> extends StatelessWidget {

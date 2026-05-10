@@ -71,15 +71,16 @@ final reportsSnapshotProvider = FutureProvider<ReportsSnapshot>((ref) async {
   );
 
   final students = studentsData.map(Student.fromJson).toList();
-  final leaderboard = buildLeaderboardFromStudents(students);
+  final resolvedStudents = students.isNotEmpty
+      ? students
+      : await ref.watch(studentsProvider.future);
+  final leaderboard = buildLeaderboardFromStudents(resolvedStudents);
 
   return ReportsSnapshot(
     dashboard: DashboardData.fromJson(
       _enrichDashboardMap(dashboardData, dashboardData),
     ),
-    students: students.isNotEmpty
-        ? students
-        : leaderboard.map(studentFromLeaderboard).toList(),
+    students: resolvedStudents,
     leaderboard: leaderboard,
   );
 });

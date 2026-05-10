@@ -334,24 +334,10 @@ Future<List<Question>> fetchQuestionsForExport(QuestionFilter filter) async {
     );
   }
 
-  final params = <String, dynamic>{};
-  if (filter.subjectId != null) params['subject_id'] = filter.subjectId;
-  if (filter.gradelvlId != null) params['gradelvl_id'] = filter.gradelvlId;
-  if (filter.diffId != null) params['diff_id'] = filter.diffId;
-  if (!filter.showInactive) params['is_active'] = 1;
-  params['sort'] = filter.sortOrder;
-  params['page'] = 1;
-  params['limit'] = 5000;
-  if (filter.searchQuery.trim().isNotEmpty) {
-    params['search'] = filter.searchQuery.trim();
-  }
-
-  final resp = await dio.get(
-    ApiConstants.questions,
-    queryParameters: params.isEmpty ? null : params,
-  );
-  final page = QuestionPage.fromJson(resp.data as Map<String, dynamic>);
-  return page.questions;
+  // Use the same deterministic client-side pipeline as the Question Bank list
+  // so exported CSV exactly matches active filters/search/sort.
+  final allRows = await _fetchAllRowsForFilter(filter);
+  return _applyLocalFilters(allRows, filter);
 }
 
 // Notifier for CRUD mutations

@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:html' as html;
+import 'dart:typed_data';
 
 Future<void> downloadCsvFile({
   required String filename,
@@ -9,7 +10,10 @@ Future<void> downloadCsvFile({
       ? filename
       : '$filename.csv';
   final bytes = <int>[0xEF, 0xBB, 0xBF, ...utf8.encode(csvContent)];
-  final blob = html.Blob([bytes], 'text/csv;charset=utf-8');
+  final blob = html.Blob(
+    [Uint8List.fromList(bytes)],
+    'text/csv;charset=utf-8',
+  );
   final url = html.Url.createObjectUrlFromBlob(blob);
 
   final anchor = html.AnchorElement(href: url)
@@ -27,7 +31,7 @@ Future<void> downloadBinaryFile({
   required List<int> bytes,
   required String mimeType,
 }) async {
-  final blob = html.Blob([bytes], mimeType);
+  final blob = html.Blob([Uint8List.fromList(bytes)], mimeType);
   final url = html.Url.createObjectUrlFromBlob(blob);
 
   final anchor = html.AnchorElement(href: url)

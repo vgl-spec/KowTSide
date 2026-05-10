@@ -63,20 +63,41 @@ class Student {
   factory Student.fromJson(Map<String, dynamic> j) {
     final age = _readInt(j['age']) ?? 0;
     final avgScore = normalizeAverageScore(_readDouble(j['avg_score']) ?? 0.0);
+    final profile = _readMap(j['profile']);
+    final source = <String, dynamic>{
+      ...j,
+      if (profile.isNotEmpty) ...profile,
+    };
     return Student(
-      studId: parseStudentId(j['stud_id'] ?? j['studId']) ?? 0,
-      nickname: j['nickname'] as String? ?? '',
-      firstName: j['first_name'] as String? ?? '',
-      lastName: j['last_name'] as String? ?? '',
-      area: j['area'] as String? ?? j['barangay'] as String? ?? '',
-      birthday: _dateOnly(j['birthday']),
+      studId: parseStudentId(source['stud_id'] ?? source['studId']) ?? 0,
+      nickname: source['nickname'] as String? ?? '',
+      firstName: source['first_name'] as String? ?? '',
+      lastName: source['last_name'] as String? ?? '',
+      area: _readStringByKeys(
+        source,
+        const [
+          'area',
+          'AREA',
+          'area_name',
+          'AREA_NAME',
+          'address',
+          'ADDRESS',
+          'residence',
+          'RESIDENCE',
+          'barangay',
+          'BARANGAY',
+          'barangay_nm',
+          'BARANGAY_NM',
+        ],
+      ),
+      birthday: _dateOnly(source['birthday']),
       age: age,
-      gradelvl: _normalizeGradeLevelLabel(j['gradelvl'], age: age),
-      sex: _normalizeSexLabel(j['sex'] ?? j['sex_id']),
-      totalSessions: _readInt(j['total_sessions']) ?? 0,
+      gradelvl: _normalizeGradeLevelLabel(source['gradelvl'], age: age),
+      sex: _normalizeSexLabel(source['sex'] ?? source['sex_id']),
+      totalSessions: _readInt(source['total_sessions']) ?? 0,
       avgScore: avgScore,
       proficiency: resolveProficiencyLabel(
-        j['proficiency'] as String?,
+        source['proficiency'] as String?,
         avgScore,
       ),
     );
@@ -385,4 +406,14 @@ bool _readPassedFlag(Map<String, dynamic> json) {
     sourceMax: (_readInt(json['total_items']) ?? 0).toDouble(),
   );
   return isPassingFivePointScore(score);
+}
+
+String _readStringByKeys(Map<String, dynamic> source, List<String> keys) {
+  for (final key in keys) {
+    final raw = source[key];
+    if (raw == null) continue;
+    final text = raw.toString().trim();
+    if (text.isNotEmpty) return text;
+  }
+  return '';
 }

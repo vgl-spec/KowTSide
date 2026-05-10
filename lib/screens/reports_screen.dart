@@ -336,7 +336,7 @@ class ReportsScreen extends ConsumerWidget {
           xls.TextCellValue(_sanitizeExcelText(student.displayStudId)),
           xls.TextCellValue(_sanitizeExcelText(student.nickname)),
           xls.TextCellValue(_sanitizeExcelText(student.fullName)),
-          xls.TextCellValue(_sanitizeExcelText(student.area)),
+          xls.TextCellValue(_sanitizeExcelText(_normalizedArea(student.area))),
           xls.TextCellValue(_sanitizeExcelText(student.gradelvl)),
           xls.IntCellValue(student.age),
           xls.IntCellValue(student.totalSessions),
@@ -1328,4 +1328,10 @@ String _sanitizeExcelText(String input) {
     }
   }
   return buffer.toString();
+}
+
+String _normalizedArea(String raw) {
+  final area = raw.trim();
+  if (area.isEmpty) return 'Unspecified Area';
+  return area;
 }
