@@ -261,7 +261,7 @@ class _DetailBodyState extends State<_DetailBody> {
                               .map(
                                 (score) => SimpleBarDatum(
                                   label: score.subject,
-                                  value: score.score,
+                                  value: score.normalizedScore,
                                   color: score.passed
                                       ? AppTheme.success
                                       : AppTheme.error,
@@ -369,7 +369,9 @@ class _DetailBodyState extends State<_DetailBody> {
     }
 
     return grouped.entries.map((entry) {
-      final values = entry.value.map((score) => score.score).toList();
+      final values = entry.value
+          .map((score) => score.normalizedScore)
+          .toList();
       final first = entry.value.first;
       final lowest = values.reduce((a, b) => a < b ? a : b);
       final highest = values.reduce((a, b) => a > b ? a : b);
