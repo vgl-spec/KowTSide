@@ -216,7 +216,7 @@ class _DashboardViewState extends State<_DashboardView> {
                                 .map(
                                   (row) => SimpleBarDatum(
                                     label: row.label,
-                                    value: _roundTo2(row.passRate),
+                                    value: row.passRate,
                                     color:
                                         row.label.toLowerCase().contains(
                                           'punla',
@@ -228,7 +228,7 @@ class _DashboardViewState extends State<_DashboardView> {
                                 .toList(),
                             maxY: 100,
                             percentageScale: true,
-                            valueDecimals: 2,
+                            valueDecimals: 0,
                           ),
                   ),
                 ),
@@ -272,7 +272,7 @@ class _DashboardViewState extends State<_DashboardView> {
                           .map(
                             (row) => SimpleBarDatum(
                               label: row.label,
-                              value: _roundTo2(row.passRate),
+                              value: row.passRate,
                               color: row.label.toLowerCase().contains('punla')
                                   ? AppTheme.primary
                                   : AppTheme.tertiary,
@@ -281,7 +281,7 @@ class _DashboardViewState extends State<_DashboardView> {
                           .toList(),
                       maxY: 100,
                       percentageScale: true,
-                      valueDecimals: 2,
+                      valueDecimals: 0,
                     ),
             ),
           ],

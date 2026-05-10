@@ -1176,12 +1176,10 @@ class _QuestionBankRowWide extends StatelessWidget {
       children: [
         Padding(
           padding: const EdgeInsets.only(right: 12, top: 10),
-          child: GestureDetector(
-            onTap: question.isActive ? onToggleSelection : null,
-            child: _SelectionMarker(
-              selected: selected,
-              enabled: question.isActive,
-            ),
+          child: _SelectionMarker(
+            selected: selected,
+            enabled: question.isActive,
+            onChanged: onToggleSelection,
           ),
         ),
         SizedBox(
@@ -1237,12 +1235,10 @@ class _QuestionBankRowCompact extends StatelessWidget {
       children: [
         Row(
           children: [
-            GestureDetector(
-              onTap: question.isActive ? onToggleSelection : null,
-              child: _SelectionMarker(
-                selected: selected,
-                enabled: question.isActive,
-              ),
+            _SelectionMarker(
+              selected: selected,
+              enabled: question.isActive,
+              onChanged: onToggleSelection,
             ),
             const SizedBox(width: 10),
             Container(
@@ -1560,19 +1556,22 @@ class _QuestionAnswerMeta extends StatelessWidget {
 class _SelectionMarker extends StatelessWidget {
   final bool selected;
   final bool enabled;
+  final VoidCallback onChanged;
 
-  const _SelectionMarker({required this.selected, required this.enabled});
+  const _SelectionMarker({
+    required this.selected,
+    required this.enabled,
+    required this.onChanged,
+  });
 
   @override
   Widget build(BuildContext context) {
-    return IgnorePointer(
-      child: SizedBox(
-        width: 30,
-        height: 30,
-        child: Checkbox(
-          value: selected,
-          onChanged: enabled ? (_) {} : null,
-        ),
+    return SizedBox(
+      width: 30,
+      height: 30,
+      child: Checkbox(
+        value: selected,
+        onChanged: enabled ? (_) => onChanged() : null,
       ),
     );
   }

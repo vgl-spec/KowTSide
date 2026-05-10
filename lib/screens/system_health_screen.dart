@@ -12,16 +12,6 @@ class SystemHealthScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    Future<void> refreshHealth({bool showPrompt = false}) async {
-      ref.invalidate(systemHealthProvider);
-      await ref.read(systemHealthProvider.future);
-      if (showPrompt && context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('You are UpToDate')));
-      }
-    }
-
     ref.listen(wsEventsProvider, (_, next) {
       next.whenData((event) {
         if (shouldInvalidateForWsEvent(event.type)) {
@@ -51,6 +41,16 @@ class _SystemHealthBody extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    Future<void> refreshHealth({bool showPrompt = false}) async {
+      ref.invalidate(systemHealthProvider);
+      await ref.read(systemHealthProvider.future);
+      if (showPrompt && context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('You are UpToDate')));
+      }
+    }
+
     final width = MediaQuery.of(context).size.width;
     final rowTileWidth = width >= 1440
         ? 170.0

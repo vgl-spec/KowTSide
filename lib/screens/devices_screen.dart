@@ -43,7 +43,7 @@ class DevicesScreen extends ConsumerWidget {
               Text('$error'),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: refreshDevices,
+                onPressed: () => refreshDevices(),
                 child: const Text('Retry'),
               ),
             ],

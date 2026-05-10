@@ -258,6 +258,7 @@ class DualMetricBarChart extends StatelessWidget {
   final String leftLegend;
   final String rightLegend;
   final double maxY;
+  final int yAxisDecimals;
 
   const DualMetricBarChart({
     super.key,
@@ -265,6 +266,7 @@ class DualMetricBarChart extends StatelessWidget {
     required this.leftLegend,
     required this.rightLegend,
     required this.maxY,
+    this.yAxisDecimals = 0,
   });
 
   @override
@@ -321,7 +323,7 @@ class DualMetricBarChart extends StatelessWidget {
                     reservedSize: 40,
                     interval: maxY <= 10 ? 2 : 20,
                     getTitlesWidget: (value, _) => Text(
-                      value.toStringAsFixed(0),
+                      value.toStringAsFixed(yAxisDecimals),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ),

@@ -222,6 +222,7 @@ class ReportsScreen extends ConsumerWidget {
                           leftLegend: 'Pass rate / 5',
                           rightLegend: 'Average score / 5',
                           maxY: kFivePointScoreMax,
+                          yAxisDecimals: 2,
                         ),
                 ],
               ),
