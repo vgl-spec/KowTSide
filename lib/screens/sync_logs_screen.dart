@@ -6,6 +6,7 @@ import '../core/theme.dart';
 import '../models/system_monitoring.dart';
 import '../providers/live_updates_provider.dart';
 import '../providers/system_monitoring_provider.dart';
+import '../widgets/flareline_components.dart';
 import '../widgets/page_skeletons.dart';
 
 class SyncLogsScreen extends ConsumerStatefulWidget {
@@ -18,6 +19,7 @@ class SyncLogsScreen extends ConsumerStatefulWidget {
 class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
   final TextEditingController _searchCtrl = TextEditingController();
   String _statusFilter = 'All';
+  _SyncLogsViewMode _viewMode = _SyncLogsViewMode.groupedByActorEvent;
   int _page = 1;
 
   static const int _rowsPerPage = 12;
@@ -53,7 +55,14 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
       );
     }
 
-    final records = _filtered(syncLogs?.records ?? const []);
+    final rawRecords = _filtered(syncLogs?.records ?? const []);
+    final actorEventRecords = _aggregateRecords(rawRecords);
+    final deviceRecords = _aggregateByDevice(rawRecords);
+    final records = switch (_viewMode) {
+      _SyncLogsViewMode.raw => rawRecords,
+      _SyncLogsViewMode.groupedByActorEvent => actorEventRecords,
+      _SyncLogsViewMode.groupedByDevice => deviceRecords,
+    };
     final successRate = syncLogs?.successRate ?? 0;
     final failedCount = syncLogs?.failedCount ?? 0;
     final skippedCount = syncLogs?.skippedCount ?? 0;
@@ -76,39 +85,40 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
           physics: const AlwaysScrollableScrollPhysics(),
           padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
           children: [
-            Wrap(
-              spacing: 16,
-              runSpacing: 12,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(
-                  'Sync Logs',
-                  style: Theme.of(context).textTheme.headlineSmall,
-                ),
-                SizedBox(
-                  width: compact ? MediaQuery.of(context).size.width - 80 : 320,
-                  child: TextField(
-                    controller: _searchCtrl,
-                    onChanged: (_) => setState(() => _page = 1),
-                    decoration: InputDecoration(
-                      hintText: 'Search by device, event, or id...',
-                      prefixIcon: const Icon(Icons.search, size: 18),
-                      suffixIcon: IconButton(
-                        icon: const Icon(Icons.clear, size: 18),
-                        onPressed: () => setState(() {
-                          _searchCtrl.clear();
-                          _page = 1;
-                        }),
-                      ),
-                    ),
-                  ),
-                ),
+            FlarePageHeader(
+              title: 'Sync Logs',
+              subtitle: 'Review device sync transactions and delivery outcomes.',
+              actions: [
                 FilledButton.tonalIcon(
-                  onPressed: () => ref.invalidate(syncLogsProvider),
+                  onPressed: () {
+                    ref.invalidate(syncLogsProvider);
+                    ScaffoldMessenger.of(
+                      context,
+                    ).showSnackBar(const SnackBar(content: Text('You are UpToDate')));
+                  },
                   icon: const Icon(Icons.refresh, size: 18),
                   label: const Text('Refresh Logs'),
                 ),
               ],
+            ),
+            const SizedBox(height: 12),
+            SizedBox(
+              width: compact ? MediaQuery.of(context).size.width - 80 : 320,
+              child: TextField(
+                controller: _searchCtrl,
+                onChanged: (_) => setState(() => _page = 1),
+                decoration: InputDecoration(
+                  hintText: 'Search by device, event, or id...',
+                  prefixIcon: const Icon(Icons.search, size: 18),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.clear, size: 18),
+                    onPressed: () => setState(() {
+                      _searchCtrl.clear();
+                      _page = 1;
+                    }),
+                  ),
+                ),
+              ),
             ),
             const SizedBox(height: 18),
             GridView.count(
@@ -184,6 +194,34 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                         },
                       ),
                     ),
+                    DropdownButtonHideUnderline(
+                      child: DropdownButton<_SyncLogsViewMode>(
+                        value: _viewMode,
+                        dropdownColor: AppTheme.surface,
+                        items: const [
+                          DropdownMenuItem(
+                            value: _SyncLogsViewMode.raw,
+                            child: Text('State 1: Raw Rows'),
+                          ),
+                          DropdownMenuItem(
+                            value: _SyncLogsViewMode.groupedByActorEvent,
+                            child: Text('State 2: Group by MAC+User+Event'),
+                          ),
+                          DropdownMenuItem(
+                            value: _SyncLogsViewMode.groupedByDevice,
+                            child: Text('State 3: Group by Device'),
+                          ),
+                        ],
+                        onChanged: (value) {
+                          if (value != null) {
+                            setState(() {
+                              _viewMode = value;
+                              _page = 1;
+                            });
+                          }
+                        },
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -223,7 +261,7 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                                   DataColumn(
                                     label: SizedBox(
                                       width: 240,
-                                      child: Text('Device UUID'),
+                                      child: Text('MAC Address'),
                                     ),
                                   ),
                                   DataColumn(
@@ -234,8 +272,21 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                                   ),
                                   DataColumn(
                                     label: SizedBox(
+                                      width: 180,
+                                      child: Text('Username'),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: SizedBox(
                                       width: 190,
                                       child: Text('Event'),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    numeric: true,
+                                    label: SizedBox(
+                                      width: 90,
+                                      child: Text('Count'),
                                     ),
                                   ),
                                   DataColumn(
@@ -261,6 +312,12 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                                     label: SizedBox(
                                       width: 320,
                                       child: Text('Error'),
+                                    ),
+                                  ),
+                                  DataColumn(
+                                    label: SizedBox(
+                                      width: 110,
+                                      child: Text('Details'),
                                     ),
                                   ),
                                 ],
@@ -292,10 +349,33 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                                       ),
                                       DataCell(
                                         SizedBox(
+                                          width: 180,
+                                          child: Text(
+                                            record.username,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        SizedBox(
                                           width: 190,
                                           child: Text(
-                                            record.eventType,
+                                            _viewMode == _SyncLogsViewMode.groupedByDevice
+                                                ? 'All events'
+                                                : record.eventType,
                                             overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ),
+                                      DataCell(
+                                        SizedBox(
+                                          width: 90,
+                                          child: Text(
+                                            '${record.eventCount}',
+                                            textAlign: TextAlign.right,
+                                            style: const TextStyle(
+                                              fontWeight: FontWeight.w700,
+                                            ),
                                           ),
                                         ),
                                       ),
@@ -352,6 +432,16 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                                           ),
                                         ),
                                       ),
+                                      DataCell(
+                                        SizedBox(
+                                          width: 110,
+                                          child: _buildExpandAction(
+                                            record: record,
+                                            rawRecords: rawRecords,
+                                            actorEventRecords: actorEventRecords,
+                                          ),
+                                        ),
+                                      ),
                                     ],
                                   );
                                 }).toList(),
@@ -386,8 +476,158 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
       if (query.isEmpty) return true;
       return record.deviceUuid.toLowerCase().contains(query) ||
           record.deviceName.toLowerCase().contains(query) ||
+          record.username.toLowerCase().contains(query) ||
           record.eventType.toLowerCase().contains(query);
     }).toList();
+  }
+
+  List<SyncLogRecord> _aggregateRecords(List<SyncLogRecord> source) {
+    final grouped = <String, List<SyncLogRecord>>{};
+    for (final record in source) {
+      final key =
+          '${record.deviceUuid}|${record.username.toLowerCase()}|${record.eventType.toLowerCase()}';
+      grouped.putIfAbsent(key, () => <SyncLogRecord>[]).add(record);
+    }
+
+    final merged = grouped.values.map((rows) {
+      rows.sort(
+        (a, b) => (b.syncedAt ?? DateTime(1970)).compareTo(a.syncedAt ?? DateTime(1970)),
+      );
+      final latest = rows.first;
+      final totalStudents = rows.fold<int>(0, (sum, row) => sum + row.studentsSynced);
+      return SyncLogRecord(
+        deviceUuid: latest.deviceUuid,
+        deviceName: latest.deviceName,
+        username: latest.username,
+        eventType: latest.eventType,
+        status: latest.status,
+        rawStatus: latest.rawStatus,
+        studId: latest.studId,
+        syncedAt: latest.syncedAt,
+        studentsSynced: totalStudents,
+        eventCount: rows.length,
+        errorPayload: latest.errorPayload,
+        errorMessage: latest.errorMessage,
+      );
+    }).toList()
+      ..sort(
+        (a, b) => (b.syncedAt ?? DateTime(1970)).compareTo(a.syncedAt ?? DateTime(1970)),
+      );
+
+    return merged;
+  }
+
+  List<SyncLogRecord> _aggregateByDevice(List<SyncLogRecord> source) {
+    final grouped = <String, List<SyncLogRecord>>{};
+    for (final record in source) {
+      final key = record.deviceUuid;
+      grouped.putIfAbsent(key, () => <SyncLogRecord>[]).add(record);
+    }
+
+    final merged = grouped.values.map((rows) {
+      rows.sort(
+        (a, b) => (b.syncedAt ?? DateTime(1970)).compareTo(a.syncedAt ?? DateTime(1970)),
+      );
+      final latest = rows.first;
+      final totalStudents = rows.fold<int>(0, (sum, row) => sum + row.studentsSynced);
+      return SyncLogRecord(
+        deviceUuid: latest.deviceUuid,
+        deviceName: latest.deviceName,
+        username: 'Multiple users',
+        eventType: 'multiple_events',
+        status: latest.status,
+        rawStatus: latest.rawStatus,
+        studId: latest.studId,
+        syncedAt: latest.syncedAt,
+        studentsSynced: totalStudents,
+        eventCount: rows.length,
+        errorPayload: latest.errorPayload,
+        errorMessage: latest.errorMessage,
+      );
+    }).toList()
+      ..sort(
+        (a, b) => (b.syncedAt ?? DateTime(1970)).compareTo(a.syncedAt ?? DateTime(1970)),
+      );
+
+    return merged;
+  }
+
+  Widget _buildExpandAction({
+    required SyncLogRecord record,
+    required List<SyncLogRecord> rawRecords,
+    required List<SyncLogRecord> actorEventRecords,
+  }) {
+    if (_viewMode == _SyncLogsViewMode.raw) {
+      return const Text('-', textAlign: TextAlign.center);
+    }
+    return OutlinedButton.icon(
+      onPressed: () {
+        if (_viewMode == _SyncLogsViewMode.groupedByDevice) {
+          final deviceRows = actorEventRecords
+              .where((row) => row.deviceUuid == record.deviceUuid)
+              .toList();
+          _showRecordsDialog('Device: ${record.deviceName}', deviceRows);
+          return;
+        }
+        final detailRows = rawRecords.where((row) {
+          return row.deviceUuid == record.deviceUuid &&
+              row.username.toLowerCase() == record.username.toLowerCase() &&
+              row.eventType.toLowerCase() == record.eventType.toLowerCase();
+        }).toList();
+        _showRecordsDialog('Raw Events', detailRows);
+      },
+      icon: const Icon(Icons.open_in_new_rounded, size: 14),
+      label: const Text('Expand'),
+    );
+  }
+
+  Future<void> _showRecordsDialog(String title, List<SyncLogRecord> rows) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(title),
+        content: SizedBox(
+          width: 980,
+          child: rows.isEmpty
+              ? const Center(child: Text('No records found.'))
+              : SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: DataTable(
+                    columns: const [
+                      DataColumn(label: Text('MAC Address')),
+                      DataColumn(label: Text('Device Name')),
+                      DataColumn(label: Text('Username')),
+                      DataColumn(label: Text('Event')),
+                      DataColumn(label: Text('Received')),
+                      DataColumn(label: Text('Students')),
+                      DataColumn(label: Text('Status')),
+                    ],
+                    rows: rows
+                        .map(
+                          (row) => DataRow(
+                            cells: [
+                              DataCell(Text(row.deviceUuid)),
+                              DataCell(Text(row.deviceName)),
+                              DataCell(Text(row.username)),
+                              DataCell(Text(row.eventType)),
+                              DataCell(Text(_formatManilaTimestamp(row.syncedAt))),
+                              DataCell(Text('${row.studentsSynced}')),
+                              DataCell(_StatusPill(status: row.status)),
+                            ],
+                          ),
+                        )
+                        .toList(),
+                  ),
+                ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 
   String _formatManilaTimestamp(DateTime? value) {
@@ -396,6 +636,8 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
     return DateFormat('dd MMM yyyy, hh:mm a').format(manilaTime);
   }
 }
+
+enum _SyncLogsViewMode { raw, groupedByActorEvent, groupedByDevice }
 
 class _SyncLogPaginationBar extends StatelessWidget {
   final int page;

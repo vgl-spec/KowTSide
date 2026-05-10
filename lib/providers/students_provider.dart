@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/api_client.dart';
@@ -12,10 +10,6 @@ final studentsProvider = FutureProvider<List<Student>>((ref) async {
   if (ApiConstants.frontendOnly) {
     return MockData.students();
   }
-  final timer = Timer.periodic(const Duration(seconds: 20), (_) {
-    ref.invalidateSelf();
-  });
-  ref.onDispose(timer.cancel);
 
   final resp = await dio.get(ApiConstants.students);
   final list =

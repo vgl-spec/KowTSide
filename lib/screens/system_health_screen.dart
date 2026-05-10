@@ -12,6 +12,16 @@ class SystemHealthScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    Future<void> refreshHealth({bool showPrompt = false}) async {
+      ref.invalidate(systemHealthProvider);
+      await ref.read(systemHealthProvider.future);
+      if (showPrompt && context.mounted) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('You are UpToDate')));
+      }
+    }
+
     ref.listen(wsEventsProvider, (_, next) {
       next.whenData((event) {
         if (shouldInvalidateForWsEvent(event.type)) {
@@ -137,10 +147,7 @@ class _SystemHealthBody extends ConsumerWidget {
     ];
 
     return RefreshIndicator(
-      onRefresh: () async {
-        ref.invalidate(systemHealthProvider);
-        await ref.read(systemHealthProvider.future);
-      },
+      onRefresh: () => refreshHealth(),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
@@ -155,7 +162,7 @@ class _SystemHealthBody extends ConsumerWidget {
                 style: Theme.of(context).textTheme.headlineSmall,
               ),
               FilledButton.tonalIcon(
-                onPressed: () => ref.invalidate(systemHealthProvider),
+                onPressed: () => refreshHealth(showPrompt: true),
                 icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: const Text('Refresh Health'),
               ),

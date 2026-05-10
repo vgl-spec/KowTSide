@@ -57,6 +57,21 @@ class _DetailBody extends StatefulWidget {
 
 class _DetailBodyState extends State<_DetailBody> {
   final GlobalKey _recentScoresKey = GlobalKey();
+  DateTime? _lastRefreshAt;
+
+  void _handleRefresh() {
+    final now = DateTime.now();
+    final shouldPrompt =
+        _lastRefreshAt == null ||
+        now.difference(_lastRefreshAt!).inSeconds >= 2;
+    _lastRefreshAt = now;
+    widget.onRefresh();
+    if (shouldPrompt) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('You are UpToDate')));
+    }
+  }
 
   void _scrollToRecentScores() {
     final ctx = _recentScoresKey.currentContext;
@@ -184,7 +199,7 @@ class _DetailBodyState extends State<_DetailBody> {
                 color: _proficiencyColor(profile.proficiency),
               ),
               FilledButton.tonalIcon(
-                onPressed: widget.onRefresh,
+                onPressed: _handleRefresh,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: const Text('Refresh'),
               ),
@@ -307,7 +322,7 @@ class _DetailBodyState extends State<_DetailBody> {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      'Nickname: ${profile.nickname}',
+                      'Username: ${profile.nickname}',
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ],
@@ -323,7 +338,7 @@ class _DetailBodyState extends State<_DetailBody> {
               _InfoBlock('Birthday', profile.birthday),
               _InfoBlock('Age', '${profile.age} years old'),
               _InfoBlock('Sex', profile.sex),
-              _InfoBlock('Grade Group', profile.gradelvl),
+              _InfoBlock('Age Group', profile.gradelvl),
               _InfoBlock(
                 'Sessions',
                 '${profile.totalSessions}',
@@ -509,6 +524,9 @@ class _PagedTableCardState<T> extends State<_PagedTableCard<T>> {
   @override
   void didUpdateWidget(covariant _PagedTableCard<T> oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (_page < 0) {
+      _page = 0;
+    }
     final maxPage = _maxPage;
     if (_page > maxPage) {
       _page = maxPage;
@@ -522,6 +540,9 @@ class _PagedTableCardState<T> extends State<_PagedTableCard<T>> {
 
   @override
   Widget build(BuildContext context) {
+    if (_page < 0) {
+      _page = 0;
+    }
     final pageItems = widget.items
         .skip(_page * widget.rowsPerPage)
         .take(widget.rowsPerPage)

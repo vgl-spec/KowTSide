@@ -162,6 +162,30 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             'Sign in to manage dashboards, sync logs, and learning analytics.',
                             style: textTheme.bodySmall,
                           ),
+                          if (_loading) ...[
+                            const SizedBox(height: 14),
+                            FlareSurfaceCard(
+                              padding: const EdgeInsets.all(12),
+                              child: Row(
+                                children: [
+                                  SizedBox(
+                                    width: 18,
+                                    height: 18,
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2,
+                                      color: cs.primary,
+                                    ),
+                                  ),
+                                  const SizedBox(width: 10),
+                                  const Expanded(
+                                    child: Text(
+                                      'Signing in... please wait.',
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
                           const SizedBox(height: 18),
                           TextFormField(
                             controller: _userCtrl,
@@ -234,16 +258,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                             height: 48,
                             child: FilledButton(
                               onPressed: _loading ? null : _submit,
-                              child: _loading
-                                  ? SizedBox(
-                                      width: 20,
-                                      height: 20,
-                                      child: CircularProgressIndicator(
-                                        strokeWidth: 2,
-                                        color: cs.onPrimary,
-                                      ),
-                                    )
-                                  : const Text('Sign In'),
+                              child: const Text('Sign In'),
                             ),
                           ),
                         ],

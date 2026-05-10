@@ -16,27 +16,59 @@ class FlarePageHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Wrap(
-      alignment: WrapAlignment.spaceBetween,
-      runAlignment: WrapAlignment.center,
-      crossAxisAlignment: WrapCrossAlignment.center,
-      spacing: 12,
-      runSpacing: 12,
-      children: [
-        ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 740),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final compact = constraints.maxWidth < 960;
+        final titleStyle = compact
+            ? Theme.of(context).textTheme.titleLarge?.copyWith(
+                  fontWeight: FontWeight.w800,
+                )
+            : Theme.of(context).textTheme.headlineSmall;
+        final subtitleStyle = compact
+            ? Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12)
+            : Theme.of(context).textTheme.bodySmall;
+        final titleBlock = ConstrainedBox(
+          constraints: BoxConstraints(maxWidth: compact ? constraints.maxWidth : 740),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(title, style: Theme.of(context).textTheme.headlineSmall),
+              Text(title, style: titleStyle),
               const SizedBox(height: 6),
-              Text(subtitle, style: Theme.of(context).textTheme.bodySmall),
+              Text(subtitle, style: subtitleStyle),
             ],
           ),
-        ),
-        if (actions.isNotEmpty)
-          Wrap(spacing: 8, runSpacing: 8, children: actions),
-      ],
+        );
+
+        final actionsWrap = actions.isNotEmpty
+            ? Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                alignment: compact ? WrapAlignment.start : WrapAlignment.end,
+                children: actions,
+              )
+            : null;
+
+        if (compact) {
+          return Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              titleBlock,
+              if (actionsWrap != null) ...[const SizedBox(height: 12), actionsWrap],
+            ],
+          );
+        }
+
+        return Row(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Expanded(child: titleBlock),
+            if (actionsWrap != null) ...[
+              const SizedBox(width: 12),
+              Flexible(child: Align(alignment: Alignment.topRight, child: actionsWrap)),
+            ],
+          ],
+        );
+      },
     );
   }
 }
@@ -134,6 +166,7 @@ class FlareMetricTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final compact = MediaQuery.of(context).size.width < 900;
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -145,17 +178,18 @@ class FlareMetricTile extends StatelessWidget {
                 style: Theme.of(context).textTheme.titleSmall?.copyWith(
                   fontWeight: FontWeight.w900,
                   color: color,
+                  fontSize: compact ? 18 : null,
                 ),
               ),
             ),
             Container(
-              width: 38,
-              height: 38,
+              width: compact ? 34 : 38,
+              height: compact ? 34 : 38,
               decoration: BoxDecoration(
                 color: color.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(10),
               ),
-              child: Icon(icon, color: color, size: 21),
+              child: Icon(icon, color: color, size: compact ? 18 : 21),
             ),
           ],
         ),
@@ -165,6 +199,7 @@ class FlareMetricTile extends StatelessWidget {
           style: Theme.of(context).textTheme.displaySmall?.copyWith(
             fontWeight: FontWeight.w900,
             color: color,
+            fontSize: compact ? 44 : null,
           ),
         ),
         const SizedBox(height: 4),
@@ -188,12 +223,15 @@ class FlareMetricTile extends StatelessWidget {
       ],
     );
 
-    return Material(
-      color: Colors.transparent,
-      child: InkWell(
-        onTap: onTap,
-        borderRadius: BorderRadius.circular(18),
-        child: FlareSurfaceCard(padding: const EdgeInsets.all(18), child: body),
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 170),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          onTap: onTap,
+          borderRadius: BorderRadius.circular(18),
+          child: FlareSurfaceCard(padding: const EdgeInsets.all(18), child: body),
+        ),
       ),
     );
   }

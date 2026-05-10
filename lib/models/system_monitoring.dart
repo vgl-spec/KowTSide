@@ -1,24 +1,28 @@
 class SyncLogRecord {
   final String deviceUuid;
   final String deviceName;
+  final String username;
   final String eventType;
   final String status;
   final String rawStatus;
   final String? studId;
   final DateTime? syncedAt;
   final int studentsSynced;
+  final int eventCount;
   final String? errorPayload;
   final String? errorMessage;
 
   const SyncLogRecord({
     required this.deviceUuid,
     required this.deviceName,
+    required this.username,
     required this.eventType,
     required this.status,
     required this.rawStatus,
     required this.studId,
     required this.syncedAt,
     required this.studentsSynced,
+    this.eventCount = 1,
     this.errorPayload,
     this.errorMessage,
   });
@@ -27,19 +31,35 @@ class SyncLogRecord {
     final normalizedStatus = _normalizeStatus(
       json['status'] ?? json['raw_status'],
     );
+    final usernameValue = _readString(
+      _pickValue(
+        json,
+        const [
+          'username',
+          'user_name',
+          'admin_username',
+          'teacher_username',
+          'actor_username',
+        ],
+      ),
+    );
 
     return SyncLogRecord(
-      deviceUuid:
-          json['device_uuid'] as String? ??
-          json['batch_id'] as String? ??
-          'unknown',
-      deviceName: json['device_name'] as String? ?? 'Unknown device',
-      eventType: json['event_type'] as String? ?? 'sync_complete',
+      deviceUuid: _readString(json['device_uuid'], json['batch_id']).isEmpty
+          ? 'unknown'
+          : _readString(json['device_uuid'], json['batch_id']),
+      deviceName: _readString(json['device_name']).isEmpty
+          ? 'Unknown device'
+          : _readString(json['device_name']),
+      username: usernameValue.isEmpty ? 'Unknown user' : usernameValue,
+      eventType: _readString(json['event_type']).isEmpty
+          ? 'sync_complete'
+          : _readString(json['event_type']),
       status: normalizedStatus,
-      rawStatus:
-          (json['raw_status'] as String? ?? json['status'] as String? ?? '')
-              .trim(),
-      studId: json['stud_id'] as String?,
+      rawStatus: _readString(json['raw_status'], json['status']),
+      studId: _readString(json['stud_id']).isEmpty
+          ? null
+          : _readString(json['stud_id']),
       syncedAt: _readDateTime(
         json['received_at'] ?? json['synced_at'] ?? json['last_synced_at'],
       ),
@@ -47,6 +67,7 @@ class SyncLogRecord {
           _readInt(json['students_synced']) ??
           _readInt(json['students_on_device']) ??
           0,
+      eventCount: _readInt(json['event_count']) ?? 1,
       errorPayload: json['error_payload'] as String?,
       errorMessage: json['error_message'] as String?,
     );
@@ -339,7 +360,7 @@ class SystemHealthData {
 }
 
 String _normalizeStatus(Object? value) {
-  final normalized = (value as String? ?? '').trim().toLowerCase();
+  final normalized = value?.toString().trim().toLowerCase() ?? '';
   switch (normalized) {
     case 'processed':
     case 'completed':
@@ -354,6 +375,12 @@ String _normalizeStatus(Object? value) {
     default:
       return normalized.isEmpty ? 'success' : normalized;
   }
+}
+
+String _readString([Object? first, Object? second]) {
+  final a = first?.toString().trim() ?? '';
+  if (a.isNotEmpty) return a;
+  return second?.toString().trim() ?? '';
 }
 
 Map<String, dynamic> _readMap(Object? value) {

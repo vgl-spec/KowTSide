@@ -13,6 +13,7 @@ class AuthState {
   final String role;
   final int adminId;
   final bool isLoading;
+  final bool isRestoring;
 
   const AuthState({
     this.token,
@@ -21,6 +22,7 @@ class AuthState {
     this.role = 'superadmin',
     this.adminId = 0,
     this.isLoading = true,
+    this.isRestoring = true,
   });
 
   bool get isAuthenticated => token != null && token!.trim().isNotEmpty;
@@ -33,6 +35,7 @@ class AuthState {
     String? role,
     int? adminId,
     bool? isLoading,
+    bool? isRestoring,
   }) => AuthState(
     token: token ?? this.token,
     authMode: authMode ?? this.authMode,
@@ -40,9 +43,10 @@ class AuthState {
     role: role ?? this.role,
     adminId: adminId ?? this.adminId,
     isLoading: isLoading ?? this.isLoading,
+    isRestoring: isRestoring ?? this.isRestoring,
   );
 
-  static const unauthenticated = AuthState(isLoading: false);
+  static const unauthenticated = AuthState(isLoading: false, isRestoring: false);
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {
@@ -70,6 +74,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         role: normalizeAdminRole(session.role),
         adminId: session.adminId,
         isLoading: false,
+        isRestoring: false,
       );
     } else {
       state = AuthState.unauthenticated;
@@ -93,6 +98,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           role: normalizeAdminRole(session.role),
           adminId: session.adminId,
           isLoading: false,
+          isRestoring: false,
         );
         return null;
       }

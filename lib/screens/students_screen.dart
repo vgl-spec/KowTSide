@@ -2,9 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
 
+import '../core/api_client.dart';
+import '../core/constants.dart';
 import '../core/score_utils.dart';
 import '../core/theme.dart';
 import '../models/student.dart';
+import '../providers/auth_provider.dart';
 import '../providers/live_updates_provider.dart';
 import '../providers/students_provider.dart';
 import '../widgets/flareline_components.dart';
@@ -35,6 +38,7 @@ class StudentsScreen extends ConsumerWidget {
         data: (students) => _StudentsView(
           students: students,
           onRefresh: () => ref.invalidate(studentsProvider),
+          canArchiveStudents: ref.watch(authProvider).isSuperadmin,
         ),
       ),
     );
@@ -44,8 +48,13 @@ class StudentsScreen extends ConsumerWidget {
 class _StudentsView extends StatefulWidget {
   final List<Student> students;
   final VoidCallback onRefresh;
+  final bool canArchiveStudents;
 
-  const _StudentsView({required this.students, required this.onRefresh});
+  const _StudentsView({
+    required this.students,
+    required this.onRefresh,
+    required this.canArchiveStudents,
+  });
 
   @override
   State<_StudentsView> createState() => _StudentsViewState();
@@ -53,12 +62,14 @@ class _StudentsView extends StatefulWidget {
 
 class _StudentsViewState extends State<_StudentsView> {
   final ScrollController _pageScrollController = ScrollController();
+  final Set<int> _selectedStudentIds = <int>{};
   String _search = '';
   String _groupFilter = 'All';
   String _supportFilter = 'All';
   String _sortBy = 'Name';
   int _page = 0;
   static const int _rowsPerPage = 8;
+  DateTime? _lastRefreshAt;
 
   @override
   void dispose() {
@@ -127,7 +138,10 @@ class _StudentsViewState extends State<_StudentsView> {
     }
     final supportQueue =
         widget.students
-            .where((student) => student.proficiency != 'Excelling')
+            .where(
+              (student) =>
+                  student.totalSessions > 0 && student.proficiency != 'Excelling',
+            )
             .toList()
           ..sort((a, b) {
             final supportCompare = _supportPriority(
@@ -140,7 +154,10 @@ class _StudentsViewState extends State<_StudentsView> {
           });
     final binhiCount = widget.students.where(_isBinhi).length;
     final punlaCount = widget.students.where(_isPunla).length;
-    final needsSupportCount = widget.students.where(_isNeedsSupport).length;
+    final needsSupportCount = widget.students
+        .where((student) => student.totalSessions > 0)
+        .where(_isNeedsSupport)
+        .length;
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(24, 20, 24, 24),
@@ -152,18 +169,22 @@ class _StudentsViewState extends State<_StudentsView> {
             subtitle:
                 'Read-only learner records synced from tablets. Filter quickly to find students who need coaching support.',
             actions: [
-              FlarePill(
-                label: '${filtered.length} showing',
-                color: AppTheme.info,
-              ),
               FilledButton.tonalIcon(
-                onPressed: widget.onRefresh,
+                onPressed: _handleRefresh,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: const Text('Refresh'),
               ),
             ],
           ),
           const SizedBox(height: 14),
+          Align(
+            alignment: Alignment.centerRight,
+            child: FlarePill(
+              label: '${filtered.length} showing',
+              color: AppTheme.info,
+            ),
+          ),
+          const SizedBox(height: 10),
           _KpiGrid(
             children: [
               FlareMetricTile(
@@ -247,7 +268,7 @@ class _StudentsViewState extends State<_StudentsView> {
                   width: 300,
                   child: TextField(
                     decoration: InputDecoration(
-                      hintText: 'Search learner or nickname...',
+                      hintText: 'Search learner or username...',
                       prefixIcon: const Icon(Icons.search_rounded),
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -289,6 +310,53 @@ class _StudentsViewState extends State<_StudentsView> {
             ),
           ),
           const Divider(height: 1),
+          if (widget.canArchiveStudents && _selectedStudentIds.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+              decoration: BoxDecoration(
+                color: AppTheme.primary.withValues(alpha: 0.08),
+                border: Border(
+                  bottom: BorderSide(
+                    color: AppTheme.primary.withValues(alpha: 0.22),
+                  ),
+                ),
+              ),
+              child: Row(
+                children: [
+                  FlarePill(
+                    label: '${_selectedStudentIds.length} selected',
+                    color: AppTheme.primary,
+                  ),
+                  const SizedBox(width: 12),
+                  FilledButton.tonalIcon(
+                    onPressed: _selectedStudentIds.length == 1
+                        ? () => context.go('/students/${_selectedStudentIds.first}')
+                        : null,
+                    icon: const Icon(Icons.visibility_rounded, size: 16),
+                    label: const Text('View Selected'),
+                  ),
+                  const SizedBox(width: 8),
+                  FilledButton.icon(
+                    onPressed: _selectedStudentIds.isEmpty
+                        ? null
+                        : _archiveSelectedStudents,
+                    style: FilledButton.styleFrom(
+                      backgroundColor: AppTheme.error,
+                    ),
+                    icon: const Icon(Icons.archive_outlined, size: 16),
+                    label: Text(
+                      'Delete Selected (${_selectedStudentIds.length})',
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  OutlinedButton.icon(
+                    onPressed: () => setState(() => _selectedStudentIds.clear()),
+                    icon: const Icon(Icons.close_rounded, size: 16),
+                    label: const Text('Clear Selected'),
+                  ),
+                ],
+              ),
+            ),
           Expanded(child: _buildLearnerTable(context, students)),
         ],
       ),
@@ -322,6 +390,7 @@ class _StudentsViewState extends State<_StudentsView> {
                             minWidth: constraints.maxWidth,
                           ),
                           child: DataTable(
+                            showCheckboxColumn: widget.canArchiveStudents,
                             headingRowColor: WidgetStateProperty.all(
                               Theme.of(context)
                                   .colorScheme
@@ -339,9 +408,23 @@ class _StudentsViewState extends State<_StudentsView> {
                               DataColumn(label: Text('')),
                             ],
                             rows: pageItems.map((student) {
+                              final selected = _selectedStudentIds.contains(
+                                student.studId,
+                              );
                               return DataRow(
-                                onSelectChanged: (_) =>
-                                    context.go('/students/${student.studId}'),
+                                selected: selected,
+                                onSelectChanged: widget.canArchiveStudents
+                                    ? (checked) {
+                                        final isSelected = checked ?? false;
+                                        setState(() {
+                                          if (isSelected) {
+                                            _selectedStudentIds.add(student.studId);
+                                          } else {
+                                            _selectedStudentIds.remove(student.studId);
+                                          }
+                                        });
+                                      }
+                                    : null,
                                 cells: [
                                   DataCell(
                                     Text(
@@ -392,6 +475,7 @@ class _StudentsViewState extends State<_StudentsView> {
                                   DataCell(
                                     _ProficiencyChip(
                                       proficiency: student.proficiency,
+                                      hasPlayed: student.totalSessions > 0,
                                     ),
                                   ),
                                   DataCell(
@@ -488,6 +572,9 @@ class _StudentsViewState extends State<_StudentsView> {
   }
 
   bool _isNeedsSupport(Student student) {
+    if (student.totalSessions <= 0) {
+      return false;
+    }
     final flaggedByLabel = _hasSupportNeed(student.proficiency);
     if (flaggedByLabel) return true;
     return student.avgScore < kFivePointOnTrackThreshold;
@@ -497,6 +584,71 @@ class _StudentsViewState extends State<_StudentsView> {
     final normalized = proficiency.trim().toLowerCase();
     return (normalized.contains('needs') && normalized.contains('support')) ||
         normalized.contains('at risk');
+  }
+
+  void _handleRefresh() {
+    final now = DateTime.now();
+    final shouldPrompt = _lastRefreshAt == null ||
+        now.difference(_lastRefreshAt!).inSeconds >= 2;
+    _lastRefreshAt = now;
+    widget.onRefresh();
+    if (shouldPrompt) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('You are UpToDate')));
+    }
+  }
+
+  Future<void> _archiveSelectedStudents() async {
+    if (_selectedStudentIds.isEmpty) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('No learners selected.')));
+      return;
+    }
+
+    final selectedIds = _selectedStudentIds.toList()..sort();
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Learners'),
+        content: Text(
+          'Delete ${selectedIds.length} selected learner account(s)?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
+            child: const Text('Confirm'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    var archived = 0;
+    for (final id in selectedIds) {
+      try {
+        await dio.delete('${ApiConstants.baseUrl}/api/users/$id');
+        archived++;
+      } catch (_) {}
+    }
+    if (!mounted) return;
+    setState(() => _selectedStudentIds.clear());
+    widget.onRefresh();
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          archived == selectedIds.length
+              ? 'Deleted $archived learner account(s).'
+              : 'Deleted $archived of ${selectedIds.length} learner account(s).',
+        ),
+      ),
+    );
   }
 }
 
@@ -573,6 +725,7 @@ class _SupportPanelPagedState extends State<_SupportPanelPaged> {
                         ),
                         trailing: _ProficiencyChip(
                           proficiency: student.proficiency,
+                          hasPlayed: student.totalSessions > 0,
                         ),
                       );
                     }),
@@ -690,13 +843,19 @@ class _SimpleDropdown extends StatelessWidget {
 
 class _ProficiencyChip extends StatelessWidget {
   final String proficiency;
+  final bool hasPlayed;
 
-  const _ProficiencyChip({required this.proficiency});
+  const _ProficiencyChip({
+    required this.proficiency,
+    required this.hasPlayed,
+  });
 
   @override
   Widget build(BuildContext context) {
+    if (!hasPlayed) {
+      return const FlarePill(label: "Haven't played yet", color: AppTheme.info);
+    }
     final color = _proficiencyColor(proficiency);
-
     return FlarePill(label: proficiency, color: color);
   }
 }

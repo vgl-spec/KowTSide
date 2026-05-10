@@ -82,6 +82,8 @@ class AppShell extends ConsumerStatefulWidget {
 class _AppShellState extends ConsumerState<AppShell> {
   bool _isRouteSwitching = false;
   String? _pendingRoute;
+  final Map<String, DateTime> _lastQuickActionAt = <String, DateTime>{};
+  bool _guideMessageVisible = false;
 
   @override
   void didUpdateWidget(covariant AppShell oldWidget) {
@@ -191,22 +193,20 @@ class _AppShellState extends ConsumerState<AppShell> {
                                       ? Icons.light_mode_outlined
                                       : Icons.dark_mode_outlined,
                                 ),
-                                onPressed: () => ref
-                                    .read(themeModeProvider.notifier)
-                                    .toggleThemeMode(),
+                                onPressed: _isQuickActionCoolingDown('theme')
+                                    ? null
+                                    : () => _runQuickAction('theme', () {
+                                      ref
+                                          .read(themeModeProvider.notifier)
+                                          .toggleThemeMode();
+                                    }),
                               ),
                               IconButton(
                                 tooltip: 'Teacher guide',
                                 icon: const Icon(Icons.help_outline),
-                                onPressed: () {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                      content: Text(
-                                        'Learners are read-only. Question edits automatically update the content version for student devices.',
-                                      ),
-                                    ),
-                                  );
-                                },
+                                onPressed: _isQuickActionCoolingDown('guide')
+                                    ? null
+                                    : () => _showTeacherGuideMessage(),
                               ),
                             ],
                           ),
@@ -409,6 +409,41 @@ class _AppShellState extends ConsumerState<AppShell> {
         ],
       ),
     );
+  }
+
+  bool _isQuickActionCoolingDown(String key) {
+    final now = DateTime.now();
+    final last = _lastQuickActionAt[key];
+    if (last == null) return false;
+    return now.difference(last).inMilliseconds < 1200;
+  }
+
+  void _runQuickAction(String key, VoidCallback action) {
+    if (_isQuickActionCoolingDown(key)) return;
+    _lastQuickActionAt[key] = DateTime.now();
+    setState(() {});
+    action();
+    Future<void>.delayed(const Duration(milliseconds: 1200), () {
+      if (mounted) {
+        setState(() {});
+      }
+    });
+  }
+
+  void _showTeacherGuideMessage() {
+    if (_guideMessageVisible) return;
+    _guideMessageVisible = true;
+    final controller = ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(
+        content: Text(
+          'Learners are read-only. Question edits automatically update the content version for student devices.',
+        ),
+      ),
+    );
+    controller.closed.whenComplete(() {
+      if (!mounted) return;
+      _guideMessageVisible = false;
+    });
   }
 }
 

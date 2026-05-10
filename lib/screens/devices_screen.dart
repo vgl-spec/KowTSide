@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../core/theme.dart';
 import '../providers/devices_provider.dart';
 import '../providers/live_updates_provider.dart';
+import '../widgets/flareline_components.dart';
 import '../widgets/page_skeletons.dart';
 
 class DevicesScreen extends ConsumerWidget {
@@ -11,6 +12,15 @@ class DevicesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    void refreshDevices({bool showPrompt = false}) {
+      ref.invalidate(devicesProvider);
+      if (showPrompt) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('You are UpToDate')));
+      }
+    }
+
     ref.listen(wsEventsProvider, (_, next) {
       next.whenData((event) {
         if (shouldInvalidateForWsEvent(event.type)) {
@@ -33,7 +43,7 @@ class DevicesScreen extends ConsumerWidget {
               Text('$error'),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: () => ref.invalidate(devicesProvider),
+                onPressed: refreshDevices,
                 child: const Text('Retry'),
               ),
             ],
@@ -51,17 +61,12 @@ class DevicesScreen extends ConsumerWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Wrap(
-                  spacing: 12,
-                  runSpacing: 10,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Text(
-                      'Registered Devices',
-                      style: Theme.of(context).textTheme.headlineSmall,
-                    ),
+                FlarePageHeader(
+                  title: 'Registered Devices',
+                  subtitle: 'Monitor connected tablets and sync status.',
+                  actions: [
                     FilledButton.tonalIcon(
-                      onPressed: () => ref.invalidate(devicesProvider),
+                      onPressed: () => refreshDevices(showPrompt: true),
                       icon: const Icon(Icons.refresh_rounded, size: 18),
                       label: const Text('Refresh'),
                     ),
@@ -121,9 +126,7 @@ class DevicesScreen extends ConsumerWidget {
                   child: LayoutBuilder(
                     builder: (context, constraints) {
                       final desktop = constraints.maxWidth >= 1100;
-                      final tableMinWidth = constraints.maxWidth
-                          .clamp(960.0, 1400.0)
-                          .toDouble();
+                      final tableMinWidth = constraints.maxWidth;
 
                       return Card(
                         child: devices.isEmpty
@@ -158,7 +161,7 @@ class DevicesScreen extends ConsumerWidget {
                                             DataColumn(
                                               label: SizedBox(
                                                 width: 260,
-                                                child: Text('UUID'),
+                                                child: Text('MAC Address'),
                                               ),
                                             ),
                                             DataColumn(

@@ -52,7 +52,7 @@ class _KowAdminAppState extends ConsumerState<KowAdminApp> {
         final auth = ref.read(authProvider);
         final location = state.matchedLocation;
         final isBootstrapRoute = location == _bootstrapRoute;
-        if (auth.isLoading) {
+        if (auth.isRestoring) {
           return isBootstrapRoute ? null : _bootstrapRoute;
         }
 

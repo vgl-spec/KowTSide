@@ -21,6 +21,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
   bool _isExporting = false;
+  DateTime? _lastRefreshAt;
 
   @override
   void dispose() {
@@ -58,7 +59,7 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
                   onPressed: () => _showQuestionDialog(context, null),
                 ),
                 FilledButton.tonalIcon(
-                  onPressed: () => ref.invalidate(questionsProvider),
+                  onPressed: _handleRefresh,
                   icon: const Icon(Icons.refresh_rounded, size: 18),
                   label: const Text('Refresh'),
                 ),
@@ -294,6 +295,20 @@ class _QuestionsScreenState extends ConsumerState<QuestionsScreen> {
       barrierDismissible: false,
       builder: (_) => QuestionFormDialog(existing: existing),
     );
+  }
+
+  void _handleRefresh() {
+    final now = DateTime.now();
+    final shouldPrompt =
+        _lastRefreshAt == null ||
+        now.difference(_lastRefreshAt!).inSeconds >= 2;
+    _lastRefreshAt = now;
+    ref.invalidate(questionsProvider);
+    if (shouldPrompt) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('You are UpToDate')));
+    }
   }
 
   Future<void> _exportQuestions() async {

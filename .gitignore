@@ -42,3 +42,6 @@ memory.md
 .vercel
 README.md
 docs
+
+# Generated document artifacts
+docs/generated/

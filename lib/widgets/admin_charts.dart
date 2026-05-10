@@ -151,12 +151,14 @@ class SingleBarChart extends StatelessWidget {
   final List<SimpleBarDatum> data;
   final double maxY;
   final bool percentageScale;
+  final int valueDecimals;
 
   const SingleBarChart({
     super.key,
     required this.data,
     required this.maxY,
     this.percentageScale = false,
+    this.valueDecimals = 0,
   });
 
   @override
@@ -199,8 +201,8 @@ class SingleBarChart extends StatelessWidget {
                 interval: maxY <= 10 ? 2 : 20,
                 getTitlesWidget: (value, _) {
                   final label = percentageScale
-                      ? '${value.toStringAsFixed(0)}%'
-                      : value.toStringAsFixed(0);
+                      ? '${value.toStringAsFixed(valueDecimals)}%'
+                      : value.toStringAsFixed(valueDecimals);
                   return Text(label, style: Theme.of(context).textTheme.bodySmall);
                 },
               ),

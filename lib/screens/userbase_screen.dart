@@ -34,7 +34,7 @@ class UserbaseScreen extends ConsumerWidget {
     final entries = <_UserbaseEntry>[
       ...admins.map(_UserbaseEntry.admin),
       ...students.map(_UserbaseEntry.student),
-    ];
+    ].where((entry) => entry.kind != '__hidden__').toList();
 
     return SafeArea(
       child: Padding(
@@ -58,9 +58,11 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
   String _type = 'All';
   int _page = 1;
   static const int _rowsPerPage = 100;
+  DateTime? _lastRefreshAt;
 
   @override
   Widget build(BuildContext context) {
+    final canArchiveAccounts = ref.watch(authProvider).isSuperadmin;
     final filtered = widget.entries.where((entry) {
       final needle = _query.trim().toLowerCase();
       final matchesQuery = needle.isEmpty ||
@@ -75,6 +77,9 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
     if (_page > totalPages) {
       _page = totalPages;
     }
+    if (_page < 1) {
+      _page = 1;
+    }
     final startIndex = totalRows == 0 ? 0 : (_page - 1) * _rowsPerPage;
     final endIndex = totalRows == 0
         ? 0
@@ -86,18 +91,16 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
       children: [
         FlarePageHeader(
           title: 'Userbase',
-          subtitle: 'Manage teachers, admins, and students in one place.',
+          subtitle:
+              'Manage teacher and student accounts. Admin accounts are hidden for now.',
           actions: [
             FilledButton.icon(
               onPressed: () => _showTeacherDialog(context, ref),
-              icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
-              label: const Text('Register Teacher'),
+                icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+              label: const Text('Register Account'),
             ),
             FilledButton.tonalIcon(
-              onPressed: () {
-                ref.read(adminUsersProvider.notifier).load();
-                ref.invalidate(studentsProvider);
-              },
+              onPressed: _handleRefresh,
               icon: const Icon(Icons.refresh_rounded, size: 18),
               label: const Text('Refresh'),
             ),
@@ -124,7 +127,7 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
                 child: DropdownButtonFormField<String>(
                   initialValue: _type,
                   decoration: const InputDecoration(labelText: 'Type'),
-                  items: const ['All', 'Teacher', 'Admin', 'Student']
+                  items: const ['All', 'Teacher', 'Student']
                       .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                       .toList(),
                   onChanged: (value) {
@@ -155,7 +158,7 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
                             child: DataTable(
                               columns: const [
                                 DataColumn(label: Text('Name')),
-                                DataColumn(label: Text('Username/Nickname')),
+                                DataColumn(label: Text('Username')),
                                 DataColumn(label: Text('Type')),
                                 DataColumn(label: Text('Actions')),
                               ],
@@ -182,6 +185,20 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
                                             context: context,
                                             builder: (_) => _ResetPasswordDialog(user: entry.admin!),
                                           ),
+                                        ),
+                                      if (entry.admin != null && canArchiveAccounts)
+                                        IconButton(
+                                          tooltip: 'Archive account',
+                                          icon: const Icon(Icons.archive_outlined),
+                                          onPressed: entry.admin!.isActive
+                                              ? () => _archiveTeacher(entry.admin!)
+                                              : null,
+                                        ),
+                                      if (entry.student != null && canArchiveAccounts)
+                                        IconButton(
+                                          tooltip: 'Archive learner',
+                                          icon: const Icon(Icons.archive_outlined),
+                                          onPressed: () => _archiveStudent(entry.student!),
                                         ),
                                     ],
                                   )),
@@ -260,9 +277,32 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
               const SizedBox(height: 8),
               TextField(controller: lastName, decoration: const InputDecoration(labelText: 'Last name')),
               const SizedBox(height: 8),
-              TextField(controller: nickname, decoration: const InputDecoration(labelText: 'Nickname')),
+              TextField(controller: nickname, decoration: const InputDecoration(labelText: 'Username')),
               const SizedBox(height: 8),
-              TextField(controller: birthday, decoration: const InputDecoration(labelText: 'Birthday (YYYY-MM-DD)')),
+              TextField(
+                controller: birthday,
+                readOnly: true,
+                decoration: const InputDecoration(
+                  labelText: 'Birthday',
+                  suffixIcon: Icon(Icons.calendar_today_rounded),
+                ),
+                onTap: () async {
+                  final now = DateTime.now();
+                  final initial = DateTime.tryParse(birthday.text.trim()) ??
+                      DateTime(now.year - 6, now.month, now.day);
+                  final picked = await showDatePicker(
+                    context: dialogContext,
+                    initialDate: initial,
+                    firstDate: DateTime(1990, 1, 1),
+                    lastDate: now,
+                  );
+                  if (picked != null) {
+                    final month = picked.month.toString().padLeft(2, '0');
+                    final day = picked.day.toString().padLeft(2, '0');
+                    birthday.text = '${picked.year}-$month-$day';
+                  }
+                },
+              ),
               const SizedBox(height: 8),
               DropdownButtonFormField<String>(
                 initialValue: sex,
@@ -312,15 +352,88 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
   }
 
   void _showTeacherDialog(BuildContext context, WidgetRef ref, {AdminUser? existing}) {
-    final canManageAdmins = ref.read(authProvider).isSuperadmin;
     showDialog<void>(
       context: context,
       barrierDismissible: false,
       builder: (_) => _TeacherFormDialog(
         existing: existing,
-        canCreateAdmin: canManageAdmins,
       ),
     );
+  }
+
+  Future<void> _archiveTeacher(AdminUser user) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Archive Account'),
+        content: Text(
+          'Archive ${user.username}? This will disable account access.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Archive'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await ref.read(adminUsersProvider.notifier).setActive(user, false);
+    if (!mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('Archived ${user.username}')));
+  }
+
+  Future<void> _archiveStudent(Student student) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Archive Learner'),
+        content: Text(
+          'Archive ${student.fullName} (${student.displayStudId})?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
+            child: const Text('Archive'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    await dio.delete('${ApiConstants.baseUrl}/api/users/${student.studId}');
+    if (!mounted) return;
+    ref.invalidate(studentsProvider);
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Archived ${student.displayStudId}')),
+    );
+  }
+
+  void _handleRefresh() {
+    final now = DateTime.now();
+    final shouldPrompt =
+        _lastRefreshAt == null ||
+        now.difference(_lastRefreshAt!).inSeconds >= 2;
+    _lastRefreshAt = now;
+    ref.read(adminUsersProvider.notifier).load();
+    ref.invalidate(studentsProvider);
+    if (shouldPrompt) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('You are UpToDate')));
+    }
   }
 }
 
@@ -340,9 +453,15 @@ class _UserbaseEntry {
   });
 
   factory _UserbaseEntry.admin(AdminUser user) {
-    final role = user.role.toLowerCase() == 'teacher' ? 'Teacher' : 'Admin';
+    if (user.role.toLowerCase() != 'teacher') {
+      return const _UserbaseEntry._(
+        kind: '__hidden__',
+        displayName: '',
+        username: '',
+      );
+    }
     return _UserbaseEntry._(
-      kind: role,
+      kind: 'Teacher',
       displayName: user.fullName.isEmpty ? user.username : user.fullName,
       username: user.username,
       admin: user,
@@ -372,8 +491,7 @@ Color _kindColor(String kind) {
 
 class _TeacherFormDialog extends ConsumerStatefulWidget {
   final AdminUser? existing;
-  final bool canCreateAdmin;
-  const _TeacherFormDialog({this.existing, required this.canCreateAdmin});
+  const _TeacherFormDialog({this.existing});
 
   @override
   ConsumerState<_TeacherFormDialog> createState() => _TeacherFormDialogState();
@@ -386,8 +504,11 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
   late final TextEditingController _firstName;
   late final TextEditingController _middleInitial;
   late final TextEditingController _lastName;
+  late final TextEditingController _nickname;
+  late final TextEditingController _birthday;
   bool _saving = false;
   late String _role;
+  String _sex = 'Male';
 
   @override
   void initState() {
@@ -398,7 +519,9 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
     _firstName = TextEditingController(text: user?.firstName ?? '');
     _middleInitial = TextEditingController(text: user?.middleInitial ?? '');
     _lastName = TextEditingController(text: user?.lastName ?? '');
-    _role = user?.role.toLowerCase() == 'admin' ? 'admin' : 'teacher';
+    _nickname = TextEditingController();
+    _birthday = TextEditingController();
+    _role = 'teacher';
   }
 
   @override
@@ -408,6 +531,8 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
     _firstName.dispose();
     _middleInitial.dispose();
     _lastName.dispose();
+    _nickname.dispose();
+    _birthday.dispose();
     super.dispose();
   }
 
@@ -423,32 +548,38 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              TextFormField(
-                controller: _username,
-                decoration: const InputDecoration(labelText: 'Username'),
-                validator: (value) => value == null || value.trim().length < 3 ? 'Use at least 3 characters.' : null,
-              ),
-              if (!isEdit) ...[
-                const SizedBox(height: 12),
+              if (_role == 'teacher') ...[
                 TextFormField(
-                  controller: _password,
-                  obscureText: true,
-                  decoration: const InputDecoration(labelText: 'Temporary password'),
-                  validator: (value) => value == null || value.length < 12 ? 'Use at least 12 characters.' : null,
+                  controller: _username,
+                  decoration: const InputDecoration(labelText: 'Username'),
+                  validator: (value) {
+                    return value == null || value.trim().length < 3
+                        ? 'Use at least 3 characters.'
+                        : null;
+                  },
                 ),
+                if (!isEdit) ...[
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _password,
+                    obscureText: true,
+                    decoration: const InputDecoration(labelText: 'Password'),
+                    validator: (value) => value == null || value.length < 12 ? 'Use at least 12 characters.' : null,
+                  ),
+                ],
               ],
               const SizedBox(height: 12),
               DropdownButtonFormField<String>(
                 initialValue: _role,
                 decoration: const InputDecoration(labelText: 'Account role'),
-                items: <DropdownMenuItem<String>>[
-                  const DropdownMenuItem(
-                    value: 'teacher',
-                    child: Text('Teacher'),
-                  ),
-                  if (widget.canCreateAdmin)
-                    const DropdownMenuItem(value: 'admin', child: Text('Admin')),
-                ],
+                items: isEdit
+                    ? const <DropdownMenuItem<String>>[
+                        DropdownMenuItem(value: 'teacher', child: Text('Teacher')),
+                      ]
+                    : const <DropdownMenuItem<String>>[
+                        DropdownMenuItem(value: 'teacher', child: Text('Teacher')),
+                        DropdownMenuItem(value: 'student', child: Text('Student')),
+                      ],
                 onChanged: (value) {
                   if (value != null) {
                     setState(() => _role = value);
@@ -457,10 +588,68 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
               ),
               const SizedBox(height: 12),
               TextFormField(controller: _firstName, decoration: const InputDecoration(labelText: 'First name')),
-              const SizedBox(height: 12),
-              TextFormField(controller: _middleInitial, decoration: const InputDecoration(labelText: 'Middle initial')),
+              if (_role == 'teacher') ...[
+                const SizedBox(height: 12),
+                TextFormField(controller: _middleInitial, decoration: const InputDecoration(labelText: 'Middle initial')),
+              ],
               const SizedBox(height: 12),
               TextFormField(controller: _lastName, decoration: const InputDecoration(labelText: 'Last name')),
+              if (!isEdit && _role == 'student') ...[
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _nickname,
+                  decoration: const InputDecoration(labelText: 'Username'),
+                  validator: (value) => value == null || value.trim().isEmpty
+                      ? 'Username is required.'
+                      : null,
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  controller: _birthday,
+                  readOnly: true,
+                  decoration: const InputDecoration(
+                    labelText: 'Birthday',
+                    suffixIcon: Icon(Icons.calendar_today_rounded),
+                  ),
+                  onTap: () async {
+                    final now = DateTime.now();
+                    final initial = DateTime.tryParse(_birthday.text.trim()) ??
+                        DateTime(now.year - 6, now.month, now.day);
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: initial,
+                      firstDate: DateTime(1990, 1, 1),
+                      lastDate: now,
+                    );
+                    if (picked != null) {
+                      final month = picked.month.toString().padLeft(2, '0');
+                      final day = picked.day.toString().padLeft(2, '0');
+                      _birthday.text = '${picked.year}-$month-$day';
+                    }
+                  },
+                  validator: (value) {
+                    final text = value?.trim() ?? '';
+                    if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(text)) {
+                      return 'Birthday must be YYYY-MM-DD.';
+                    }
+                    return null;
+                  },
+                ),
+                const SizedBox(height: 12),
+                DropdownButtonFormField<String>(
+                  initialValue: _sex,
+                  decoration: const InputDecoration(labelText: 'Sex'),
+                  items: const [
+                    DropdownMenuItem(value: 'Male', child: Text('Male')),
+                    DropdownMenuItem(value: 'Female', child: Text('Female')),
+                  ],
+                  onChanged: (value) {
+                    if (value != null) {
+                      setState(() => _sex = value);
+                    }
+                  },
+                ),
+              ],
             ],
           ),
         ),
@@ -478,14 +667,18 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
     final notifier = ref.read(adminUsersProvider.notifier);
     final existing = widget.existing;
     if (existing == null) {
-      if (_role == 'admin' && widget.canCreateAdmin) {
-        await notifier.registerAdmin(
-          username: _username.text.trim(),
-          password: _password.text,
-          firstName: _firstName.text.trim(),
-          middleInitial: _middleInitial.text.trim(),
-          lastName: _lastName.text.trim(),
+      if (_role == 'student') {
+        await dio.post(
+          '${ApiConstants.baseUrl}/api/users',
+          data: {
+            'first_name': _firstName.text.trim(),
+            'last_name': _lastName.text.trim(),
+            'nickname': _nickname.text.trim(),
+            'birthday': _birthday.text.trim(),
+            'sex': _sex,
+          },
         );
+        ref.invalidate(studentsProvider);
       } else {
         await notifier.registerTeacher(
           username: _username.text.trim(),
@@ -538,7 +731,7 @@ class _ResetPasswordDialogState extends ConsumerState<_ResetPasswordDialog> {
         child: TextField(
           controller: _controller,
           obscureText: true,
-          decoration: const InputDecoration(labelText: 'New temporary password'),
+          decoration: const InputDecoration(labelText: 'New password'),
         ),
       ),
       actions: [

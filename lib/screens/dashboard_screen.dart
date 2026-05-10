@@ -43,14 +43,36 @@ class DashboardScreen extends ConsumerWidget {
   }
 }
 
-class _DashboardView extends StatelessWidget {
+class _DashboardView extends StatefulWidget {
   final DashboardData data;
   final VoidCallback onRefresh;
 
   const _DashboardView({required this.data, required this.onRefresh});
 
   @override
+  State<_DashboardView> createState() => _DashboardViewState();
+}
+
+class _DashboardViewState extends State<_DashboardView> {
+  DateTime? _lastRefreshAt;
+
+  void _handleRefresh() {
+    final now = DateTime.now();
+    final shouldPrompt =
+        _lastRefreshAt == null ||
+        now.difference(_lastRefreshAt!).inSeconds >= 2;
+    _lastRefreshAt = now;
+    widget.onRefresh();
+    if (shouldPrompt) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('You are UpToDate')));
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final data = widget.data;
     final width = MediaQuery.of(context).size.width;
     final scoreBySubject = _buildSubjectRows(data);
     final scoreByGroup = _buildAgeGroupRows(data);
@@ -90,7 +112,7 @@ class _DashboardView extends StatelessWidget {
     ];
 
     return RefreshIndicator(
-      onRefresh: () async => onRefresh(),
+      onRefresh: () async => _handleRefresh(),
       child: ListView(
         physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
@@ -101,7 +123,7 @@ class _DashboardView extends StatelessWidget {
                 'A classroom-first overview focused on learner outcomes, question pool health, and immediate teaching priorities.',
             actions: [
               FilledButton.tonalIcon(
-                onPressed: onRefresh,
+                onPressed: _handleRefresh,
                 icon: const Icon(Icons.refresh_rounded, size: 18),
                 label: const Text('Refresh'),
               ),
@@ -140,7 +162,7 @@ class _DashboardView extends StatelessWidget {
               ),
               FlareMetricTile(
                 label: 'Average Pass Rate',
-                value: '${averagePassRate.toStringAsFixed(1)}%',
+                value: '${averagePassRate.toStringAsFixed(2)}%',
                 hint: 'Across all age-group/subject pools',
                 icon: Icons.check_circle_outline_rounded,
                 color: AppTheme.tertiary,
@@ -169,7 +191,7 @@ class _DashboardView extends StatelessWidget {
                                 .map(
                                   (row) => SimpleBarDatum(
                                     label: row.label,
-                                    value: row.averageScore,
+                                    value: _roundTo2(row.averageScore),
                                     color: _subjectColor(row.label),
                                   ),
                                 )
@@ -194,7 +216,7 @@ class _DashboardView extends StatelessWidget {
                                 .map(
                                   (row) => SimpleBarDatum(
                                     label: row.label,
-                                    value: row.passRate,
+                                    value: _roundTo2(row.passRate),
                                     color:
                                         row.label.toLowerCase().contains(
                                           'punla',
@@ -206,6 +228,7 @@ class _DashboardView extends StatelessWidget {
                                 .toList(),
                             maxY: 100,
                             percentageScale: true,
+                            valueDecimals: 2,
                           ),
                   ),
                 ),
@@ -226,7 +249,7 @@ class _DashboardView extends StatelessWidget {
                           .map(
                             (row) => SimpleBarDatum(
                               label: row.label,
-                              value: row.averageScore,
+                              value: _roundTo2(row.averageScore),
                               color: _subjectColor(row.label),
                             ),
                           )
@@ -249,7 +272,7 @@ class _DashboardView extends StatelessWidget {
                           .map(
                             (row) => SimpleBarDatum(
                               label: row.label,
-                              value: row.passRate,
+                              value: _roundTo2(row.passRate),
                               color: row.label.toLowerCase().contains('punla')
                                   ? AppTheme.primary
                                   : AppTheme.tertiary,
@@ -258,6 +281,7 @@ class _DashboardView extends StatelessWidget {
                           .toList(),
                       maxY: 100,
                       percentageScale: true,
+                      valueDecimals: 2,
                     ),
             ),
           ],
@@ -577,6 +601,8 @@ class _DashboardView extends StatelessWidget {
   }
 }
 
+double _roundTo2(double value) => double.parse(value.toStringAsFixed(2));
+
 class _PerformanceRow {
   final String label;
   final int activeStudents;
@@ -613,7 +639,13 @@ class _KpiGrid extends StatelessWidget {
           spacing: 12,
           runSpacing: 12,
           children: children
-              .map((child) => SizedBox(width: itemWidth, child: child))
+              .map(
+                (child) => SizedBox(
+                  width: itemWidth,
+                  height: 210,
+                  child: child,
+                ),
+              )
               .toList(),
         );
       },

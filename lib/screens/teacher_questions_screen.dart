@@ -54,8 +54,8 @@ class _TeacherQuestionsScreenState
   final Set<int> _selectedQuestionIds = <int>{};
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
-  bool _selectionMode = false;
   bool _isExporting = false;
+  DateTime? _lastRefreshAt;
 
   @override
   void dispose() {
@@ -185,7 +185,7 @@ class _TeacherQuestionsScreenState
                           ),
                         ],
                       ),
-                      if (_selectionMode) ...[
+                      if (selectedIds.isNotEmpty) ...[
                         const SizedBox(height: 14),
                         Container(
                           padding: const EdgeInsets.symmetric(
@@ -203,7 +203,7 @@ class _TeacherQuestionsScreenState
                             children: [
                               Expanded(
                                 child: Text(
-                                  'Selection mode is on. Tap active rows to mark questions to hide from students.',
+                                  'Selected questions are ready for bulk hide action.',
                                   style: Theme.of(context).textTheme.bodySmall
                                       ?.copyWith(
                                         color: AppTheme.textHighEmphasis,
@@ -212,10 +212,8 @@ class _TeacherQuestionsScreenState
                               ),
                               const SizedBox(width: 12),
                               FlarePill(
-                                label: '$selectedCount selected',
-                                color: selectedCount > 0
-                                    ? AppTheme.error
-                                    : AppTheme.primary,
+                                label: '${selectedIds.length} selected',
+                                color: AppTheme.error,
                               ),
                             ],
                           ),
@@ -239,11 +237,10 @@ class _TeacherQuestionsScreenState
                                 )
                               : _QuestionBankList(
                                   questions: questions,
-                                  selectionMode: _selectionMode,
                                   selectedQuestionIds: selectedIds,
                                   onTapQuestion: (question) =>
                                       _handleQuestionTap(context, question),
-                                  onLongPressQuestion: _handleQuestionLongPress,
+                                  onToggleSelection: _toggleQuestionSelection,
                                 ),
                         ),
                       ),
@@ -271,23 +268,47 @@ class _TeacherQuestionsScreenState
     Set<int> selectedIds,
     bool isMutating,
   ) {
-    if (_selectionMode) {
+    final compact = MediaQuery.of(context).size.width < 1180;
+    ButtonStyle compactStyle(ButtonStyle base) => base.copyWith(
+      minimumSize: const WidgetStatePropertyAll(Size(0, 42)),
+      visualDensity: compact ? VisualDensity.compact : null,
+      padding: WidgetStatePropertyAll(
+        compact
+            ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
+            : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+      ),
+      textStyle: WidgetStatePropertyAll(
+        TextStyle(fontSize: compact ? 12 : 14),
+      ),
+    );
+
+    if (selectedIds.isNotEmpty) {
       return [
         FilledButton.icon(
           onPressed: isMutating || selectedIds.isEmpty
               ? null
               : () => _confirmDeleteSelected(context, selectedIds),
-          style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
+          style: compactStyle(
+            FilledButton.styleFrom(backgroundColor: AppTheme.error),
+          ),
           icon: const Icon(Icons.delete_sweep_rounded, size: 18),
-          label: Text('Delete All Selected (${selectedIds.length})'),
+          label: Text(
+            compact
+                ? 'Delete (${selectedIds.length})'
+                : 'Delete All Selected (${selectedIds.length})',
+          ),
         ),
         OutlinedButton.icon(
-          onPressed: isMutating ? null : _toggleSelectionMode,
+          onPressed: isMutating
+              ? null
+              : () => setState(() => _selectedQuestionIds.clear()),
+          style: compactStyle(OutlinedButton.styleFrom()),
           icon: const Icon(Icons.close_rounded, size: 18),
-          label: const Text('Done Selecting'),
+          label: Text(compact ? 'Clear' : 'Clear Selected'),
         ),
         FilledButton.tonalIcon(
           onPressed: isMutating ? null : _refreshQuestions,
+          style: compactStyle(FilledButton.styleFrom()),
           icon: const Icon(Icons.refresh_rounded, size: 18),
           label: const Text('Refresh'),
         ),
@@ -297,26 +318,31 @@ class _TeacherQuestionsScreenState
     return [
       FilledButton.icon(
         onPressed: () => _showImportDialog(context),
+        style: compactStyle(FilledButton.styleFrom()),
         icon: const Icon(Icons.upload_file_rounded, size: 18),
-        label: const Text('Import Questions'),
+        label: Text(compact ? 'Import Q' : 'Import Questions'),
       ),
       OutlinedButton.icon(
         onPressed: () => _showCsvImportDialog(context),
+        style: compactStyle(OutlinedButton.styleFrom()),
         icon: const Icon(Icons.table_view_rounded, size: 18),
         label: const Text('Import CSV'),
       ),
       FilledButton.icon(
         onPressed: () => _showForm(context),
+        style: compactStyle(FilledButton.styleFrom()),
         icon: const Icon(Icons.add, size: 18),
-        label: const Text('Add Question'),
+        label: Text(compact ? 'Add' : 'Add Question'),
       ),
       FilledButton.tonalIcon(
         onPressed: _refreshQuestions,
+        style: compactStyle(FilledButton.styleFrom()),
         icon: const Icon(Icons.refresh_rounded, size: 18),
         label: const Text('Refresh'),
       ),
       FilledButton.tonalIcon(
         onPressed: _isExporting ? null : _exportQuestions,
+        style: compactStyle(FilledButton.styleFrom()),
         icon: _isExporting
             ? const SizedBox(
                 width: 16,
@@ -326,11 +352,6 @@ class _TeacherQuestionsScreenState
             : const Icon(Icons.download_rounded, size: 18),
         label: Text(_isExporting ? 'Exporting...' : 'Export CSV'),
       ),
-      OutlinedButton.icon(
-        onPressed: _toggleSelectionMode,
-        icon: const Icon(Icons.checklist_rounded, size: 18),
-        label: const Text('Select Multiple'),
-      ),
     ];
   }
 
@@ -338,6 +359,15 @@ class _TeacherQuestionsScreenState
     ref.invalidate(questionsProvider);
     ref.invalidate(allQuestionsProvider);
     ref.invalidate(dashboardProvider);
+    final now = DateTime.now();
+    final shouldPrompt = _lastRefreshAt == null ||
+        now.difference(_lastRefreshAt!).inSeconds >= 2;
+    _lastRefreshAt = now;
+    if (shouldPrompt && mounted) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('You are UpToDate')));
+    }
   }
 
   Future<void> _exportQuestions() async {
@@ -448,33 +478,8 @@ class _TeacherQuestionsScreenState
     return visibleSelection;
   }
 
-  void _toggleSelectionMode() {
-    setState(() {
-      _selectionMode = !_selectionMode;
-      if (!_selectionMode) {
-        _selectedQuestionIds.clear();
-      }
-    });
-  }
-
   void _handleQuestionTap(BuildContext context, Question question) {
-    if (_selectionMode) {
-      _toggleQuestionSelection(question);
-      return;
-    }
-
     _showQuestionDetails(context, question);
-  }
-
-  void _handleQuestionLongPress(Question question) {
-    if (_selectionMode || !question.isActive) {
-      return;
-    }
-
-    setState(() {
-      _selectionMode = true;
-      _selectedQuestionIds.add(question.questionId);
-    });
   }
 
   void _toggleQuestionSelection(Question question) {
@@ -598,7 +603,6 @@ class _TeacherQuestionsScreenState
               }
               setState(() {
                 _selectedQuestionIds.clear();
-                _selectionMode = false;
               });
               messenger.showSnackBar(
                 SnackBar(
@@ -997,17 +1001,15 @@ class _FilterDropdown<T> extends StatelessWidget {
 
 class _QuestionBankList extends StatelessWidget {
   final List<Question> questions;
-  final bool selectionMode;
   final Set<int> selectedQuestionIds;
   final ValueChanged<Question> onTapQuestion;
-  final ValueChanged<Question> onLongPressQuestion;
+  final ValueChanged<Question> onToggleSelection;
 
   const _QuestionBankList({
     required this.questions,
-    required this.selectionMode,
     required this.selectedQuestionIds,
     required this.onTapQuestion,
-    required this.onLongPressQuestion,
+    required this.onToggleSelection,
   });
 
   @override
@@ -1021,7 +1023,7 @@ class _QuestionBankList extends StatelessWidget {
             if (!compact)
               Padding(
                 padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: _QuestionBankHeaderRow(selectionMode: selectionMode),
+                child: const _QuestionBankHeaderRow(),
               ),
             Expanded(
               child: ListView.separated(
@@ -1034,10 +1036,9 @@ class _QuestionBankList extends StatelessWidget {
                   return _QuestionBankRow(
                     question: question,
                     compact: compact,
-                    selectionMode: selectionMode,
                     selected: selectedQuestionIds.contains(question.questionId),
                     onTap: () => onTapQuestion(question),
-                    onLongPress: () => onLongPressQuestion(question),
+                    onToggleSelection: () => onToggleSelection(question),
                   );
                 },
               ),
@@ -1050,9 +1051,7 @@ class _QuestionBankList extends StatelessWidget {
 }
 
 class _QuestionBankHeaderRow extends StatelessWidget {
-  final bool selectionMode;
-
-  const _QuestionBankHeaderRow({required this.selectionMode});
+  const _QuestionBankHeaderRow();
 
   @override
   Widget build(BuildContext context) {
@@ -1064,14 +1063,13 @@ class _QuestionBankHeaderRow extends StatelessWidget {
       ),
       child: Row(
         children: [
-          if (selectionMode)
-            const SizedBox(
-              width: 42,
-              child: Text(
-                'Pick',
-                style: TextStyle(fontWeight: FontWeight.w800),
-              ),
+          const SizedBox(
+            width: 42,
+            child: Text(
+              'Pick',
+              style: TextStyle(fontWeight: FontWeight.w800),
             ),
+          ),
           const SizedBox(
             width: 52,
             child: Text('ID', style: TextStyle(fontWeight: FontWeight.w800)),
@@ -1107,18 +1105,16 @@ class _QuestionBankHeaderRow extends StatelessWidget {
 class _QuestionBankRow extends StatelessWidget {
   final Question question;
   final bool compact;
-  final bool selectionMode;
   final bool selected;
   final VoidCallback onTap;
-  final VoidCallback onLongPress;
+  final VoidCallback onToggleSelection;
 
   const _QuestionBankRow({
     required this.question,
     required this.compact,
-    required this.selectionMode,
     required this.selected,
     required this.onTap,
-    required this.onLongPress,
+    required this.onToggleSelection,
   });
 
   @override
@@ -1141,20 +1137,19 @@ class _QuestionBankRow extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(16),
-          onTap: selectionMode && !canSelect ? null : onTap,
-          onLongPress: selectionMode || !canSelect ? null : onLongPress,
+          onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
             child: compact
                 ? _QuestionBankRowCompact(
                     question: question,
-                    selectionMode: selectionMode,
                     selected: selected,
+                    onToggleSelection: onToggleSelection,
                   )
                 : _QuestionBankRowWide(
                     question: question,
-                    selectionMode: selectionMode,
                     selected: selected,
+                    onToggleSelection: onToggleSelection,
                   ),
           ),
         ),
@@ -1165,13 +1160,13 @@ class _QuestionBankRow extends StatelessWidget {
 
 class _QuestionBankRowWide extends StatelessWidget {
   final Question question;
-  final bool selectionMode;
   final bool selected;
+  final VoidCallback onToggleSelection;
 
   const _QuestionBankRowWide({
     required this.question,
-    required this.selectionMode,
     required this.selected,
+    required this.onToggleSelection,
   });
 
   @override
@@ -1179,14 +1174,16 @@ class _QuestionBankRowWide extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        if (selectionMode)
-          Padding(
-            padding: const EdgeInsets.only(right: 12, top: 10),
+        Padding(
+          padding: const EdgeInsets.only(right: 12, top: 10),
+          child: GestureDetector(
+            onTap: question.isActive ? onToggleSelection : null,
             child: _SelectionMarker(
               selected: selected,
               enabled: question.isActive,
             ),
           ),
+        ),
         SizedBox(
           width: 52,
           child: Padding(
@@ -1224,13 +1221,13 @@ class _QuestionBankRowWide extends StatelessWidget {
 
 class _QuestionBankRowCompact extends StatelessWidget {
   final Question question;
-  final bool selectionMode;
   final bool selected;
+  final VoidCallback onToggleSelection;
 
   const _QuestionBankRowCompact({
     required this.question,
-    required this.selectionMode,
     required this.selected,
+    required this.onToggleSelection,
   });
 
   @override
@@ -1240,10 +1237,14 @@ class _QuestionBankRowCompact extends StatelessWidget {
       children: [
         Row(
           children: [
-            if (selectionMode) ...[
-              _SelectionMarker(selected: selected, enabled: question.isActive),
-              const SizedBox(width: 10),
-            ],
+            GestureDetector(
+              onTap: question.isActive ? onToggleSelection : null,
+              child: _SelectionMarker(
+                selected: selected,
+                enabled: question.isActive,
+              ),
+            ),
+            const SizedBox(width: 10),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
               decoration: BoxDecoration(
@@ -1564,29 +1565,14 @@ class _SelectionMarker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final color = enabled ? AppTheme.primary : AppTheme.textLowEmphasis;
-
-    return AnimatedContainer(
-      duration: const Duration(milliseconds: 180),
-      width: 30,
-      height: 30,
-      decoration: BoxDecoration(
-        color: selected ? color.withValues(alpha: 0.18) : Colors.transparent,
-        borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-          color: selected
-              ? color
-              : color.withValues(alpha: enabled ? 0.48 : 0.26),
+    return IgnorePointer(
+      child: SizedBox(
+        width: 30,
+        height: 30,
+        child: Checkbox(
+          value: selected,
+          onChanged: enabled ? (_) {} : null,
         ),
-      ),
-      child: Icon(
-        selected
-            ? Icons.check_rounded
-            : enabled
-            ? Icons.add_rounded
-            : Icons.block_rounded,
-        size: 16,
-        color: color,
       ),
     );
   }

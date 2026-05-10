@@ -13,6 +13,7 @@ final syncLogsProvider = FutureProvider<SyncLogsData>((ref) async {
           (device) => SyncLogRecord(
             deviceUuid: device.deviceUuid,
             deviceName: device.deviceName,
+            username: 'Unknown user',
             eventType: 'sync_complete',
             status: 'success',
             rawStatus: 'success',

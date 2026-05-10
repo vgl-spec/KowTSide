@@ -40,6 +40,7 @@ class _ActivityLogsScreenState extends ConsumerState<ActivityLogsScreen> {
   final TextEditingController _searchController = TextEditingController();
   Timer? _searchDebounce;
   String _status = 'All';
+  DateTime? _lastRefreshAt;
 
   @override
   void dispose() {
@@ -64,7 +65,7 @@ class _ActivityLogsScreenState extends ConsumerState<ActivityLogsScreen> {
                   'A clear audit trail of sign-ins, question changes, uploads, imports, and account actions.',
               actions: [
                 FilledButton.tonalIcon(
-                  onPressed: () => ref.invalidate(activityLogsProvider),
+                  onPressed: _handleRefresh,
                   icon: const Icon(Icons.refresh_rounded, size: 18),
                   label: const Text('Refresh'),
                 ),
@@ -163,6 +164,20 @@ class _ActivityLogsScreenState extends ConsumerState<ActivityLogsScreen> {
       status: status,
     );
   }
+
+  void _handleRefresh() {
+    final now = DateTime.now();
+    final shouldPrompt =
+        _lastRefreshAt == null ||
+        now.difference(_lastRefreshAt!).inSeconds >= 2;
+    _lastRefreshAt = now;
+    ref.invalidate(activityLogsProvider);
+    if (shouldPrompt) {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('You are UpToDate')));
+    }
+  }
 }
 
 class _ActivityLogTable extends StatelessWidget {
@@ -220,9 +235,7 @@ class _ActivityLogHeaderRow extends StatelessWidget {
       ),
       child: const Row(
         children: [
-          Expanded(flex: 17, child: _HeaderLabel('Date')),
-          SizedBox(width: 12),
-          Expanded(flex: 15, child: _HeaderLabel('Time')),
+          Expanded(flex: 20, child: _HeaderLabel('Timestamp')),
           SizedBox(width: 12),
           Expanded(flex: 22, child: _HeaderLabel('User')),
           SizedBox(width: 12),
@@ -268,14 +281,12 @@ class _ActivityLogRow extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           Expanded(
-            flex: 17,
+            flex: 20,
             child: Text(
-              log.createdDate,
+              _formatActivityTimestamp(log),
               style: const TextStyle(fontWeight: FontWeight.w700),
             ),
           ),
-          const SizedBox(width: 12),
-          Expanded(flex: 15, child: Text(log.createdTime)),
           const SizedBox(width: 12),
           Expanded(
             flex: 22,
@@ -510,4 +521,18 @@ String _statusAlias(String status) {
     default:
       return status;
   }
+}
+
+String _formatActivityTimestamp(ActivityLogEntry log) {
+  final rawDate = log.createdDate.trim();
+  final rawTime = log.createdTime.trim();
+  if (rawDate.isEmpty && rawTime.isEmpty) return 'No date';
+  final isoCandidate = rawTime.isEmpty ? rawDate : '${rawDate}T$rawTime';
+  final parsed = DateTime.tryParse(isoCandidate);
+  if (parsed != null) {
+    return '${parsed.year}-${parsed.month.toString().padLeft(2, '0')}-${parsed.day.toString().padLeft(2, '0')} ${parsed.hour.toString().padLeft(2, '0')}:${parsed.minute.toString().padLeft(2, '0')}:${parsed.second.toString().padLeft(2, '0')}';
+  }
+  if (rawTime.isEmpty) return rawDate;
+  if (rawDate.isEmpty) return rawTime;
+  return '$rawDate $rawTime';
 }

@@ -51,7 +51,7 @@ class ReportsScreen extends ConsumerWidget {
               Text('Failed to load reports: $error'),
               const SizedBox(height: 16),
               FilledButton(
-                onPressed: () => _refreshAll(ref),
+                onPressed: () => _refreshWithPrompt(context, ref),
                 child: const Text('Retry'),
               ),
             ],
@@ -101,7 +101,7 @@ class ReportsScreen extends ConsumerWidget {
                   label: const Text('Export Analytics'),
                 ),
                 FilledButton.tonalIcon(
-                  onPressed: () => _refreshAll(ref),
+                  onPressed: () => _refreshWithPrompt(context, ref),
                   icon: const Icon(Icons.refresh_rounded, size: 18),
                   label: const Text('Refresh'),
                 ),
@@ -272,6 +272,17 @@ class ReportsScreen extends ConsumerWidget {
     await ref.read(reportsSnapshotProvider.future);
   }
 
+  static Future<void> _refreshWithPrompt(
+    BuildContext context,
+    WidgetRef ref,
+  ) async {
+    await _refreshAll(ref);
+    if (!context.mounted) return;
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(const SnackBar(content: Text('You are UpToDate')));
+  }
+
   static Future<void> _exportOverallXlsx(
     BuildContext context,
     DashboardData dashboard,
@@ -321,7 +332,7 @@ class ReportsScreen extends ConsumerWidget {
 
       final learnerHeader = <xls.CellValue>[
         xls.TextCellValue('Student ID'),
-        xls.TextCellValue('Nickname'),
+        xls.TextCellValue('Username'),
         xls.TextCellValue('Full Name'),
         xls.TextCellValue('Area'),
         xls.TextCellValue('Grade Level'),
@@ -736,7 +747,9 @@ class _PrioritySupportQueueState extends State<_PrioritySupportQueue> {
 
     final total = widget.items.length;
     final totalPages = ((total + _pageSize - 1) ~/ _pageSize).clamp(1, 1000000);
-    final page = _page > totalPages ? totalPages : _page;
+    final page = _page < 1
+        ? 1
+        : (_page > totalPages ? totalPages : _page);
     if (_page != page) _page = page;
 
     final start = (page - 1) * _pageSize;
@@ -824,7 +837,9 @@ class _LeaderboardDetailsCardState extends State<_LeaderboardDetailsCard> {
 
     final total = widget.entries.length;
     final totalPages = ((total + _pageSize - 1) ~/ _pageSize).clamp(1, 1000000);
-    final page = _page > totalPages ? totalPages : _page;
+    final page = _page < 1
+        ? 1
+        : (_page > totalPages ? totalPages : _page);
     if (_page != page) _page = page;
     final start = (page - 1) * _pageSize;
     final end = (start + _pageSize > total) ? total : start + _pageSize;
@@ -898,7 +913,7 @@ class _LeaderboardDetailsTable extends StatelessWidget {
           child: const Row(
             children: [
               Expanded(flex: 2, child: Text('Rank')),
-              Expanded(flex: 2, child: Text('Nickname')),
+              Expanded(flex: 2, child: Text('Username')),
               Expanded(flex: 3, child: Text('Full Name')),
               Expanded(flex: 2, child: Text('Group')),
               Expanded(flex: 2, child: Text('Total Score')),
@@ -1061,6 +1076,9 @@ class _PerformanceSummary {
 }
 
 List<_StudentSupportItem> _buildSupportList(List<Student> students) {
+  final activeStudents = students
+      .where((student) => student.totalSessions > 0)
+      .toList(growable: false);
   final list = students
       .where(
         (student) =>
@@ -1086,6 +1104,9 @@ List<_StudentSupportItem> _buildSupportList(List<Student> students) {
         );
       })
       .toList();
+  if (activeStudents.isNotEmpty) {
+    list.removeWhere((item) => item.student.totalSessions <= 0);
+  }
 
   list.sort((a, b) {
     final prioritySort = _priorityWeight(
@@ -1100,6 +1121,7 @@ List<_StudentSupportItem> _buildSupportList(List<Student> students) {
 }
 
 String _computePriority(Student student, List<String> reasons) {
+  if (student.totalSessions <= 0) return 'Low';
   final hasNeedsSupport = _hasSupportNeed(student.proficiency);
   final highRisk =
       student.proficiency.trim().toLowerCase() == 'needs significant support' ||
@@ -1142,15 +1164,19 @@ String _formatSessionsPerStudent(int totalSessions, int totalStudents) {
 }
 
 List<ChartSegment> _buildProficiencySegments(List<Student> students) {
-  final needsSupport = students.where((student) {
+  final activeStudents = students
+      .where((student) => student.totalSessions > 0)
+      .toList(growable: false);
+  final source = activeStudents.isNotEmpty ? activeStudents : students;
+  final needsSupport = source.where((student) {
     return _hasSupportNeed(student.proficiency);
   }).length;
-  final onTrack = students
+  final onTrack = source
       .where(
         (student) => student.proficiency.trim().toLowerCase() == 'on track',
       )
       .length;
-  final excelling = students
+  final excelling = source
       .where(
         (student) => student.proficiency.trim().toLowerCase() == 'excelling',
       )
