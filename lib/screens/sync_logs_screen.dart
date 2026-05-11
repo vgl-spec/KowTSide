@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 import '../core/theme.dart';
@@ -415,24 +416,7 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                                       DataCell(
                                         SizedBox(
                                           width: 320,
-                                          child: Text(
-                                            (record.errorMessage ??
-                                                        record.errorPayload ??
-                                                        '')
-                                                    .trim()
-                                                    .isEmpty
-                                                ? '-'
-                                                : (record.errorMessage ??
-                                                      record.errorPayload ??
-                                                      ''),
-                                            overflow: TextOverflow.ellipsis,
-                                            style: TextStyle(
-                                              color: record.isFailed
-                                                  ? AppTheme.error
-                                                  : null,
-                                              fontSize: 12,
-                                            ),
-                                          ),
+                                          child: _ErrorCell(record: record),
                                         ),
                                       ),
                                       DataCell(
@@ -576,7 +560,11 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
     required List<SyncLogRecord> actorEventRecords,
   }) {
     if (_viewMode == _SyncLogsViewMode.raw) {
-      return const Text('-', textAlign: TextAlign.center);
+      return OutlinedButton.icon(
+        onPressed: () => _showErrorDetailDialog(record),
+        icon: const Icon(Icons.article_outlined, size: 14),
+        label: const Text('View'),
+      );
     }
     return OutlinedButton.icon(
       onPressed: () {
@@ -656,7 +644,41 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
   String _formatManilaTimestamp(DateTime? value) {
     if (value == null) return 'Not synced yet';
     final manilaTime = value.toUtc().add(const Duration(hours: 8));
-    return DateFormat('dd MMM yyyy, hh:mm a').format(manilaTime);
+    return '${DateFormat('dd MMM yyyy, hh:mm a').format(manilaTime)} PHT';
+  }
+
+  Future<void> _showErrorDetailDialog(SyncLogRecord record) async {
+    final details = (record.errorMessage ?? record.errorPayload ?? '').trim();
+    await showDialog<void>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Sync Error Details'),
+        content: SizedBox(
+          width: 760,
+          child: details.isEmpty
+              ? const Text('No error payload for this record.')
+              : SelectableText(details),
+        ),
+        actions: [
+          if (details.isNotEmpty)
+            FilledButton.tonalIcon(
+              onPressed: () async {
+                await Clipboard.setData(ClipboardData(text: details));
+                if (!context.mounted) return;
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Error copied to clipboard.')),
+                );
+              },
+              icon: const Icon(Icons.copy_rounded, size: 16),
+              label: const Text('Copy'),
+            ),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -782,6 +804,49 @@ class _MiniStatCard extends StatelessWidget {
           ],
         ),
       ),
+    );
+  }
+}
+
+class _ErrorCell extends StatelessWidget {
+  final SyncLogRecord record;
+  const _ErrorCell({required this.record});
+
+  @override
+  Widget build(BuildContext context) {
+    final message = (record.errorMessage ?? record.errorPayload ?? '').trim();
+    if (message.isEmpty) {
+      return const Text('-');
+    }
+
+    return Row(
+      children: [
+        Expanded(
+          child: Tooltip(
+            message: message,
+            child: Text(
+              message,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: record.isFailed ? AppTheme.error : null,
+                fontSize: 12,
+              ),
+            ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        IconButton(
+          tooltip: 'Copy error',
+          icon: const Icon(Icons.copy_rounded, size: 16),
+          onPressed: () async {
+            await Clipboard.setData(ClipboardData(text: message));
+            if (!context.mounted) return;
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(content: Text('Error copied to clipboard.')),
+            );
+          },
+        ),
+      ],
     );
   }
 }

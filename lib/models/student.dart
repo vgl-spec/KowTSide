@@ -103,6 +103,10 @@ class Student {
 }
 
 String _normalizeGradeLevelLabel(Object? value, {int? age}) {
+  if (age != null && age > 0) {
+    if (age <= 5) return 'Binhi (4-5)';
+    if (age >= 6) return 'Punla (6-7)';
+  }
   final label = (value as String?)?.trim() ?? '';
   final lower = label.toLowerCase();
   if (lower.contains('(4-5)') || lower.contains('(6-7)')) {
@@ -113,10 +117,6 @@ String _normalizeGradeLevelLabel(Object? value, {int? age}) {
   }
   if (lower.contains('punla')) {
     return 'Punla (6-7)';
-  }
-  if (label.isEmpty && age != null) {
-    if (age >= 4 && age <= 5) return 'Binhi (4-5)';
-    if (age >= 6 && age <= 7) return 'Punla (6-7)';
   }
   return label;
 }
@@ -458,12 +458,14 @@ String _readArea(Map<String, dynamic> source) {
     'ASSIGNED_AREA',
     'residence',
     'RESIDENCE',
-    'barangay',
-    'BARANGAY',
-    'barangay_nm',
-    'BARANGAY_NM',
   ]);
-  if (direct.isNotEmpty) return direct;
+  if (direct.isNotEmpty) {
+    final normalized = direct.trim().toLowerCase();
+    if (normalized == 'barangay sauyo') {
+      return '';
+    }
+    return direct;
+  }
 
   final nestedKeys = const [
     'address',
@@ -487,12 +489,14 @@ String _readArea(Map<String, dynamic> source) {
       'ASSIGNED_AREA',
       'residence',
       'RESIDENCE',
-      'barangay',
-      'BARANGAY',
-      'barangay_nm',
-      'BARANGAY_NM',
     ]);
-    if (nestedArea.isNotEmpty) return nestedArea;
+    if (nestedArea.isNotEmpty) {
+      final normalized = nestedArea.trim().toLowerCase();
+      if (normalized == 'barangay sauyo') {
+        return '';
+      }
+      return nestedArea;
+    }
   }
   return '';
 }

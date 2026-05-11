@@ -338,6 +338,10 @@ class _DetailBodyState extends State<_DetailBody> {
               _InfoBlock('Birthday', profile.birthday),
               _InfoBlock('Age', '${profile.age} years old'),
               _InfoBlock('Sex', profile.sex),
+              _InfoBlock(
+                'Area',
+                profile.area.trim().isEmpty ? 'Unspecified Area' : profile.area,
+              ),
               _InfoBlock('Age Group', profile.gradelvl),
               _InfoBlock(
                 'Sessions',

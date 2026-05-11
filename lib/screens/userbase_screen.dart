@@ -71,6 +71,7 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
   DateTime? _lastRefreshAt;
   bool _isEditDialogOpen = false;
   bool _isEditDialogFetching = false;
+  final Set<String> _selectedEntryKeys = <String>{};
 
   @override
   Widget build(BuildContext context) {
@@ -112,6 +113,12 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
           title: 'Userbase',
           subtitle: 'Manage superadmin, teacher, and student accounts.',
           actions: [
+            if (_selectedEntryKeys.isNotEmpty && canArchiveAccounts)
+              FilledButton.tonalIcon(
+                onPressed: _batchDeleteSelected,
+                icon: const Icon(Icons.delete_sweep_outlined, size: 18),
+                label: Text('Delete Selected (${_selectedEntryKeys.length})'),
+              ),
             FilledButton.icon(
               onPressed: () => _showTeacherDialog(context, ref),
               icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
@@ -137,7 +144,11 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
                     hintText: 'Search user or username...',
                     prefixIcon: Icon(Icons.search_rounded),
                   ),
-                  onChanged: (value) => setState(() => _query = value),
+                  onChanged: (value) => setState(() {
+                    _query = value;
+                    _page = 1;
+                    _selectedEntryKeys.clear();
+                  }),
                 ),
               ),
               SizedBox(
@@ -153,6 +164,7 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
                       setState(() {
                         _type = value;
                         _page = 1;
+                        _selectedEntryKeys.clear();
                       });
                     }
                   },
@@ -183,7 +195,21 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
                                 DataColumn(label: Text('Actions')),
                               ],
                               rows: pageRows.map((entry) {
+                                final rowKey = _entryKey(entry);
+                                final isSelected = _selectedEntryKeys.contains(
+                                  rowKey,
+                                );
                                 return DataRow(
+                                  selected: isSelected,
+                                  onSelectChanged: (selected) {
+                                    setState(() {
+                                      if (selected == true) {
+                                        _selectedEntryKeys.add(rowKey);
+                                      } else {
+                                        _selectedEntryKeys.remove(rowKey);
+                                      }
+                                    });
+                                  },
                                   cells: [
                                     DataCell(Text(entry.displayName)),
                                     DataCell(Text(entry.username)),
@@ -560,7 +586,11 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
     );
   }
 
-  Future<void> _archiveTeacher(AdminUser user) async {
+  Future<void> _archiveTeacher(
+    AdminUser user, {
+    bool askConfirmation = true,
+    bool showFeedback = true,
+  }) async {
     final auth = ref.read(authProvider);
     final isSelf = auth.adminId == user.adminId;
     if (isSelf) {
@@ -591,63 +621,75 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
       }
     }
 
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Archive Account'),
-        content: Text(
-          'Archive ${user.username}? This will disable account access.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Archive'),
-          ),
-        ],
-      ),
-    );
+    final confirmed = askConfirmation
+        ? await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: const Text('Archive Account'),
+              content: Text(
+                'Archive ${user.username}? This will disable account access.',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  child: const Text('Archive'),
+                ),
+              ],
+            ),
+          )
+        : true;
     if (confirmed != true) return;
 
     await ref.read(adminUsersProvider.notifier).setActive(user, false);
-    if (!mounted) return;
+    if (!mounted || !showFeedback) return;
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text('Archived ${user.username}')));
   }
 
-  Future<void> _archiveStudent(Student student) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Archive Learner'),
-        content: Text(
-          'Archive ${student.fullName} (${student.displayStudId})?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
-            child: const Text('Archive'),
-          ),
-        ],
-      ),
-    );
+  Future<void> _archiveStudent(
+    Student student, {
+    bool askConfirmation = true,
+    bool showFeedback = true,
+  }) async {
+    final confirmed = askConfirmation
+        ? await showDialog<bool>(
+            context: context,
+            builder: (dialogContext) => AlertDialog(
+              title: const Text('Archive Learner'),
+              content: Text(
+                'Archive ${student.fullName} (${student.displayStudId})?',
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialogContext, false),
+                  child: const Text('Cancel'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(dialogContext, true),
+                  style: FilledButton.styleFrom(
+                    backgroundColor: AppTheme.error,
+                  ),
+                  child: const Text('Archive'),
+                ),
+              ],
+            ),
+          )
+        : true;
     if (confirmed != true) return;
 
     await dio.delete('${ApiConstants.baseUrl}/api/users/${student.studId}');
     if (!mounted) return;
     ref.invalidate(studentsProvider);
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Archived ${student.displayStudId}')),
-    );
+    if (showFeedback) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Archived ${student.displayStudId}')),
+      );
+    }
   }
 
   void _handleRefresh() {
@@ -658,11 +700,84 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
     _lastRefreshAt = now;
     ref.read(adminUsersProvider.notifier).load();
     ref.invalidate(studentsProvider);
+    setState(() => _selectedEntryKeys.clear());
     if (shouldPrompt) {
       ScaffoldMessenger.of(
         context,
       ).showSnackBar(const SnackBar(content: Text('You are UpToDate')));
     }
+  }
+
+  String _entryKey(_UserbaseEntry entry) {
+    if (entry.admin != null) {
+      return 'admin:${entry.admin!.adminId}';
+    }
+    if (entry.student != null) {
+      return 'student:${entry.student!.studId}';
+    }
+    return 'unknown:${entry.username}';
+  }
+
+  Future<void> _batchDeleteSelected() async {
+    if (_selectedEntryKeys.isEmpty) return;
+    final selectedEntries = widget.entries
+        .where((entry) => _selectedEntryKeys.contains(_entryKey(entry)))
+        .toList(growable: false);
+    if (selectedEntries.isEmpty) return;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Delete Selected Accounts'),
+        content: Text(
+          'Delete/archive ${selectedEntries.length} selected account(s)?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancel'),
+          ),
+          FilledButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true) return;
+
+    var successCount = 0;
+    final failures = <String>[];
+    for (final entry in selectedEntries) {
+      try {
+        if (entry.admin != null) {
+          await _archiveTeacher(
+            entry.admin!,
+            askConfirmation: false,
+            showFeedback: false,
+          );
+        } else if (entry.student != null) {
+          await _archiveStudent(
+            entry.student!,
+            askConfirmation: false,
+            showFeedback: false,
+          );
+        }
+        successCount += 1;
+      } catch (_) {
+        failures.add(entry.username);
+      }
+    }
+
+    if (!mounted) return;
+    setState(() => _selectedEntryKeys.clear());
+    final message = failures.isEmpty
+        ? 'Deleted/archived $successCount account(s).'
+        : 'Deleted/archived $successCount account(s), failed: ${failures.join(', ')}';
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(message)));
   }
 
   Future<List<AreaOption>> _loadAreaOptions() async {

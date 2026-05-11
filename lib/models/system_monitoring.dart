@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 class SyncLogRecord {
   final String deviceUuid;
   final String deviceName;
@@ -31,6 +33,9 @@ class SyncLogRecord {
     final normalizedStatus = _normalizeStatus(
       json['status'] ?? json['raw_status'],
     );
+    final payloadMap = _readMap(json['payload']);
+    final nestedEventPayload = _readMap(payloadMap['event_payload']);
+    final errorPayloadMap = _parseJsonStringMap(json['error_payload']);
     final usernameValue = _readString(
       _pickValue(json, const [
         'username',
@@ -38,6 +43,26 @@ class SyncLogRecord {
         'admin_username',
         'teacher_username',
         'actor_username',
+      ]),
+      _readString(
+        _pickValue(payloadMap, const [
+          'username',
+          'nickname',
+          'user_name',
+          'student_username',
+        ]),
+        _pickValue(nestedEventPayload, const [
+          'username',
+          'nickname',
+          'user_name',
+          'student_username',
+        ]),
+      ),
+      _pickValue(errorPayloadMap, const [
+        'username',
+        'nickname',
+        'user_name',
+        'student_username',
       ]),
     );
 
@@ -66,7 +91,13 @@ class SyncLogRecord {
           0,
       eventCount: _readInt(json['event_count']) ?? 1,
       errorPayload: json['error_payload'] as String?,
-      errorMessage: json['error_message'] as String?,
+      errorMessage:
+          (json['error_message'] as String?) ??
+          _readString(
+            payloadMap['message'],
+            payloadMap['error'],
+            payloadMap['details'],
+          ),
     );
   }
 
@@ -391,10 +422,24 @@ String _normalizeStatus(Object? value) {
   }
 }
 
-String _readString([Object? first, Object? second]) {
+String _readString([Object? first, Object? second, Object? third]) {
   final a = first?.toString().trim() ?? '';
   if (a.isNotEmpty) return a;
-  return second?.toString().trim() ?? '';
+  final b = second?.toString().trim() ?? '';
+  if (b.isNotEmpty) return b;
+  return third?.toString().trim() ?? '';
+}
+
+Map<String, dynamic> _parseJsonStringMap(Object? value) {
+  if (value is! String || value.trim().isEmpty) {
+    return const <String, dynamic>{};
+  }
+  try {
+    final decoded = jsonDecode(value);
+    return _readMap(decoded);
+  } catch (_) {
+    return const <String, dynamic>{};
+  }
 }
 
 Map<String, dynamic> _readMap(Object? value) {

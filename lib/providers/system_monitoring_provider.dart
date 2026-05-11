@@ -3,8 +3,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 import '../core/api_client.dart';
 import '../core/constants.dart';
+import '../core/student_id.dart';
 import '../core/mock_data.dart';
 import '../models/system_monitoring.dart';
+import 'students_provider.dart';
 
 final syncLogsProvider = FutureProvider<SyncLogsData>((ref) async {
   if (ApiConstants.frontendOnly) {
@@ -32,8 +34,11 @@ final syncLogsProvider = FutureProvider<SyncLogsData>((ref) async {
       response.data,
       keys: const ['logs', 'sync_logs', 'records', 'data'],
     );
+    final baseRecords = list
+        .map((entry) => SyncLogRecord.fromJson(entry))
+        .toList();
     return SyncLogsData(
-      records: list.map((entry) => SyncLogRecord.fromJson(entry)).toList()
+      records: await _resolveSyncLogUsers(ref, baseRecords)
         ..sort(
           (a, b) => (b.syncedAt ?? DateTime(1970)).compareTo(
             a.syncedAt ?? DateTime(1970),
@@ -53,21 +58,26 @@ final syncLogsProvider = FutureProvider<SyncLogsData>((ref) async {
     keys: const ['recent_syncs'],
   );
   if (recentSyncs.isNotEmpty) {
+    final baseRecords = recentSyncs
+        .map((entry) => SyncLogRecord.fromJson(entry))
+        .toList();
     return SyncLogsData(
-      records:
-          recentSyncs.map((entry) => SyncLogRecord.fromJson(entry)).toList()
-            ..sort(
-              (a, b) => (b.syncedAt ?? DateTime(1970)).compareTo(
-                a.syncedAt ?? DateTime(1970),
-              ),
-            ),
+      records: await _resolveSyncLogUsers(ref, baseRecords)
+        ..sort(
+          (a, b) => (b.syncedAt ?? DateTime(1970)).compareTo(
+            a.syncedAt ?? DateTime(1970),
+          ),
+        ),
     );
   }
 
   final devicesResponse = await dio.get(ApiConstants.devices);
   final devices = _readList(devicesResponse.data, keys: const ['devices']);
+  final baseRecords = devices
+      .map((entry) => SyncLogRecord.fromJson(entry))
+      .toList();
   return SyncLogsData(
-    records: devices.map((entry) => SyncLogRecord.fromJson(entry)).toList()
+    records: await _resolveSyncLogUsers(ref, baseRecords)
       ..sort(
         (a, b) => (b.syncedAt ?? DateTime(1970)).compareTo(
           a.syncedAt ?? DateTime(1970),
@@ -199,4 +209,49 @@ List<Map<String, dynamic>> _readList(
     }
   }
   return const [];
+}
+
+Future<List<SyncLogRecord>> _resolveSyncLogUsers(
+  Ref ref,
+  List<SyncLogRecord> records,
+) async {
+  if (records.isEmpty) return records;
+
+  try {
+    final students = await ref.read(studentsProvider.future);
+    final namesById = <int, String>{
+      for (final student in students)
+        student.studId: student.nickname.trim().isEmpty
+            ? student.fullName.trim()
+            : student.nickname.trim(),
+    };
+
+    return records
+        .map((record) {
+          if (record.username.trim().toLowerCase() != 'unknown user') {
+            return record;
+          }
+          final numericId = parseStudentId(record.studId);
+          if (numericId == null) return record;
+          final mapped = namesById[numericId];
+          if (mapped == null || mapped.trim().isEmpty) return record;
+          return SyncLogRecord(
+            deviceUuid: record.deviceUuid,
+            deviceName: record.deviceName,
+            username: mapped,
+            eventType: record.eventType,
+            status: record.status,
+            rawStatus: record.rawStatus,
+            studId: record.studId,
+            syncedAt: record.syncedAt,
+            studentsSynced: record.studentsSynced,
+            eventCount: record.eventCount,
+            errorPayload: record.errorPayload,
+            errorMessage: record.errorMessage,
+          );
+        })
+        .toList(growable: false);
+  } catch (_) {
+    return records;
+  }
 }
