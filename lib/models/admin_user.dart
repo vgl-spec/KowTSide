@@ -55,7 +55,7 @@ class AdminUser {
       adminId: _readInt(json['admin_id']) ?? 0,
       teacherId: _readInt(json['teacher_id']) ?? 0,
       username: json['username'] as String? ?? '',
-      role: json['role'] as String? ?? 'teacher',
+      role: _normalizeAdminRole(json['role'] as String?),
       firstName: json['first_name'] as String? ?? '',
       middleInitial: json['middle_initial'] as String? ?? '',
       lastName: json['last_name'] as String? ?? '',
@@ -74,4 +74,17 @@ int? _readInt(Object? value) {
   if (value is num) return value.toInt();
   if (value is String) return int.tryParse(value);
   return null;
+}
+
+String _normalizeAdminRole(String? value) {
+  switch ((value ?? '').trim().toLowerCase()) {
+    case 'admin':
+    case 'superadmin':
+      return 'superadmin';
+    case 'readonly':
+    case 'teacher':
+      return 'teacher';
+    default:
+      return 'teacher';
+  }
 }

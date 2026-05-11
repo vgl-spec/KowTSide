@@ -73,11 +73,7 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
       await _loadEvents();
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            'Restored ${event.entityType} ${event.entityId} from archive.',
-          ),
-        ),
+        SnackBar(content: Text('Restored ${event.entityLabel} ${event.entityId}.')),
       );
     } on DioException catch (error) {
       if (!mounted) return;
@@ -85,9 +81,9 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
       final message = payload is Map && payload['message'] is String
           ? payload['message'] as String
           : 'Failed to restore item from archive.';
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
     } finally {
       if (mounted) {
         setState(() => _restoring = false);
@@ -105,7 +101,8 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
           children: [
             FlarePageHeader(
               title: 'Archive',
-              subtitle: 'Superadmin-only restore console for archived users and questions.',
+              subtitle:
+                  'Superadmin-only restore console for archived users and questions.',
               actions: [
                 FilledButton.tonalIcon(
                   onPressed: _loading ? null : _loadEvents,
@@ -146,8 +143,16 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                           child: Text('Question'),
                         ),
                         DropdownMenuItem(
+                          value: 'teacher_account',
+                          child: Text('Teacher Account'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'superadmin_account',
+                          child: Text('Superadmin Account'),
+                        ),
+                        DropdownMenuItem(
                           value: 'admin_account',
-                          child: Text('Admin Account'),
+                          child: Text('Other Admin Account'),
                         ),
                       ],
                       onChanged: (value) {
@@ -181,13 +186,13 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
                           final canRestore = event.action == 'archive';
                           return ListTile(
                             title: Text(
-                              '${event.entityType} • ${event.entityId}',
+                              '${event.entityLabel} • ${event.entityId}',
                               style: const TextStyle(
                                 fontWeight: FontWeight.w700,
                               ),
                             ),
                             subtitle: Text(
-                              'Action: ${event.action} • By: ${event.actorUsername.isEmpty ? 'unknown' : event.actorUsername} • ${event.createdAtRaw}',
+                              'Action: ${event.actionLabel} • By: ${event.actorUsername.isEmpty ? 'unknown' : event.actorUsername} • ${event.createdAtRaw}',
                             ),
                             trailing: FilledButton.tonal(
                               onPressed: canRestore && !_restoring
@@ -223,6 +228,34 @@ class _ArchiveEventRow {
     required this.actorUsername,
     required this.createdAtRaw,
   });
+
+  String get entityLabel {
+    switch (entityType.trim().toLowerCase()) {
+      case 'student':
+        return 'Student';
+      case 'question':
+        return 'Question';
+      case 'teacher_account':
+        return 'Teacher Account';
+      case 'superadmin_account':
+        return 'Superadmin Account';
+      case 'admin_account':
+        return 'Admin Account';
+      default:
+        return entityType;
+    }
+  }
+
+  String get actionLabel {
+    switch (action.trim().toLowerCase()) {
+      case 'archive':
+        return 'Archived';
+      case 'restore':
+        return 'Restored';
+      default:
+        return action;
+    }
+  }
 
   factory _ArchiveEventRow.fromJson(Map<dynamic, dynamic> json) {
     final map = json.map((key, value) => MapEntry('$key', value));
