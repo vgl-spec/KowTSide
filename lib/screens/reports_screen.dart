@@ -129,8 +129,10 @@ class ReportsScreen extends ConsumerWidget {
                 ),
                 FlareMetricTile(
                   label: 'Average Score',
-                  value: '${dashboard.averageScore.toStringAsFixed(2)} / 5',
-                  hint: 'Overall classroom performance on the 5-point scale',
+                  value:
+                      '${normalizedScoreToPercent(dashboard.averageScore).toStringAsFixed(2)}%',
+                  hint:
+                      'Overall classroom performance using adaptive session totals',
                   icon: Icons.query_stats_rounded,
                   color: AppTheme.success,
                 ),
@@ -201,7 +203,7 @@ class ReportsScreen extends ConsumerWidget {
                   const FlareSectionTitle(
                     title: 'Age Group Performance Balance',
                     subtitle:
-                        'Comparison of pass rate and average score on aligned 5-point classroom scales by age group.',
+                        'Comparison of pass rate and average score percentage by age group.',
                   ),
                   const SizedBox(height: 12),
                   ageGroupSummaries.isEmpty
@@ -215,14 +217,16 @@ class ReportsScreen extends ConsumerWidget {
                                   label: row.label.contains('Punla')
                                       ? 'Punla'
                                       : 'Binhi',
-                                  leftValue: row.passRate / 20,
-                                  rightValue: row.avgScore,
+                                  leftValue: row.passRate,
+                                  rightValue: normalizedScoreToPercent(
+                                    row.avgScore,
+                                  ),
                                 ),
                               )
                               .toList(),
-                          leftLegend: 'Pass rate / 5',
-                          rightLegend: 'Average score / 5',
-                          maxY: kFivePointScoreMax,
+                          leftLegend: 'Pass rate (%)',
+                          rightLegend: 'Average score (%)',
+                          maxY: 100,
                           yAxisDecimals: 2,
                         ),
                 ],
@@ -316,14 +320,14 @@ class ReportsScreen extends ConsumerWidget {
         xls.TextCellValue('Generated At'),
         xls.TextCellValue('Total Learners'),
         xls.TextCellValue('Total Sessions'),
-        xls.TextCellValue('Average Score'),
+        xls.TextCellValue('Average Score (%)'),
         xls.TextCellValue('Overall Pass Rate (%)'),
       ]);
       sheet.appendRow(<xls.CellValue>[
         xls.TextCellValue(_sanitizeExcelText(now.toIso8601String())),
         xls.IntCellValue(dashboard.totalStudents),
         xls.IntCellValue(dashboard.totalScores),
-        xls.DoubleCellValue(dashboard.averageScore),
+        xls.DoubleCellValue(normalizedScoreToPercent(dashboard.averageScore)),
         xls.DoubleCellValue(dashboard.passRatePct),
       ]);
 
@@ -343,7 +347,7 @@ class ReportsScreen extends ConsumerWidget {
         xls.TextCellValue('Grade Level'),
         xls.TextCellValue('Age'),
         xls.TextCellValue('Sessions'),
-        xls.TextCellValue('Average Score'),
+        xls.TextCellValue('Average Score (%)'),
         xls.TextCellValue('Proficiency'),
       ];
       sheet.appendRow(learnerHeader);
@@ -356,7 +360,7 @@ class ReportsScreen extends ConsumerWidget {
           xls.TextCellValue(_sanitizeExcelText(student.gradelvl)),
           xls.IntCellValue(student.age),
           xls.IntCellValue(student.totalSessions),
-          xls.DoubleCellValue(student.avgScore),
+          xls.DoubleCellValue(normalizedScoreToPercent(student.avgScore)),
           xls.TextCellValue(_sanitizeExcelText(student.proficiency)),
         ]);
       }
@@ -1137,9 +1141,7 @@ List<_StudentSupportItem> _buildSupportList(List<Student> students) {
         final proficiency = student.proficiency.toLowerCase();
         if (_hasSupportNeed(proficiency)) reasons.add('Proficiency tag');
         if (student.avgScore < kFivePointOnTrackThreshold) {
-          reasons.add(
-            'Avg < ${kFivePointOnTrackThreshold.toStringAsFixed(2)}/5',
-          );
+          reasons.add('Avg < ${(kOnTrackRatio * 100).toStringAsFixed(0)}%');
         }
         if (student.totalSessions < 8) reasons.add('Low sessions');
         final priority = _computePriority(student, reasons);

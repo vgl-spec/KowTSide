@@ -23,10 +23,15 @@ class DashboardData {
     totalStudents: _readInt(j['total_students']) ?? 0,
     totalScores:
         _readInt(j['total_scores']) ?? _readInt(j['total_sessions']) ?? 0,
-    averageScore: normalizeAverageScore(
-      _readDouble(j['average_score']) ?? _readDouble(j['avg_score']) ?? 0.0,
-    ),
-    passRatePct: _readDouble(j['pass_rate_pct']) ?? 0.0,
+    averageScore:
+        _readDerivedOverall(j)?.averageScore ??
+        normalizeAverageScore(
+          _readDouble(j['average_score']) ?? _readDouble(j['avg_score']) ?? 0.0,
+        ),
+    passRatePct:
+        _readDerivedOverall(j)?.passRatePct ??
+        _readDouble(j['pass_rate_pct']) ??
+        0.0,
     contentVersion:
         j['content_version'] as String? ?? j['version_tag'] as String? ?? 'v0',
     ageGroupProgress: _readAgeGroupProgress(j),
@@ -37,6 +42,13 @@ class DashboardData {
 }
 
 List<AgeGroupProgress> _readAgeGroupProgress(Map<String, dynamic> json) {
+  final summaryRows = _readList(
+    json['subject_level_summary'],
+  ).map((e) => _AgeGroupProgressSeed.fromJson(e)).toList();
+  if (summaryRows.isNotEmpty) {
+    return _aggregateAgeGroupProgress(summaryRows);
+  }
+
   final directRows = _readList(
     json['age_group_progress'],
   ).map((e) => AgeGroupProgress.fromJson(e)).toList();
@@ -44,13 +56,12 @@ List<AgeGroupProgress> _readAgeGroupProgress(Map<String, dynamic> json) {
     return directRows;
   }
 
-  final summaryRows = _readList(
-    json['subject_level_summary'],
-  ).map((e) => _AgeGroupProgressSeed.fromJson(e)).toList();
-  if (summaryRows.isEmpty) {
-    return const [];
-  }
+  return const [];
+}
 
+List<AgeGroupProgress> _aggregateAgeGroupProgress(
+  List<_AgeGroupProgressSeed> summaryRows,
+) {
   final grouped = <String, List<_AgeGroupProgressSeed>>{};
   for (final row in summaryRows) {
     final key = '${row.gradelvl}|${row.subject}';
@@ -69,7 +80,7 @@ List<AgeGroupProgress> _readAgeGroupProgress(Map<String, dynamic> json) {
     );
     final passRate = _weightedAverage(
       values: rows.map((row) => row.passRatePct).toList(),
-      weights: rows.map((row) => row.activeStudents.toDouble()).toList(),
+      weights: rows.map((row) => row.totalAttempts.toDouble()).toList(),
     );
 
     final sample = rows.first;
@@ -81,6 +92,34 @@ List<AgeGroupProgress> _readAgeGroupProgress(Map<String, dynamic> json) {
       passRatePct: passRate,
     );
   }).toList();
+}
+
+_DerivedOverall? _readDerivedOverall(Map<String, dynamic> json) {
+  final summaryRows = _readList(
+    json['subject_level_summary'],
+  ).map((e) => _AgeGroupProgressSeed.fromJson(e)).toList();
+  if (summaryRows.isEmpty) {
+    return null;
+  }
+
+  final totalAttempts = summaryRows.fold<int>(
+    0,
+    (sum, row) => sum + row.totalAttempts,
+  );
+  if (totalAttempts <= 0) {
+    return null;
+  }
+
+  final averageScore = _weightedAverage(
+    values: summaryRows.map((row) => row.avgScore).toList(),
+    weights: summaryRows.map((row) => row.totalAttempts.toDouble()).toList(),
+  );
+  final passRatePct = _weightedAverage(
+    values: summaryRows.map((row) => row.passRatePct).toList(),
+    weights: summaryRows.map((row) => row.totalAttempts.toDouble()).toList(),
+  );
+
+  return _DerivedOverall(averageScore: averageScore, passRatePct: passRatePct);
 }
 
 class AgeGroupProgress {
@@ -206,28 +245,54 @@ double _weightedAverage({
 class _AgeGroupProgressSeed {
   final String gradelvl;
   final String subject;
+  final String difficulty;
   final int activeStudents;
+  final int totalAttempts;
   final double avgScore;
   final double passRatePct;
 
   const _AgeGroupProgressSeed({
     required this.gradelvl,
     required this.subject,
+    required this.difficulty,
     required this.activeStudents,
+    required this.totalAttempts,
     required this.avgScore,
     required this.passRatePct,
   });
 
   factory _AgeGroupProgressSeed.fromJson(Map<String, dynamic> json) {
+    final subject = json['subject'] as String? ?? '';
+    final difficulty = json['difficulty'] as String? ?? '';
     return _AgeGroupProgressSeed(
       gradelvl: _normalizeGradeLevelLabel(json['gradelvl']),
-      subject: json['subject'] as String? ?? '',
+      subject: subject,
+      difficulty: difficulty,
       activeStudents:
           _readInt(json['student_groups']) ??
           _readInt(json['active_students']) ??
           0,
-      avgScore: normalizeAverageScore(_readDouble(json['avg_score']) ?? 0.0),
+      totalAttempts:
+          _readInt(json['total_attempts']) ??
+          _readInt(json['attempts']) ??
+          _readInt(json['total_sessions']) ??
+          0,
+      avgScore: normalizeAverageScore(
+        _readDouble(json['avg_score']) ?? 0.0,
+        difficulty: difficulty,
+        subject: subject,
+      ),
       passRatePct: _readDouble(json['pass_rate_pct']) ?? 0.0,
     );
   }
+}
+
+class _DerivedOverall {
+  final double averageScore;
+  final double passRatePct;
+
+  const _DerivedOverall({
+    required this.averageScore,
+    required this.passRatePct,
+  });
 }

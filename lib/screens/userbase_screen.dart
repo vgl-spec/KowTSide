@@ -292,24 +292,6 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
   Future<void> _showStudentDialog(BuildContext context, Student student) async {
     var profileBirthday = student.birthday;
     var profileSex = student.sex;
-    try {
-      final resp = await dio.get(
-        '${ApiConstants.baseUrl}/api/users/${student.studId}',
-      );
-      final profile = (resp.data is Map<String, dynamic>)
-          ? (resp.data['profile'] as Map<String, dynamic>? ?? const {})
-          : const <String, dynamic>{};
-      final bday = (profile['birthday'] as String?)?.trim() ?? '';
-      if (bday.length >= 10) {
-        profileBirthday = bday.substring(0, 10);
-      }
-      final sexId = profile['sex_id'];
-      if (sexId == 2 || sexId == '2') {
-        profileSex = 'Female';
-      } else if (sexId == 1 || sexId == '1') {
-        profileSex = 'Male';
-      }
-    } catch (_) {}
 
     final firstName = TextEditingController(text: student.firstName);
     final lastName = TextEditingController(text: student.lastName);
@@ -461,20 +443,14 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
                   return;
                 }
                 try {
-                  await dio.put(
-                    '${ApiConstants.baseUrl}/api/users/${student.studId}/profile',
-                    data: {
-                      'first_name': firstName.text.trim(),
-                      'last_name': lastName.text.trim(),
-                      'username': nickname.text.trim(),
-                      'nickname': nickname.text.trim(),
-                      'birthday': birthday.text.trim(),
-                      'area': area.text.trim(),
-                      'barangay_id': 1,
-                      'barangayId': 1,
-                      'sex': sex,
-                      'sex_id': sex == 'Female' ? 2 : 1,
-                    },
+                  await _updateStudentProfile(
+                    studentId: student.studId,
+                    firstName: firstName.text.trim(),
+                    lastName: lastName.text.trim(),
+                    username: nickname.text.trim(),
+                    birthday: birthday.text.trim(),
+                    sex: sex,
+                    area: area.text.trim(),
                   );
                   if (!mounted) return;
                   ref.invalidate(studentsProvider);
@@ -615,6 +591,48 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
       ).showSnackBar(const SnackBar(content: Text('You are UpToDate')));
     }
   }
+}
+
+Future<void> _updateStudentProfile({
+  required int studentId,
+  required String firstName,
+  required String lastName,
+  required String username,
+  required String birthday,
+  required String sex,
+  required String area,
+}) async {
+  final sexId = sex == 'Female' ? 2 : 1;
+  final endpoint = '${ApiConstants.baseUrl}/api/users/$studentId/profile';
+  final payloadSnake = <String, dynamic>{
+    'first_name': firstName,
+    'last_name': lastName,
+    'username': username,
+    'nickname': username,
+    'birthday': birthday,
+    'sex_id': sexId,
+    'barangay_id': 1,
+    'area': area,
+  };
+  final payloadCamel = <String, dynamic>{
+    'firstName': firstName,
+    'lastName': lastName,
+    'username': username,
+    'birthday': birthday,
+    'sexId': sexId,
+    'barangayId': 1,
+    'area': area,
+  };
+
+  try {
+    await dio.put(endpoint, data: payloadSnake);
+    return;
+  } on DioException catch (error) {
+    final code = error.response?.statusCode ?? 0;
+    if (code != 404 && code != 405 && code != 500) rethrow;
+  }
+
+  await dio.put(endpoint, data: payloadCamel);
 }
 
 class _UserbaseEntry {
@@ -948,6 +966,7 @@ class _ResetPasswordDialog extends ConsumerStatefulWidget {
 
 String _extractApiErrorMessage(Object error, {required String fallback}) {
   if (error is DioException) {
+    final statusCode = error.response?.statusCode;
     final payload = error.response?.data;
     if (payload is Map) {
       final mapped = payload.map(
@@ -970,6 +989,9 @@ String _extractApiErrorMessage(Object error, {required String fallback}) {
       if (message.isNotEmpty) return message;
     } else if (payload is String && payload.trim().isNotEmpty) {
       return payload.trim();
+    }
+    if (statusCode != null) {
+      return '$fallback (HTTP $statusCode)';
     }
   }
   return fallback;

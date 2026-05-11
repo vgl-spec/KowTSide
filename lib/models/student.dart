@@ -61,10 +61,19 @@ class Student {
   }
 
   factory Student.fromJson(Map<String, dynamic> j) {
-    final age = _readInt(j['age']) ?? 0;
-    final avgScore = normalizeAverageScore(_readDouble(j['avg_score']) ?? 0.0);
     final profile = _readMap(j['profile']);
     final source = <String, dynamic>{...j, if (profile.isNotEmpty) ...profile};
+    final age = _readInt(source['age']) ?? 0;
+    final avgScore = normalizeAverageScore(
+      _readDouble(source['avg_score']) ?? 0.0,
+      sourceMax: _readDouble(source['avg_max_score'] ?? source['score_max']),
+      totalItems:
+          _readInt(source['avg_total_items']) ??
+          _readInt(source['total_items']) ??
+          _readInt(source['max_score']),
+      difficulty: source['difficulty'] as String?,
+      subject: source['subject'] as String?,
+    );
     return Student(
       studId: parseStudentId(source['stud_id'] ?? source['studId']) ?? 0,
       nickname: source['nickname'] as String? ?? '',
@@ -296,15 +305,32 @@ class ScoreRecord {
   double get normalizedScore =>
       normalizeScoreValue(score, sourceMax: totalItems.toDouble());
 
-  factory ScoreRecord.fromJson(Map<String, dynamic> j) => ScoreRecord(
-    subject: j['subject'] as String? ?? '',
-    gradelvl: _normalizeGradeLevelLabel(j['gradelvl']),
-    difficulty: _normalizeDifficultyLabel(j['difficulty'] ?? j['diff_id']),
-    score: _readDouble(j['score']) ?? 0.0,
-    totalItems: _readInt(j['total_items']) ?? 0,
-    passed: _readPassedFlag(j),
-    playedAt: j['played_at'] as String? ?? '',
-  );
+  factory ScoreRecord.fromJson(Map<String, dynamic> j) {
+    final subject = j['subject'] as String? ?? '';
+    final difficulty = _normalizeDifficultyLabel(
+      j['difficulty'] ?? j['diff_id'],
+    );
+    final totalItems =
+        _readInt(j['total_items']) ??
+        _readInt(j['max_score']) ??
+        questionCountForDifficulty(difficulty, subject: subject);
+    final score = _readDouble(j['score']) ?? 0.0;
+    return ScoreRecord(
+      subject: subject,
+      gradelvl: _normalizeGradeLevelLabel(j['gradelvl']),
+      difficulty: difficulty,
+      score: score,
+      totalItems: totalItems,
+      passed: _readPassedFlag(
+        json: j,
+        subject: subject,
+        difficulty: difficulty,
+        score: score,
+        totalItems: totalItems,
+      ),
+      playedAt: j['played_at'] as String? ?? '',
+    );
+  }
 }
 
 int? _readInt(Object? value) {
@@ -375,18 +401,28 @@ String _normalizeDifficultyLabel(Object? value) {
   return label;
 }
 
-bool _readPassedFlag(Map<String, dynamic> json) {
-  final explicit =
-      (_readInt(json['passed']) ?? 0) == 1 || json['passed'] == true;
-  if (explicit) {
-    return true;
+bool _readPassedFlag({
+  required Map<String, dynamic> json,
+  required String subject,
+  required String difficulty,
+  required double score,
+  required int totalItems,
+}) {
+  final resolvedTotal = totalItems > 0
+      ? totalItems
+      : questionCountForDifficulty(difficulty, subject: subject);
+  if (resolvedTotal > 0) {
+    return didPassByTotalItems(score: score, totalItems: resolvedTotal);
   }
 
-  final score = normalizeScoreValue(
-    _readDouble(json['score']) ?? 0.0,
-    sourceMax: (_readInt(json['total_items']) ?? 0).toDouble(),
-  );
-  return isPassingFivePointScore(score);
+  final rawPassed = json['passed'];
+  if (rawPassed == true || (_readInt(rawPassed) ?? -1) == 1) {
+    return true;
+  }
+  if (rawPassed == false || (_readInt(rawPassed) ?? -1) == 0) {
+    return false;
+  }
+  return score > 0;
 }
 
 String _readStringByKeys(Map<String, dynamic> source, List<String> keys) {

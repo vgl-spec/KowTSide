@@ -6,6 +6,7 @@ import '../models/student.dart';
 import '../core/api_client.dart';
 import '../core/constants.dart';
 import '../core/mock_data.dart';
+import '../core/score_utils.dart';
 import '../models/reporting.dart';
 import 'reporting_fallbacks.dart';
 import 'students_provider.dart';
@@ -119,21 +120,22 @@ Map<String, dynamic> _enrichDashboardMap(
   Map<String, dynamic> dashboard,
   Map<String, dynamic> source,
 ) {
-  final existingAgeRows = dashboard['age_group_progress'];
-  if (existingAgeRows is List && existingAgeRows.isNotEmpty) {
-    return dashboard;
-  }
-
-  final derived = _deriveAgeGroupProgress(source['subject_level_summary']);
-  if (derived.isNotEmpty) {
-    return {...dashboard, 'age_group_progress': derived};
+  final summaryRows = _readList(source['subject_level_summary']);
+  if (summaryRows.isNotEmpty) {
+    final derivedAgeRows = _deriveAgeGroupProgress(summaryRows);
+    final derivedOverall = _deriveOverall(summaryRows);
+    return {
+      ...dashboard,
+      'age_group_progress': derivedAgeRows,
+      if (derivedOverall != null) ...derivedOverall,
+    };
   }
 
   return dashboard;
 }
 
 List<Map<String, dynamic>> _deriveAgeGroupProgress(Object? value) {
-  final rows = _readList(value);
+  final rows = value is List<Map<String, dynamic>> ? value : _readList(value);
   if (rows.isEmpty) {
     return const [];
   }
@@ -169,11 +171,29 @@ List<Map<String, dynamic>> _deriveAgeGroupProgress(Object? value) {
         .toList(growable: false);
 
     final avgScores = rowsForGroup
-        .map<double>((row) => _readDouble(row['avg_score']) ?? 0.0)
+        .map<double>((row) {
+          final subject = (row['subject'] as String? ?? '').trim();
+          final difficulty = (row['difficulty'] as String? ?? '').trim();
+          return normalizeAverageScore(
+            _readDouble(row['avg_score']) ?? 0.0,
+            subject: subject,
+            difficulty: difficulty,
+          );
+        })
         .toList(growable: false);
 
     final passRates = rowsForGroup
         .map<double>((row) => _readDouble(row['pass_rate_pct']) ?? 0.0)
+        .toList(growable: false);
+
+    final attemptWeights = rowsForGroup
+        .map<double>(
+          (row) =>
+              (_readInt(row['total_attempts']) ??
+                      _readInt(row['attempts']) ??
+                      0)
+                  .toDouble(),
+        )
         .toList(growable: false);
 
     return <String, dynamic>{
@@ -181,9 +201,46 @@ List<Map<String, dynamic>> _deriveAgeGroupProgress(Object? value) {
       'subject': sample['subject'] as String? ?? '',
       'active_students': totalStudents,
       'avg_score': _weightedAverage(avgScores, weights),
-      'pass_rate_pct': _weightedAverage(passRates, weights),
+      'pass_rate_pct': _weightedAverage(passRates, attemptWeights),
     };
   }).toList();
+}
+
+Map<String, dynamic>? _deriveOverall(List<Map<String, dynamic>> rows) {
+  if (rows.isEmpty) return null;
+
+  final attempts = rows
+      .map<int>(
+        (row) =>
+            _readInt(row['total_attempts']) ?? _readInt(row['attempts']) ?? 0,
+      )
+      .toList(growable: false);
+  final totalAttempts = attempts.fold<int>(0, (sum, value) => sum + value);
+  if (totalAttempts <= 0) return null;
+
+  final avgScores = rows
+      .map<double>((row) {
+        final subject = (row['subject'] as String? ?? '').trim();
+        final difficulty = (row['difficulty'] as String? ?? '').trim();
+        return normalizeAverageScore(
+          _readDouble(row['avg_score']) ?? 0.0,
+          subject: subject,
+          difficulty: difficulty,
+        );
+      })
+      .toList(growable: false);
+
+  final passRates = rows
+      .map<double>((row) => _readDouble(row['pass_rate_pct']) ?? 0.0)
+      .toList(growable: false);
+
+  final weights = attempts
+      .map((value) => value.toDouble())
+      .toList(growable: false);
+  return <String, dynamic>{
+    'average_score': _weightedAverage(avgScores, weights),
+    'pass_rate_pct': _weightedAverage(passRates, weights),
+  };
 }
 
 double _weightedAverage(List<double> values, List<double> weights) {

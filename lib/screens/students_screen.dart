@@ -740,7 +740,7 @@ class _SupportPanelPagedState extends State<_SupportPanelPaged> {
                         ),
                         title: Text(student.fullName),
                         subtitle: Text(
-                          '${student.gradelvl} • ${student.avgScore.toStringAsFixed(2)}/5 average',
+                          '${student.gradelvl} • ${normalizedScoreToPercent(student.avgScore).toStringAsFixed(1)}% average',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),

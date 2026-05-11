@@ -152,9 +152,10 @@ class _DashboardViewState extends State<_DashboardView> {
               ),
               FlareMetricTile(
                 label: 'Average Score',
-                value: '${data.averageScore.toStringAsFixed(2)} / 5',
+                value:
+                    '${normalizedScoreToPercent(data.averageScore).toStringAsFixed(2)}%',
                 hint:
-                    'Weighted mean across synced attempts on the 5-point scale',
+                    'Weighted mean across synced attempts using difficulty-aware totals',
                 icon: Icons.auto_graph_rounded,
                 color: AppTheme.success,
                 onTap: () => context.go('/reports?focus=score'),
@@ -181,7 +182,7 @@ class _DashboardViewState extends State<_DashboardView> {
                     context,
                     title: 'Subject Score Profile',
                     subtitle:
-                        'Average learner score per subject on the 5-point scale, aggregated from age-group records.',
+                        'Average learner score per subject using adaptive session totals (5, 8, 10, and writing).',
                     child: scoreBySubject.isEmpty
                         ? const FlareEmptyState(
                             message: 'No performance data available yet.',
@@ -191,12 +192,18 @@ class _DashboardViewState extends State<_DashboardView> {
                                 .map(
                                   (row) => SimpleBarDatum(
                                     label: row.label,
-                                    value: _roundTo2(row.averageScore),
+                                    value: _roundTo2(
+                                      normalizedScoreToPercent(
+                                        row.averageScore,
+                                      ),
+                                    ),
                                     color: _subjectColor(row.label),
                                   ),
                                 )
                                 .toList(),
-                            maxY: kFivePointScoreMax,
+                            maxY: 100,
+                            percentageScale: true,
+                            valueDecimals: 2,
                           ),
                   ),
                 ),
@@ -239,7 +246,7 @@ class _DashboardViewState extends State<_DashboardView> {
               context,
               title: 'Subject Score Profile',
               subtitle:
-                  'Average learner score per subject on the 5-point scale, aggregated from age-group records.',
+                  'Average learner score per subject using adaptive session totals (5, 8, 10, and writing).',
               child: scoreBySubject.isEmpty
                   ? const FlareEmptyState(
                       message: 'No performance data available yet.',
@@ -249,12 +256,16 @@ class _DashboardViewState extends State<_DashboardView> {
                           .map(
                             (row) => SimpleBarDatum(
                               label: row.label,
-                              value: _roundTo2(row.averageScore),
+                              value: _roundTo2(
+                                normalizedScoreToPercent(row.averageScore),
+                              ),
                               color: _subjectColor(row.label),
                             ),
                           )
                           .toList(),
-                      maxY: kFivePointScoreMax,
+                      maxY: 100,
+                      percentageScale: true,
+                      valueDecimals: 2,
                     ),
             ),
             const SizedBox(height: 14),

@@ -1,9 +1,45 @@
 const double kFivePointScoreMax = 5.0;
 const double kLegacyTenPointScoreMax = 10.0;
-const double kFivePointPassThreshold = 3.5;
-const double kFivePointSupportThreshold = 2.5;
-const double kFivePointOnTrackThreshold = 3.5;
-const double kFivePointExcellingThreshold = 4.5;
+const double kPassingRatio = 0.5;
+const double kNeedsSupportRatio = 0.5;
+const double kOnTrackRatio = 0.7;
+const double kExcellingRatio = 0.9;
+const double kFivePointPassThreshold = kFivePointScoreMax * kPassingRatio;
+const double kFivePointSupportThreshold =
+    kFivePointScoreMax * kNeedsSupportRatio;
+const double kFivePointOnTrackThreshold = kFivePointScoreMax * kOnTrackRatio;
+const double kFivePointExcellingThreshold =
+    kFivePointScoreMax * kExcellingRatio;
+
+int questionCountForDifficulty(String difficulty, {String? subject}) {
+  final normalizedSubject = subject?.trim().toLowerCase() ?? '';
+  if (normalizedSubject == 'writing' || normalizedSubject == 'handwriting') {
+    return 1;
+  }
+
+  switch (difficulty.trim().toLowerCase()) {
+    case 'easy':
+      return 5;
+    case 'average':
+      return 8;
+    case 'hard':
+      return 10;
+    default:
+      return 0;
+  }
+}
+
+int passingScoreForTotalItems(int totalItems) {
+  if (totalItems <= 0) return 0;
+  return ((totalItems * kPassingRatio).ceil()).clamp(1, totalItems);
+}
+
+bool didPassByTotalItems({required double score, required int totalItems}) {
+  if (totalItems <= 0) {
+    return score > 0;
+  }
+  return score >= passingScoreForTotalItems(totalItems);
+}
 
 double normalizeScoreValue(
   double value, {
@@ -23,8 +59,27 @@ double normalizeScoreValue(
   return normalized.clamp(0.0, targetMax);
 }
 
-double normalizeAverageScore(double value) {
-  return normalizeScoreValue(value);
+double normalizeAverageScore(
+  double value, {
+  double? sourceMax,
+  int? totalItems,
+  String? difficulty,
+  String? subject,
+}) {
+  final inferredSourceMax =
+      sourceMax ??
+      (totalItems != null && totalItems > 0 ? totalItems.toDouble() : null) ??
+      () {
+        final byDifficulty = questionCountForDifficulty(
+          difficulty ?? '',
+          subject: subject,
+        );
+        if (byDifficulty > 0) {
+          return byDifficulty.toDouble();
+        }
+        return null;
+      }();
+  return normalizeScoreValue(value, sourceMax: inferredSourceMax);
 }
 
 int normalizeScoreTotalItems(int totalItems) {
@@ -45,18 +100,24 @@ double averageScoreFromValues(Iterable<double> values) {
   return list.reduce((a, b) => a + b) / list.length;
 }
 
+double normalizedScoreToPercent(double normalizedScore) {
+  if (kFivePointScoreMax <= 0) return 0;
+  return ((normalizedScore / kFivePointScoreMax) * 100).clamp(0.0, 100.0);
+}
+
 bool isPassingFivePointScore(double score) {
   return score >= kFivePointPassThreshold;
 }
 
 String proficiencyForAverage(double avgScore) {
-  if (avgScore >= kFivePointExcellingThreshold) {
+  final ratio = (avgScore / kFivePointScoreMax).clamp(0.0, 1.0);
+  if (ratio >= kExcellingRatio) {
     return 'Excelling';
   }
-  if (avgScore >= kFivePointOnTrackThreshold) {
+  if (ratio >= kOnTrackRatio) {
     return 'On track';
   }
-  if (avgScore >= kFivePointSupportThreshold) {
+  if (ratio >= kNeedsSupportRatio) {
     return 'Needs support';
   }
   return 'Needs significant support';
