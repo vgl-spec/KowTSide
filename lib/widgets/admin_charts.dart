@@ -157,6 +157,7 @@ class SingleBarChart extends StatelessWidget {
   final double maxY;
   final bool percentageScale;
   final int valueDecimals;
+  final ValueChanged<int>? onBarTap;
 
   const SingleBarChart({
     super.key,
@@ -164,6 +165,7 @@ class SingleBarChart extends StatelessWidget {
     required this.maxY,
     this.percentageScale = false,
     this.valueDecimals = 2,
+    this.onBarTap,
   });
 
   @override
@@ -187,6 +189,13 @@ class SingleBarChart extends StatelessWidget {
           groupsSpace: data.length <= 2 ? 26 : 12,
           barTouchData: BarTouchData(
             enabled: true,
+            touchCallback: (event, response) {
+              if (onBarTap == null) return;
+              if (!event.isInterestedForInteractions) return;
+              final spot = response?.spot;
+              if (spot == null) return;
+              onBarTap!(spot.touchedBarGroupIndex);
+            },
             touchTooltipData: BarTouchTooltipData(
               getTooltipItem: (group, groupIndex, rod, rodIndex) {
                 final label = data[group.x.toInt()].label;
@@ -342,8 +351,13 @@ class DualMetricBarChart extends StatelessWidget {
                 touchTooltipData: BarTouchTooltipData(
                   getTooltipItem: (group, groupIndex, rod, rodIndex) {
                     final datum = data[group.x.toInt()];
-                    final metricLabel = rodIndex == 0 ? leftLegend : rightLegend;
-                    final formatted = _formatChartNumber(rod.toY, yAxisDecimals);
+                    final metricLabel = rodIndex == 0
+                        ? leftLegend
+                        : rightLegend;
+                    final formatted = _formatChartNumber(
+                      rod.toY,
+                      yAxisDecimals,
+                    );
                     return BarTooltipItem(
                       '${datum.label}\n$metricLabel: $formatted',
                       TextStyle(
@@ -434,7 +448,11 @@ class DualMetricBarChart extends StatelessWidget {
   }
 }
 
-String _formatChartNumber(double value, int decimals, {bool isPercent = false}) {
+String _formatChartNumber(
+  double value,
+  int decimals, {
+  bool isPercent = false,
+}) {
   var text = value.toStringAsFixed(decimals);
   if (text.contains('.')) {
     text = text.replaceAll(RegExp(r'0+$'), '');

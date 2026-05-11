@@ -30,11 +30,17 @@ final reportsSnapshotProvider = FutureProvider<ReportsSnapshot>((ref) async {
   }
 
   try {
-    final response = await dio.get(ApiConstants.reports);
+    final responses = await Future.wait([
+      dio.get(ApiConstants.reports),
+      dio.get(ApiConstants.dashboard),
+    ]);
+    final response = responses[0];
+    final dashboardResponse = responses[1];
     final payload = _readMap(response.data);
     final dashboardMap = _readMap(payload['dashboard']).isNotEmpty
         ? _readMap(payload['dashboard'])
         : payload;
+    final canonicalDashboardMap = _readMap(dashboardResponse.data);
     final students = _readList(
       payload['students'],
     ).map(Student.fromJson).toList();
@@ -44,7 +50,12 @@ final reportsSnapshotProvider = FutureProvider<ReportsSnapshot>((ref) async {
 
     return ReportsSnapshot(
       dashboard: DashboardData.fromJson(
-        _enrichDashboardMap(dashboardMap, payload),
+        _enrichDashboardMap(
+          canonicalDashboardMap.isNotEmpty
+              ? canonicalDashboardMap
+              : dashboardMap,
+          payload,
+        ),
       ),
       students: students,
       leaderboard: leaderboard.isNotEmpty

@@ -37,6 +37,7 @@ class ApiConstants {
   static String get content => '$baseUrl/api/content';
   static String get devices => '$baseUrl/api/admin/devices';
   static String get reports => '$baseUrl/api/admin/reports';
+  static String get areas => '$baseUrl/api/admin/areas';
   static String get syncLogs => '$baseUrl/api/admin/sync-logs';
   static String get systemHealth => '$baseUrl/api/admin/system-health';
   static String get activityLogs => '$baseUrl/api/admin/activity-logs';

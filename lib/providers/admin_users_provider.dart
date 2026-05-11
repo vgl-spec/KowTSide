@@ -50,12 +50,32 @@ class AdminUsersNotifier extends StateNotifier<AsyncValue<List<AdminUser>>> {
     required String middleInitial,
     required String lastName,
   }) async {
+    return registerAccount(
+      username: username,
+      password: password,
+      firstName: firstName,
+      middleInitial: middleInitial,
+      lastName: lastName,
+      role: 'teacher',
+    );
+  }
+
+  Future<void> registerAccount({
+    required String username,
+    required String password,
+    required String firstName,
+    required String middleInitial,
+    required String lastName,
+    required String role,
+  }) async {
+    final normalizedRole = role.trim().toLowerCase();
     if (ApiConstants.frontendOnly) {
-      _registerTeacherLocally(
+      _registerLocalUser(
         username: username,
         firstName: firstName,
         middleInitial: middleInitial,
         lastName: lastName,
+        role: normalizedRole,
       );
       return;
     }
@@ -69,15 +89,17 @@ class AdminUsersNotifier extends StateNotifier<AsyncValue<List<AdminUser>>> {
           'first_name': firstName,
           'middle_initial': middleInitial,
           'last_name': lastName,
+          'role': normalizedRole,
         },
       );
       await load();
     } catch (_) {
-      _registerTeacherLocally(
+      _registerLocalUser(
         username: username,
         firstName: firstName,
         middleInitial: middleInitial,
         lastName: lastName,
+        role: normalizedRole,
       );
     }
   }
@@ -89,65 +111,13 @@ class AdminUsersNotifier extends StateNotifier<AsyncValue<List<AdminUser>>> {
     required String middleInitial,
     required String lastName,
   }) async {
-    if (ApiConstants.frontendOnly) {
-      _registerLocalUser(
-        username: username,
-        firstName: firstName,
-        middleInitial: middleInitial,
-        lastName: lastName,
-        role: 'admin',
-      );
-      return;
-    }
-
-    try {
-      await dio.post(
-        ApiConstants.teacherUsers,
-        data: {
-          'username': username,
-          'password': password,
-          'first_name': firstName,
-          'middle_initial': middleInitial,
-          'last_name': lastName,
-          'role': 'admin',
-        },
-      );
-      await load();
-    } catch (_) {
-      _registerLocalUser(
-        username: username,
-        firstName: firstName,
-        middleInitial: middleInitial,
-        lastName: lastName,
-        role: 'admin',
-      );
-    }
-  }
-
-  void _registerTeacherLocally({
-    required String username,
-    required String firstName,
-    required String middleInitial,
-    required String lastName,
-  }) {
-    final nextAdminId =
-        _demoUsers
-            .map((user) => user.adminId)
-            .fold<int>(0, (max, id) => id > max ? id : max) +
-        1;
-    final nextTeacherId =
-        _demoUsers
-            .map((user) => user.teacherId)
-            .fold<int>(0, (max, id) => id > max ? id : max) +
-        1;
-    _registerLocalUser(
+    return registerAccount(
       username: username,
+      password: password,
       firstName: firstName,
       middleInitial: middleInitial,
       lastName: lastName,
-      role: 'teacher',
-      nextAdminId: nextAdminId,
-      nextTeacherId: nextTeacherId,
+      role: 'superadmin',
     );
   }
 

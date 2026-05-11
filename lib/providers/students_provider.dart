@@ -191,6 +191,7 @@ List<SubjectProgress> _deriveProgressFromScores(
               ? latest.gradelvl
               : fallbackGradeLevel,
           highestDiffPassed: highestDiffPassed,
+          highestNodeIndex: 0,
           totalTimePlayed: 0,
           lastPlayedAt: latest.playedAt,
         );

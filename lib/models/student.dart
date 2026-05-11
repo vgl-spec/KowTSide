@@ -7,6 +7,7 @@ class Student {
   final String firstName;
   final String lastName;
   final String area;
+  final int? areaId;
   final String birthday;
   final int age;
   final String gradelvl;
@@ -21,6 +22,7 @@ class Student {
     required this.firstName,
     required this.lastName,
     required this.area,
+    this.areaId,
     required this.birthday,
     required this.age,
     required this.gradelvl,
@@ -36,6 +38,7 @@ class Student {
     String? firstName,
     String? lastName,
     String? area,
+    int? areaId,
     String? birthday,
     int? age,
     String? gradelvl,
@@ -50,6 +53,7 @@ class Student {
       firstName: firstName ?? this.firstName,
       lastName: lastName ?? this.lastName,
       area: area ?? this.area,
+      areaId: areaId ?? this.areaId,
       birthday: birthday ?? this.birthday,
       age: age ?? this.age,
       gradelvl: gradelvl ?? this.gradelvl,
@@ -80,6 +84,7 @@ class Student {
       firstName: source['first_name'] as String? ?? '',
       lastName: source['last_name'] as String? ?? '',
       area: _readArea(source),
+      areaId: _readInt(source['area_id'] ?? source['areaId']),
       birthday: _dateOnly(source['birthday']),
       age: age,
       gradelvl: _normalizeGradeLevelLabel(source['gradelvl'], age: age),
@@ -216,6 +221,7 @@ class SubjectProgress {
   final String subject;
   final String gradelvl;
   final int highestDiffPassed;
+  final int highestNodeIndex;
   final int totalTimePlayed;
   final String lastPlayedAt;
 
@@ -223,6 +229,7 @@ class SubjectProgress {
     required this.subject,
     required this.gradelvl,
     required this.highestDiffPassed,
+    required this.highestNodeIndex,
     required this.totalTimePlayed,
     required this.lastPlayedAt,
   });
@@ -231,6 +238,10 @@ class SubjectProgress {
     subject: j['subject'] as String? ?? '',
     gradelvl: _normalizeGradeLevelLabel(j['gradelvl']),
     highestDiffPassed: _readInt(j['highest_diff_passed']) ?? 0,
+    highestNodeIndex:
+        _readInt(j['highest_node_index']) ??
+        _readInt(j['highestNodeIndex']) ??
+        0,
     totalTimePlayed: _readInt(j['total_time_played']) ?? 0,
     lastPlayedAt:
         j['last_played_at'] as String? ?? j['last_played'] as String? ?? '',
@@ -440,7 +451,9 @@ String _readArea(Map<String, dynamic> source) {
     'area',
     'AREA',
     'area_name',
+    'area_nm',
     'AREA_NAME',
+    'AREA_NM',
     'assigned_area',
     'ASSIGNED_AREA',
     'residence',
@@ -467,7 +480,9 @@ String _readArea(Map<String, dynamic> source) {
       'area',
       'AREA',
       'area_name',
+      'area_nm',
       'AREA_NAME',
+      'AREA_NM',
       'assigned_area',
       'ASSIGNED_AREA',
       'residence',

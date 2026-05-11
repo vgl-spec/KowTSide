@@ -11,6 +11,7 @@ import '../models/dashboard.dart';
 import '../models/reporting.dart';
 import '../models/student.dart';
 import '../providers/live_updates_provider.dart';
+import '../providers/areas_provider.dart';
 import '../providers/reports_provider.dart';
 import '../providers/students_provider.dart';
 import '../widgets/admin_charts.dart';
@@ -421,6 +422,7 @@ class _AreaPerformanceCard extends ConsumerStatefulWidget {
 class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
   late DateTime _startDate;
   late DateTime _endDate;
+  String? _selectedArea;
 
   @override
   void initState() {
@@ -432,6 +434,8 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
 
   @override
   Widget build(BuildContext context) {
+    final areaOptions =
+        ref.watch(areaOptionsProvider).value ?? const <AreaOption>[];
     final groups = <String, List<Student>>{};
     for (final student in widget.students) {
       final area = _normalizedArea(student.area);
@@ -453,6 +457,51 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
         averageScore: avg,
       );
     }).toList()..sort((a, b) => b.averageScore.compareTo(a.averageScore));
+    final resolvedAreaNames = <String>[];
+    for (final option in areaOptions) {
+      final name = option.areaName.trim();
+      if (name.isEmpty) continue;
+      if (!resolvedAreaNames.contains(name)) {
+        resolvedAreaNames.add(name);
+      }
+    }
+    for (final row in rows) {
+      if (!resolvedAreaNames.contains(row.area)) {
+        resolvedAreaNames.add(row.area);
+      }
+    }
+    if (_selectedArea == null && resolvedAreaNames.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => _selectedArea = resolvedAreaNames.first);
+      });
+    }
+    final selectedArea =
+        _selectedArea ??
+        (resolvedAreaNames.isNotEmpty ? resolvedAreaNames.first : null);
+    final selectedSummary = rows
+        .where((row) => row.area == selectedArea)
+        .cast<_AreaSummary?>()
+        .firstWhere((row) => row != null, orElse: () => null);
+    final chartRows = rows.isNotEmpty
+        ? rows
+        : [
+            for (final area in resolvedAreaNames)
+              _AreaSummary(
+                area: area,
+                learners: 0,
+                sessions: 0,
+                averageScore: 0,
+              ),
+          ];
+    final maxY = chartRows.isEmpty
+        ? 5.0
+        : (chartRows
+                      .map((row) => row.averageScore)
+                      .reduce((a, b) => a > b ? a : b) +
+                  0.5)
+              .clamp(1.0, 5.0)
+              .toDouble();
 
     return FlareSurfaceCard(
       child: Column(
@@ -468,6 +517,27 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
             spacing: 10,
             runSpacing: 10,
             children: [
+              SizedBox(
+                width: 260,
+                child: DropdownButtonFormField<String>(
+                  initialValue: resolvedAreaNames.contains(selectedArea)
+                      ? selectedArea
+                      : null,
+                  decoration: const InputDecoration(labelText: 'Area'),
+                  items: resolvedAreaNames
+                      .map(
+                        (area) => DropdownMenuItem<String>(
+                          value: area,
+                          child: Text(area),
+                        ),
+                      )
+                      .toList(growable: false),
+                  onChanged: (value) {
+                    if (value == null) return;
+                    setState(() => _selectedArea = value);
+                  },
+                ),
+              ),
               OutlinedButton.icon(
                 onPressed: _pickStartDate,
                 icon: const Icon(Icons.date_range_outlined, size: 16),
@@ -483,31 +553,49 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
                 ),
               ),
               FilledButton.tonalIcon(
-                onPressed: () => _exportAreaXlsx(rows),
+                onPressed: selectedArea == null
+                    ? null
+                    : () => _exportAreaXlsx(selectedArea),
                 icon: const Icon(Icons.download_rounded, size: 16),
                 label: const Text('Export Area Leaderboard'),
+              ),
+              FilledButton.tonalIcon(
+                onPressed: selectedArea == null
+                    ? null
+                    : () => _openAreaDrilldown(selectedArea),
+                icon: const Icon(Icons.insights_rounded, size: 16),
+                label: const Text('Open Visit Leaderboard'),
               ),
             ],
           ),
           const SizedBox(height: 10),
-          rows.isEmpty
+          chartRows.isEmpty
               ? const FlareEmptyState(
                   message: 'No area performance rows available.',
                 )
               : Column(
-                  children: rows
-                      .map(
-                        (row) => ListTile(
-                          contentPadding: EdgeInsets.zero,
-                          title: Text(row.area),
-                          subtitle: Text(
-                            '${row.learners} learners | ${row.sessions} sessions | ${row.averageScore.toStringAsFixed(2)} avg score',
-                          ),
-                          trailing: const Icon(Icons.chevron_right_rounded),
-                          onTap: () => _openAreaDrilldown(row.area),
-                        ),
-                      )
-                      .toList(),
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    SingleBarChart(
+                      data: chartRows
+                          .map(
+                            (row) => SimpleBarDatum(
+                              label: row.area,
+                              value: row.averageScore,
+                              color: row.area == selectedArea
+                                  ? AppTheme.success
+                                  : AppTheme.primary,
+                            ),
+                          )
+                          .toList(growable: false),
+                      maxY: maxY,
+                    ),
+                    const SizedBox(height: 8),
+                    if (selectedSummary != null)
+                      Text(
+                        '${selectedSummary.area}: ${selectedSummary.learners} learners | ${selectedSummary.sessions} sessions | ${normalizedScoreToPercent(selectedSummary.averageScore).toStringAsFixed(2)}% avg score',
+                      ),
+                  ],
                 ),
         ],
       ),
@@ -550,8 +638,42 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
     }
   }
 
-  Future<void> _exportAreaXlsx(List<_AreaSummary> rows) async {
+  Future<void> _exportAreaXlsx(String area) async {
+    final normalizedArea = _normalizedArea(area);
+    final areaStudents = widget.students
+        .where((student) => _normalizedArea(student.area) == normalizedArea)
+        .toList(growable: false);
+    if (areaStudents.isEmpty) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No learners found for $normalizedArea.')),
+      );
+      return;
+    }
     try {
+      final details = await Future.wait(
+        areaStudents.map(
+          (student) => ref.read(studentDetailProvider(student.studId).future),
+        ),
+      );
+      final rankedRows =
+          details
+              .map((detail) => _AreaRankingRow.fromDetail(detail))
+              .toList(growable: false)
+            ..sort((a, b) {
+              final avgSort = b.averageScore.compareTo(a.averageScore);
+              if (avgSort != 0) return avgSort;
+              final nodeSort = b.highestUnlockedNode.compareTo(
+                a.highestUnlockedNode,
+              );
+              if (nodeSort != 0) return nodeSort;
+              final sessionsSort = b.sessions.compareTo(a.sessions);
+              if (sessionsSort != 0) return sessionsSort;
+              return a.fullName.toLowerCase().compareTo(
+                b.fullName.toLowerCase(),
+              );
+            });
+
       final excel = xls.Excel.createExcel();
       final defaultSheetName = excel.getDefaultSheet() ?? 'Sheet1';
       final sheet = excel[defaultSheetName];
@@ -561,22 +683,35 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
         horizontalAlign: xls.HorizontalAlign.Center,
       );
       sheet.appendRow(<xls.CellValue>[
+        xls.TextCellValue('Rank'),
+        xls.TextCellValue('Student ID'),
+        xls.TextCellValue('Username'),
+        xls.TextCellValue('Full Name'),
         xls.TextCellValue('Area'),
-        xls.TextCellValue('Total Learners'),
-        xls.TextCellValue('Total Sessions'),
-        xls.TextCellValue('Average Score'),
+        xls.TextCellValue('Grade Level'),
+        xls.TextCellValue('Sessions'),
+        xls.TextCellValue('Average Score (%)'),
+        xls.TextCellValue('Highest Unlocked Node'),
+        xls.TextCellValue('Unlocked'),
       ]);
-      final sortedRows = [...rows]
-        ..sort((a, b) => b.averageScore.compareTo(a.averageScore));
-      for (final row in sortedRows) {
+      for (var index = 0; index < rankedRows.length; index++) {
+        final row = rankedRows[index];
+        final rank = index + 1;
+        final rankLabel = rank <= 3 ? 'Top $rank' : '$rank';
         sheet.appendRow(<xls.CellValue>[
-          xls.TextCellValue(_sanitizeExcelText(_normalizedArea(row.area))),
-          xls.IntCellValue(row.learners),
+          xls.TextCellValue(rankLabel),
+          xls.TextCellValue(_sanitizeExcelText(row.displayStudId)),
+          xls.TextCellValue(_sanitizeExcelText(row.nickname)),
+          xls.TextCellValue(_sanitizeExcelText(row.fullName)),
+          xls.TextCellValue(_sanitizeExcelText(normalizedArea)),
+          xls.TextCellValue(_sanitizeExcelText(row.gradeLevel)),
           xls.IntCellValue(row.sessions),
-          xls.DoubleCellValue(row.averageScore),
+          xls.DoubleCellValue(normalizedScoreToPercent(row.averageScore)),
+          xls.IntCellValue(row.highestUnlockedNode),
+          xls.TextCellValue(_sanitizeExcelText(row.unlockedLabel)),
         ]);
       }
-      for (var col = 0; col < 4; col++) {
+      for (var col = 0; col < 10; col++) {
         sheet
                 .cell(
                   xls.CellIndex.indexByColumnRow(columnIndex: col, rowIndex: 0),
@@ -591,7 +726,8 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
       }
       final stamp = DateFormat('yyyyMMdd_HHmmss').format(DateTime.now());
       await downloadBinaryFile(
-        filename: 'leaderboard_by_area_$stamp.xlsx',
+        filename:
+            'leaderboard_${normalizedArea.replaceAll(' ', '_')}_$stamp.xlsx',
         bytes: bytes,
         mimeType:
             'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
@@ -640,7 +776,7 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
   }
 }
 
-class _AreaDrilldownDialog extends StatelessWidget {
+class _AreaDrilldownDialog extends StatefulWidget {
   final String area;
   final List<StudentDetail> details;
   final DateTimeRange? range;
@@ -652,33 +788,104 @@ class _AreaDrilldownDialog extends StatelessWidget {
   });
 
   @override
+  State<_AreaDrilldownDialog> createState() => _AreaDrilldownDialogState();
+}
+
+class _AreaDrilldownDialogState extends State<_AreaDrilldownDialog> {
+  String? _selectedDay;
+
+  @override
   Widget build(BuildContext context) {
     final visitsByDay = <String, List<double>>{};
-    for (final detail in details) {
+    for (final detail in widget.details) {
       for (final score in detail.recentScores) {
         final playedAt = DateTime.tryParse(score.playedAt);
         if (playedAt == null) continue;
-        if (range != null &&
-            (playedAt.isBefore(range!.start) ||
-                playedAt.isAfter(range!.end.add(const Duration(days: 1))))) {
+        if (widget.range != null &&
+            (playedAt.isBefore(widget.range!.start) ||
+                playedAt.isAfter(
+                  widget.range!.end.add(const Duration(days: 1)),
+                ))) {
           continue;
         }
         final key = DateFormat('yyyy-MM-dd').format(playedAt);
-        visitsByDay.putIfAbsent(key, () => <double>[]).add(score.score);
+        visitsByDay
+            .putIfAbsent(key, () => <double>[])
+            .add(score.normalizedScore);
       }
     }
     final sortedDays = visitsByDay.keys.toList()..sort();
+    if (_selectedDay == null && sortedDays.isNotEmpty) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() => _selectedDay = sortedDays.last);
+      });
+    }
     final chartData = sortedDays
         .map(
           (day) => SimpleBarDatum(
             label: day.substring(5),
-            value:
-                visitsByDay[day]!.reduce((a, b) => a + b) /
-                visitsByDay[day]!.length,
+            value: visitsByDay[day]!.length.toDouble(),
             color: AppTheme.primary,
           ),
         )
         .toList();
+    final selectedDay = _selectedDay;
+    final rankedRows =
+        widget.details
+            .map((detail) {
+              final sessionsInRange = _countSessionsForDetail(
+                detail,
+                range: widget.range,
+              );
+              final sessionsOnSelectedDay = selectedDay == null
+                  ? sessionsInRange
+                  : _countSessionsForDetail(
+                      detail,
+                      range: widget.range,
+                      exactDate: selectedDay,
+                    );
+              final highestDiff = detail.progress
+                  .map((progress) => progress.highestDiffPassed)
+                  .fold<int>(0, (max, value) => value > max ? value : max);
+              final highestNode = detail.progress
+                  .map((progress) => progress.highestNodeIndex)
+                  .fold<int>(0, (max, value) => value > max ? value : max);
+              return _AreaRankingRow(
+                studId: detail.profile.studId,
+                displayStudId: detail.profile.displayStudId,
+                nickname: detail.profile.nickname,
+                fullName: detail.profile.fullName,
+                gradeLevel: detail.profile.gradelvl,
+                averageScore: detail.profile.avgScore,
+                sessions: sessionsInRange,
+                sessionsOnSelectedDay: sessionsOnSelectedDay,
+                highestUnlockedNode: highestNode,
+                highestUnlockedDiff: highestDiff,
+              );
+            })
+            .where(
+              (row) => selectedDay == null || row.sessionsOnSelectedDay > 0,
+            )
+            .toList(growable: false)
+          ..sort((a, b) {
+            final avgSort = b.averageScore.compareTo(a.averageScore);
+            if (avgSort != 0) return avgSort;
+            final nodeSort = b.highestUnlockedNode.compareTo(
+              a.highestUnlockedNode,
+            );
+            if (nodeSort != 0) return nodeSort;
+            final sessionsSort = b.sessions.compareTo(a.sessions);
+            if (sessionsSort != 0) return sessionsSort;
+            return a.fullName.toLowerCase().compareTo(b.fullName.toLowerCase());
+          });
+    final chartMaxY = chartData.isEmpty
+        ? 1.0
+        : (chartData
+                      .map((entry) => entry.value)
+                      .reduce((a, b) => a > b ? a : b) +
+                  1)
+              .toDouble();
 
     return Dialog(
       child: SizedBox(
@@ -690,7 +897,7 @@ class _AreaDrilldownDialog extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                area,
+                widget.area,
                 style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                   fontWeight: FontWeight.w800,
                 ),
@@ -705,28 +912,45 @@ class _AreaDrilldownDialog extends StatelessWidget {
                     ? const FlareEmptyState(
                         message: 'No score visits found in selected range.',
                       )
-                    : SingleBarChart(data: chartData, maxY: 5),
+                    : SingleBarChart(
+                        data: chartData,
+                        maxY: chartMaxY,
+                        onBarTap: (index) {
+                          if (index < 0 || index >= sortedDays.length) return;
+                          setState(() => _selectedDay = sortedDays[index]);
+                        },
+                      ),
               ),
               const SizedBox(height: 14),
+              if (selectedDay != null)
+                Text(
+                  'Showing participants for $selectedDay (tap another bar to switch date).',
+                ),
+              const SizedBox(height: 8),
               Expanded(
                 child: ListView.builder(
-                  itemCount: details.length,
+                  itemCount: rankedRows.length,
                   itemBuilder: (context, index) {
-                    final detail = details[index];
-                    final highestUnlocked = detail.progress.isEmpty
-                        ? 'None'
-                        : detail.progress.map((p) => p.diffLabel).join(', ');
+                    final row = rankedRows[index];
+                    final rank = index + 1;
+                    final rankLabel = rank <= 3 ? 'Top $rank' : '$rank';
                     return Card(
                       child: ListTile(
-                        title: Text(
-                          '${detail.profile.fullName} (${detail.profile.displayStudId})',
+                        leading: SizedBox(
+                          width: 48,
+                          child: Text(
+                            rankLabel,
+                            style: Theme.of(context).textTheme.titleSmall
+                                ?.copyWith(fontWeight: FontWeight.w700),
+                          ),
                         ),
+                        title: Text('${row.fullName} (${row.displayStudId})'),
                         subtitle: Text(
-                          'Age ${detail.profile.age} | ${detail.profile.gradelvl} | Sessions ${detail.profile.totalSessions} | Unlocked: $highestUnlocked',
+                          '${row.gradeLevel} | Sessions ${row.sessions} | Avg ${normalizedScoreToPercent(row.averageScore).toStringAsFixed(2)}% | Unlocked: ${row.unlockedLabel}',
                         ),
                         trailing: FilledButton.tonal(
                           onPressed: () =>
-                              context.go('/students/${detail.profile.studId}'),
+                              context.go('/students/${row.studId}'),
                           child: const Text('View Learner Profile'),
                         ),
                       ),
@@ -754,6 +978,69 @@ class _AreaSummary {
     required this.sessions,
     required this.averageScore,
   });
+}
+
+class _AreaRankingRow {
+  final int studId;
+  final String displayStudId;
+  final String nickname;
+  final String fullName;
+  final String gradeLevel;
+  final double averageScore;
+  final int sessions;
+  final int sessionsOnSelectedDay;
+  final int highestUnlockedNode;
+  final int highestUnlockedDiff;
+
+  const _AreaRankingRow({
+    required this.studId,
+    required this.displayStudId,
+    required this.nickname,
+    required this.fullName,
+    required this.gradeLevel,
+    required this.averageScore,
+    required this.sessions,
+    required this.sessionsOnSelectedDay,
+    required this.highestUnlockedNode,
+    required this.highestUnlockedDiff,
+  });
+
+  String get unlockedLabel {
+    if (highestUnlockedNode > 0) {
+      return 'Node $highestUnlockedNode';
+    }
+    switch (highestUnlockedDiff) {
+      case 1:
+        return 'Easy';
+      case 2:
+        return 'Average';
+      case 3:
+        return 'Hard';
+      default:
+        return 'No unlock yet';
+    }
+  }
+
+  factory _AreaRankingRow.fromDetail(StudentDetail detail) {
+    final highestDiff = detail.progress
+        .map((progress) => progress.highestDiffPassed)
+        .fold<int>(0, (max, value) => value > max ? value : max);
+    final highestNode = detail.progress
+        .map((progress) => progress.highestNodeIndex)
+        .fold<int>(0, (max, value) => value > max ? value : max);
+    return _AreaRankingRow(
+      studId: detail.profile.studId,
+      displayStudId: detail.profile.displayStudId,
+      nickname: detail.profile.nickname,
+      fullName: detail.profile.fullName,
+      gradeLevel: detail.profile.gradelvl,
+      averageScore: detail.profile.avgScore,
+      sessions: detail.profile.totalSessions,
+      sessionsOnSelectedDay: 0,
+      highestUnlockedNode: highestNode,
+      highestUnlockedDiff: highestDiff,
+    );
+  }
 }
 
 class _PrioritySupportQueueCard extends StatelessWidget {
@@ -1408,4 +1695,29 @@ String _normalizedArea(String raw) {
   final area = raw.trim();
   if (area.isEmpty) return 'Unspecified Area';
   return area;
+}
+
+int _countSessionsForDetail(
+  StudentDetail detail, {
+  DateTimeRange? range,
+  String? exactDate,
+}) {
+  var total = 0;
+  for (final score in detail.recentScores) {
+    final playedAt = DateTime.tryParse(score.playedAt);
+    if (playedAt == null) continue;
+    if (range != null &&
+        (playedAt.isBefore(range.start) ||
+            playedAt.isAfter(range.end.add(const Duration(days: 1))))) {
+      continue;
+    }
+    if (exactDate != null) {
+      final day = DateFormat('yyyy-MM-dd').format(playedAt);
+      if (day != exactDate) {
+        continue;
+      }
+    }
+    total += 1;
+  }
+  return total;
 }

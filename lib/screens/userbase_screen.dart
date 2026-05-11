@@ -8,6 +8,7 @@ import '../core/theme.dart';
 import '../models/admin_user.dart';
 import '../models/student.dart';
 import '../providers/admin_users_provider.dart';
+import '../providers/areas_provider.dart';
 import '../providers/auth_provider.dart';
 import '../providers/students_provider.dart';
 import '../widgets/flareline_components.dart';
@@ -109,8 +110,7 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
       children: [
         FlarePageHeader(
           title: 'Userbase',
-          subtitle:
-              'Manage teacher and student accounts. Admin accounts are hidden for now.',
+          subtitle: 'Manage superadmin, teacher, and student accounts.',
           actions: [
             FilledButton.icon(
               onPressed: () => _showTeacherDialog(context, ref),
@@ -145,7 +145,7 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
                 child: DropdownButtonFormField<String>(
                   initialValue: _type,
                   decoration: const InputDecoration(labelText: 'Type'),
-                  items: const ['All', 'Teacher', 'Student']
+                  items: const ['All', 'Superadmin', 'Teacher', 'Student']
                       .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                       .toList(),
                   onChanged: (value) {
@@ -290,6 +290,7 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
   }
 
   Future<void> _showStudentDialog(BuildContext context, Student student) async {
+    final areaOptions = await _loadAreaOptions();
     var profileBirthday = student.birthday;
     var profileSex = student.sex;
 
@@ -298,6 +299,20 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
     final nickname = TextEditingController(text: student.nickname);
     final birthday = TextEditingController(text: profileBirthday);
     final area = TextEditingController(text: student.area.trim());
+    int? selectedAreaId = student.areaId;
+    if (selectedAreaId == null && areaOptions.isNotEmpty) {
+      final match = areaOptions
+          .where(
+            (entry) =>
+                entry.areaName.toLowerCase() == area.text.trim().toLowerCase(),
+          )
+          .cast<AreaOption?>()
+          .firstWhere((entry) => entry != null, orElse: () => null);
+      selectedAreaId = match?.areaId ?? areaOptions.first.areaId;
+      if (area.text.trim().isEmpty) {
+        area.text = match?.areaName ?? areaOptions.first.areaName;
+      }
+    }
     String sex = profileSex == 'Female' ? 'Female' : 'Male';
     final formKey = GlobalKey<FormState>();
     final initialSnapshot =
@@ -400,17 +415,44 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
                     },
                   ),
                   const SizedBox(height: 8),
-                  TextFormField(
-                    controller: area,
-                    decoration: const InputDecoration(labelText: 'Area'),
-                    validator: (value) {
-                      final v = (value ?? '').trim();
-                      if (v.isEmpty || v.toLowerCase() == 'unspecified area') {
-                        return 'Please specify area.';
-                      }
-                      return null;
-                    },
-                  ),
+                  if (areaOptions.isNotEmpty)
+                    DropdownButtonFormField<int>(
+                      initialValue: selectedAreaId,
+                      decoration: const InputDecoration(labelText: 'Area'),
+                      items: areaOptions
+                          .map(
+                            (entry) => DropdownMenuItem(
+                              value: entry.areaId,
+                              child: Text(entry.areaName),
+                            ),
+                          )
+                          .toList(growable: false),
+                      onChanged: (value) {
+                        selectedAreaId = value;
+                        if (value == null) return;
+                        final selected = areaOptions.firstWhere(
+                          (entry) => entry.areaId == value,
+                        );
+                        area.text = selected.areaName;
+                      },
+                      validator: (value) {
+                        if (value == null) return 'Please select area.';
+                        return null;
+                      },
+                    )
+                  else
+                    TextFormField(
+                      controller: area,
+                      decoration: const InputDecoration(labelText: 'Area'),
+                      validator: (value) {
+                        final v = (value ?? '').trim();
+                        if (v.isEmpty ||
+                            v.toLowerCase() == 'unspecified area') {
+                          return 'Please specify area.';
+                        }
+                        return null;
+                      },
+                    ),
                   const SizedBox(height: 8),
                   DropdownButtonFormField<String>(
                     initialValue: sex,
@@ -451,6 +493,7 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
                     birthday: birthday.text.trim(),
                     sex: sex,
                     area: area.text.trim(),
+                    areaId: selectedAreaId,
                   );
                   if (!mounted) return;
                   ref.invalidate(studentsProvider);
@@ -518,6 +561,36 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
   }
 
   Future<void> _archiveTeacher(AdminUser user) async {
+    final auth = ref.read(authProvider);
+    final isSelf = auth.adminId == user.adminId;
+    if (isSelf) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('You cannot archive your own account.')),
+      );
+      return;
+    }
+    final isTargetSuperadmin = user.role.trim().toLowerCase() == 'superadmin';
+    if (isTargetSuperadmin) {
+      final admins = ref.read(adminUsersProvider).value ?? const <AdminUser>[];
+      final activeSuperadmins = admins
+          .where(
+            (entry) =>
+                entry.role.trim().toLowerCase() == 'superadmin' &&
+                entry.isActive,
+          )
+          .length;
+      if (activeSuperadmins <= 1) {
+        if (!mounted) return;
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Cannot archive the last active superadmin.'),
+          ),
+        );
+        return;
+      }
+    }
+
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -591,6 +664,28 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
       ).showSnackBar(const SnackBar(content: Text('You are UpToDate')));
     }
   }
+
+  Future<List<AreaOption>> _loadAreaOptions() async {
+    try {
+      final options = await ref.read(areaOptionsProvider.future);
+      if (options.isNotEmpty) {
+        return options;
+      }
+    } catch (_) {}
+
+    final students = ref.read(studentsProvider).value ?? const <Student>[];
+    final names =
+        students
+            .map((entry) => entry.area.trim())
+            .where((name) => name.isNotEmpty)
+            .toSet()
+            .toList()
+          ..sort((a, b) => a.toLowerCase().compareTo(b.toLowerCase()));
+    return [
+      for (var index = 0; index < names.length; index++)
+        AreaOption(areaId: index + 1, areaName: names[index]),
+    ];
+  }
 }
 
 Future<void> _updateStudentProfile({
@@ -601,6 +696,7 @@ Future<void> _updateStudentProfile({
   required String birthday,
   required String sex,
   required String area,
+  int? areaId,
 }) async {
   final sexId = sex == 'Female' ? 2 : 1;
   final endpoint = '${ApiConstants.baseUrl}/api/users/$studentId/profile';
@@ -613,6 +709,8 @@ Future<void> _updateStudentProfile({
     'sex_id': sexId,
     'barangay_id': 1,
     'area': area,
+    'area_name': area,
+    if (areaId != null) 'area_id': areaId,
   };
   final payloadCamel = <String, dynamic>{
     'firstName': firstName,
@@ -622,6 +720,8 @@ Future<void> _updateStudentProfile({
     'sexId': sexId,
     'barangayId': 1,
     'area': area,
+    'areaName': area,
+    if (areaId != null) 'areaId': areaId,
   };
 
   try {
@@ -651,7 +751,8 @@ class _UserbaseEntry {
   });
 
   factory _UserbaseEntry.admin(AdminUser user) {
-    if (user.role.toLowerCase() != 'teacher') {
+    final role = user.role.toLowerCase();
+    if (role != 'teacher' && role != 'superadmin') {
       return const _UserbaseEntry._(
         kind: '__hidden__',
         displayName: '',
@@ -659,7 +760,7 @@ class _UserbaseEntry {
       );
     }
     return _UserbaseEntry._(
-      kind: 'Teacher',
+      kind: role == 'superadmin' ? 'Superadmin' : 'Teacher',
       displayName: user.fullName.isEmpty ? user.username : user.fullName,
       username: user.username,
       admin: user,
@@ -678,6 +779,8 @@ class _UserbaseEntry {
 
 Color _kindColor(String kind) {
   switch (kind) {
+    case 'Superadmin':
+      return AppTheme.tertiary;
     case 'Teacher':
       return AppTheme.primary;
     case 'Admin':
@@ -719,7 +822,9 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
     _lastName = TextEditingController(text: user?.lastName ?? '');
     _nickname = TextEditingController();
     _birthday = TextEditingController();
-    _role = 'teacher';
+    _role = (user?.role.trim().toLowerCase() ?? 'teacher') == 'superadmin'
+        ? 'superadmin'
+        : 'teacher';
   }
 
   @override
@@ -737,6 +842,7 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
   @override
   Widget build(BuildContext context) {
     final isEdit = widget.existing != null;
+    final canManageSuperadmin = ref.read(authProvider).isSuperadmin;
     return AlertDialog(
       title: Text(isEdit ? 'Edit Account' : 'Register Account'),
       content: SizedBox(
@@ -779,18 +885,28 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
                 initialValue: _role,
                 decoration: const InputDecoration(labelText: 'Account role'),
                 items: isEdit
-                    ? const <DropdownMenuItem<String>>[
-                        DropdownMenuItem(
+                    ? <DropdownMenuItem<String>>[
+                        if (_role == 'superadmin' && canManageSuperadmin)
+                          const DropdownMenuItem(
+                            value: 'superadmin',
+                            child: Text('Superadmin'),
+                          ),
+                        const DropdownMenuItem(
                           value: 'teacher',
                           child: Text('Teacher'),
                         ),
                       ]
-                    : const <DropdownMenuItem<String>>[
-                        DropdownMenuItem(
+                    : <DropdownMenuItem<String>>[
+                        if (canManageSuperadmin)
+                          const DropdownMenuItem(
+                            value: 'superadmin',
+                            child: Text('Superadmin'),
+                          ),
+                        const DropdownMenuItem(
                           value: 'teacher',
                           child: Text('Teacher'),
                         ),
-                        DropdownMenuItem(
+                        const DropdownMenuItem(
                           value: 'student',
                           child: Text('Student'),
                         ),
@@ -914,12 +1030,13 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
           );
           ref.invalidate(studentsProvider);
         } else {
-          await notifier.registerTeacher(
+          await notifier.registerAccount(
             username: _username.text.trim(),
             password: _password.text,
             firstName: _firstName.text.trim(),
             middleInitial: _middleInitial.text.trim(),
             lastName: _lastName.text.trim(),
+            role: _role,
           );
         }
       } else {
