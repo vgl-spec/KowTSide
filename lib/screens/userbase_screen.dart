@@ -682,7 +682,7 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
         : true;
     if (confirmed != true) return;
 
-    await dio.delete('${ApiConstants.baseUrl}/api/users/${student.studId}');
+    await dio.patch(ApiConstants.archiveStudent(student.studId));
     if (!mounted) return;
     ref.invalidate(studentsProvider);
     if (showFeedback) {

@@ -51,6 +51,7 @@ class ApiConstants {
   static String archiveQuestion(int id) =>
       '$baseUrl/api/admin/archive/questions/$id';
   static String get archiveRestore => '$baseUrl/api/admin/archive/restore';
+  static String archiveStudent(int id) => '$baseUrl/api/users/$id/archive';
   static String get questionImportGenerate =>
       '$baseUrl/api/admin/questions/import/generate';
   static String get questionImportCommit =>
