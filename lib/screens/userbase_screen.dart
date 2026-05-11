@@ -72,11 +72,16 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
   bool _isEditDialogOpen = false;
   bool _isEditDialogFetching = false;
   final Set<String> _selectedEntryKeys = <String>{};
+  final Set<int> _hiddenStudentIds = <int>{};
 
   @override
   Widget build(BuildContext context) {
     final canArchiveAccounts = ref.watch(authProvider).isSuperadmin;
     final filtered = widget.entries.where((entry) {
+      if (entry.student != null &&
+          _hiddenStudentIds.contains(entry.student!.studId)) {
+        return false;
+      }
       final needle = _query.trim().toLowerCase();
       final matchesQuery =
           needle.isEmpty ||
@@ -684,7 +689,12 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
 
     await dio.patch(ApiConstants.archiveStudent(student.studId));
     if (!mounted) return;
+    setState(() {
+      _hiddenStudentIds.add(student.studId);
+      _selectedEntryKeys.remove(_entryKey(_UserbaseEntry.student(student)));
+    });
     ref.invalidate(studentsProvider);
+    await ref.read(studentsProvider.future);
     if (showFeedback) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Archived ${student.displayStudId}')),
