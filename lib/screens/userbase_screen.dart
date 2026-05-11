@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:dio/dio.dart';
 
 import '../core/api_client.dart';
 import '../core/constants.dart';
@@ -422,8 +423,7 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
                     decoration: const InputDecoration(labelText: 'Area'),
                     validator: (value) {
                       final v = (value ?? '').trim();
-                      if (v.isEmpty ||
-                          v.toLowerCase() == 'unspecified area') {
+                      if (v.isEmpty || v.toLowerCase() == 'unspecified area') {
                         return 'Please specify area.';
                       }
                       return null;
@@ -460,23 +460,39 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
                 if (!(formKey.currentState?.validate() ?? false)) {
                   return;
                 }
-                await dio.put(
-                  '${ApiConstants.baseUrl}/api/users/${student.studId}/profile',
-                  data: {
-                    'first_name': firstName.text.trim(),
-                    'last_name': lastName.text.trim(),
-                    'nickname': nickname.text.trim(),
-                    'birthday': birthday.text.trim(),
-                    'area': area.text.trim(),
-                    'barangay_id': 1,
-                    'barangayId': 1,
-                    'sex': sex,
-                  },
-                );
-                if (!mounted) return;
-                ref.invalidate(studentsProvider);
-                if (dialogContext.mounted) {
-                  Navigator.pop(dialogContext);
+                try {
+                  await dio.put(
+                    '${ApiConstants.baseUrl}/api/users/${student.studId}/profile',
+                    data: {
+                      'first_name': firstName.text.trim(),
+                      'last_name': lastName.text.trim(),
+                      'username': nickname.text.trim(),
+                      'nickname': nickname.text.trim(),
+                      'birthday': birthday.text.trim(),
+                      'area': area.text.trim(),
+                      'barangay_id': 1,
+                      'barangayId': 1,
+                      'sex': sex,
+                      'sex_id': sex == 'Female' ? 2 : 1,
+                    },
+                  );
+                  if (!mounted) return;
+                  ref.invalidate(studentsProvider);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Student profile updated.')),
+                  );
+                  if (dialogContext.mounted) {
+                    Navigator.pop(dialogContext);
+                  }
+                } catch (error) {
+                  if (!mounted) return;
+                  final message = _extractApiErrorMessage(
+                    error,
+                    fallback: 'Failed to update student profile.',
+                  );
+                  ScaffoldMessenger.of(
+                    context,
+                  ).showSnackBar(SnackBar(content: Text(message)));
                 }
               },
               child: const Text('Save'),
@@ -715,7 +731,13 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
               if (_role == 'teacher') ...[
                 TextFormField(
                   controller: _username,
-                  decoration: const InputDecoration(labelText: 'Username'),
+                  readOnly: isEdit,
+                  decoration: InputDecoration(
+                    labelText: 'Username',
+                    helperText: isEdit
+                        ? 'Username edits are disabled for existing accounts.'
+                        : null,
+                  ),
                   validator: (value) {
                     return value == null || value.trim().length < 3
                         ? 'Use at least 3 characters.'
@@ -859,44 +881,59 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
     setState(() => _saving = true);
     final notifier = ref.read(adminUsersProvider.notifier);
     final existing = widget.existing;
-    if (existing == null) {
-      if (_role == 'student') {
-        await dio.post(
-          '${ApiConstants.baseUrl}/api/users',
-          data: {
-            'first_name': _firstName.text.trim(),
-            'last_name': _lastName.text.trim(),
-            'nickname': _nickname.text.trim(),
-            'birthday': _birthday.text.trim(),
-            'sex': _sex,
-          },
-        );
-        ref.invalidate(studentsProvider);
+    try {
+      if (existing == null) {
+        if (_role == 'student') {
+          await dio.post(
+            '${ApiConstants.baseUrl}/api/users',
+            data: {
+              'first_name': _firstName.text.trim(),
+              'last_name': _lastName.text.trim(),
+              'nickname': _nickname.text.trim(),
+              'birthday': _birthday.text.trim(),
+              'sex': _sex,
+            },
+          );
+          ref.invalidate(studentsProvider);
+        } else {
+          await notifier.registerTeacher(
+            username: _username.text.trim(),
+            password: _password.text,
+            firstName: _firstName.text.trim(),
+            middleInitial: _middleInitial.text.trim(),
+            lastName: _lastName.text.trim(),
+          );
+        }
       } else {
-        await notifier.registerTeacher(
+        final safeFirst = _firstName.text.trim().isEmpty
+            ? _username.text.trim()
+            : _firstName.text.trim();
+        final safeLast = _lastName.text.trim().isEmpty
+            ? '-'
+            : _lastName.text.trim();
+        await notifier.updateTeacher(
+          existing,
           username: _username.text.trim(),
-          password: _password.text,
-          firstName: _firstName.text.trim(),
+          firstName: safeFirst,
           middleInitial: _middleInitial.text.trim(),
-          lastName: _lastName.text.trim(),
+          lastName: safeLast,
         );
       }
-    } else {
-      final safeFirst = _firstName.text.trim().isEmpty
-          ? _username.text.trim()
-          : _firstName.text.trim();
-      final safeLast = _lastName.text.trim().isEmpty
-          ? '-'
-          : _lastName.text.trim();
-      await notifier.updateTeacher(
-        existing,
-        username: _username.text.trim(),
-        firstName: safeFirst,
-        middleInitial: _middleInitial.text.trim(),
-        lastName: safeLast,
+      if (mounted) Navigator.pop(context);
+    } catch (error) {
+      if (!mounted) return;
+      final message = _extractApiErrorMessage(
+        error,
+        fallback: 'Failed to save account changes.',
       );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(message)));
+    } finally {
+      if (mounted) {
+        setState(() => _saving = false);
+      }
     }
-    if (mounted) Navigator.pop(context);
   }
 }
 
@@ -907,6 +944,35 @@ class _ResetPasswordDialog extends ConsumerStatefulWidget {
   @override
   ConsumerState<_ResetPasswordDialog> createState() =>
       _ResetPasswordDialogState();
+}
+
+String _extractApiErrorMessage(Object error, {required String fallback}) {
+  if (error is DioException) {
+    final payload = error.response?.data;
+    if (payload is Map) {
+      final mapped = payload.map(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+      final nestedError = mapped['error'];
+      if (nestedError is Map) {
+        final nestedMessage = nestedError['message']?.toString().trim() ?? '';
+        if (nestedMessage.isNotEmpty) return nestedMessage;
+      }
+      final details = mapped['details'];
+      if (details is List && details.isNotEmpty) {
+        final joined = details
+            .map((item) => item.toString().trim())
+            .where((item) => item.isNotEmpty)
+            .join(', ');
+        if (joined.isNotEmpty) return joined;
+      }
+      final message = mapped['message']?.toString().trim() ?? '';
+      if (message.isNotEmpty) return message;
+    } else if (payload is String && payload.trim().isNotEmpty) {
+      return payload.trim();
+    }
+  }
+  return fallback;
 }
 
 class _ResetPasswordDialogState extends ConsumerState<_ResetPasswordDialog> {

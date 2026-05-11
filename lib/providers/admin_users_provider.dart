@@ -234,7 +234,9 @@ class AdminUsersNotifier extends StateNotifier<AsyncValue<List<AdminUser>>> {
           lastName: lastName,
         );
         state = AsyncValue.data(List<AdminUser>.from(_demoUsers));
+        return;
       }
+      rethrow;
     }
   }
 

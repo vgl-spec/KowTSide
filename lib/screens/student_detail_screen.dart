@@ -147,7 +147,7 @@ class _DetailBodyState extends State<_DetailBody> {
         Text(
           analyticsRow.averageScore.toStringAsFixed(2),
           style: const TextStyle(fontWeight: FontWeight.w700),
-                analyticsRow.averageScore.toStringAsFixed(2),
+        ),
         Text(analyticsRow.highestScore.toStringAsFixed(2)),
         Text('${analyticsRow.totalAttempts}'),
       ],

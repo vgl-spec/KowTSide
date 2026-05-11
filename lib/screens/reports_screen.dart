@@ -295,7 +295,9 @@ class ReportsScreen extends ConsumerWidget {
       final now = DateTime.now();
       final sortedStudents = [...students]
         ..sort((a, b) {
-          final areaSort = a.area.toLowerCase().compareTo(b.area.toLowerCase());
+          final areaSort = _normalizedArea(
+            a.area,
+          ).toLowerCase().compareTo(_normalizedArea(b.area).toLowerCase());
           if (areaSort != 0) return areaSort;
           final scoreSort = b.avgScore.compareTo(a.avgScore);
           if (scoreSort != 0) return scoreSort;
@@ -428,9 +430,7 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
   Widget build(BuildContext context) {
     final groups = <String, List<Student>>{};
     for (final student in widget.students) {
-      final area = student.area.trim().isEmpty
-          ? 'Unspecified Area'
-          : student.area.trim();
+      final area = _normalizedArea(student.area);
       groups.putIfAbsent(area, () => <Student>[]).add(student);
     }
     final rows = groups.entries.map((entry) {
@@ -566,7 +566,7 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
         ..sort((a, b) => b.averageScore.compareTo(a.averageScore));
       for (final row in sortedRows) {
         sheet.appendRow(<xls.CellValue>[
-          xls.TextCellValue(_sanitizeExcelText(row.area)),
+          xls.TextCellValue(_sanitizeExcelText(_normalizedArea(row.area))),
           xls.IntCellValue(row.learners),
           xls.IntCellValue(row.sessions),
           xls.DoubleCellValue(row.averageScore),
@@ -607,24 +607,18 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
   }
 
   Future<void> _openAreaDrilldown(String area) async {
-    if (area.trim().toLowerCase() == 'unspecified area') {
+    final normalizedArea = _normalizedArea(area);
+
+    final areaStudents = widget.students
+        .where((s) => _normalizedArea(s.area) == normalizedArea)
+        .toList();
+    if (areaStudents.isEmpty) {
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Please wait until the popup arrives for the areas within Sauyo.',
-          ),
-        ),
+        SnackBar(content: Text('No learners found for $normalizedArea.')),
       );
       return;
     }
-
-    final areaStudents = widget.students
-        .where(
-          (s) =>
-              (s.area.trim().isEmpty ? 'Unspecified Area' : s.area.trim()) ==
-              area,
-        )
-        .toList();
     final details = await Future.wait(
       areaStudents.map(
         (student) => ref.read(studentDetailProvider(student.studId).future),
@@ -634,7 +628,7 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
     showDialog<void>(
       context: context,
       builder: (_) => _AreaDrilldownDialog(
-        area: area,
+        area: normalizedArea,
         details: details,
         range: DateTimeRange(start: _startDate, end: _endDate),
       ),
