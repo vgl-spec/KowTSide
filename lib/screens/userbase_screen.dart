@@ -115,9 +115,9 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
           actions: [
             if (_selectedEntryKeys.isNotEmpty && canArchiveAccounts)
               FilledButton.tonalIcon(
-                onPressed: _batchDeleteSelected,
-                icon: const Icon(Icons.delete_sweep_outlined, size: 18),
-                label: Text('Delete Selected (${_selectedEntryKeys.length})'),
+                onPressed: _batchArchiveSelected,
+                icon: const Icon(Icons.archive_outlined, size: 18),
+                label: Text('Archive Selected (${_selectedEntryKeys.length})'),
               ),
             FilledButton.icon(
               onPressed: () => _showTeacherDialog(context, ref),
@@ -718,7 +718,7 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
     return 'unknown:${entry.username}';
   }
 
-  Future<void> _batchDeleteSelected() async {
+  Future<void> _batchArchiveSelected() async {
     if (_selectedEntryKeys.isEmpty) return;
     final selectedEntries = widget.entries
         .where((entry) => _selectedEntryKeys.contains(_entryKey(entry)))
@@ -728,9 +728,9 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
-        title: const Text('Delete Selected Accounts'),
+        title: const Text('Archive Selected Accounts'),
         content: Text(
-          'Delete/archive ${selectedEntries.length} selected account(s)?',
+          'Archive ${selectedEntries.length} selected account(s)?',
         ),
         actions: [
           TextButton(
@@ -740,7 +740,7 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
           FilledButton(
             onPressed: () => Navigator.pop(dialogContext, true),
             style: FilledButton.styleFrom(backgroundColor: AppTheme.error),
-            child: const Text('Delete'),
+            child: const Text('Archive'),
           ),
         ],
       ),
@@ -773,8 +773,8 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
     if (!mounted) return;
     setState(() => _selectedEntryKeys.clear());
     final message = failures.isEmpty
-        ? 'Deleted/archived $successCount account(s).'
-        : 'Deleted/archived $successCount account(s), failed: ${failures.join(', ')}';
+        ? 'Archived $successCount account(s).'
+        : 'Archived $successCount account(s), failed: ${failures.join(', ')}';
     ScaffoldMessenger.of(
       context,
     ).showSnackBar(SnackBar(content: Text(message)));
