@@ -695,6 +695,7 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
     });
     ref.invalidate(studentsProvider);
     await ref.read(studentsProvider.future);
+    if (!mounted) return;
     if (showFeedback) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Archived ${student.displayStudId}')),
