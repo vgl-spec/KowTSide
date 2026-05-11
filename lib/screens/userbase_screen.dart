@@ -978,7 +978,7 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              if (_role == 'teacher') ...[
+              if (_role != 'student') ...[
                 TextFormField(
                   controller: _username,
                   readOnly: isEdit,
@@ -1048,7 +1048,7 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
                 controller: _firstName,
                 decoration: const InputDecoration(labelText: 'First name'),
               ),
-              if (_role == 'teacher') ...[
+              if (_role != 'student') ...[
                 const SizedBox(height: 12),
                 TextFormField(
                   controller: _middleInitial,
