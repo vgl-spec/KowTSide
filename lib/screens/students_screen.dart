@@ -662,8 +662,8 @@ class _StudentsViewState extends State<_StudentsView> {
       SnackBar(
         content: Text(
           archived == selectedIds.length
-              ? 'Deleted $archived learner account(s).'
-              : 'Deleted $archived of ${selectedIds.length} learner account(s).',
+              ? 'Archived $archived learner account(s).'
+              : 'Archived $archived of ${selectedIds.length} learner account(s).',
         ),
       ),
     );

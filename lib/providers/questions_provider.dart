@@ -415,7 +415,7 @@ class QuestionsMutationNotifier extends StateNotifier<AsyncValue<void>> {
         state = const AsyncValue.data(null);
         return true;
       }
-      await dio.delete(ApiConstants.question(id));
+      await dio.post(ApiConstants.archiveQuestion(id));
       ref.invalidate(questionsProvider);
       ref.invalidate(allQuestionsProvider);
       ref.invalidate(dashboardProvider);
@@ -443,7 +443,7 @@ class QuestionsMutationNotifier extends StateNotifier<AsyncValue<void>> {
         }
       } else {
         for (final id in targets) {
-          await dio.delete(ApiConstants.question(id));
+          await dio.post(ApiConstants.archiveQuestion(id));
         }
       }
 

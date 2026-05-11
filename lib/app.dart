@@ -8,6 +8,7 @@ import 'core/theme.dart';
 import 'providers/auth_provider.dart';
 import 'providers/theme_provider.dart';
 import 'screens/activity_logs_screen.dart';
+import 'screens/archive_screen.dart';
 import 'screens/dashboard_screen.dart';
 import 'screens/devices_screen.dart';
 import 'screens/login_screen.dart';
@@ -64,6 +65,7 @@ class _KowAdminAppState extends ConsumerState<KowAdminApp> {
           '/devices',
           '/sync-logs',
           '/system-health',
+          '/archive',
         };
 
         if (isBootstrapRoute) {
@@ -155,6 +157,11 @@ class _KowAdminAppState extends ConsumerState<KowAdminApp> {
               path: '/system-health',
               pageBuilder: (context, state) =>
                   _page(state, const SystemHealthScreen()),
+            ),
+            GoRoute(
+              path: '/archive',
+              pageBuilder: (context, state) =>
+                  _page(state, const ArchiveScreen()),
             ),
           ],
         ),

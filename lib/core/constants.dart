@@ -47,6 +47,10 @@ class ApiConstants {
       '$baseUrl/api/admin/users/teachers/$id/reset-password';
   static String teacherStatus(int id) =>
       '$baseUrl/api/admin/users/teachers/$id/status';
+  static String get archiveEvents => '$baseUrl/api/admin/archive/events';
+  static String archiveQuestion(int id) =>
+      '$baseUrl/api/admin/archive/questions/$id';
+  static String get archiveRestore => '$baseUrl/api/admin/archive/restore';
   static String get questionImportGenerate =>
       '$baseUrl/api/admin/questions/import/generate';
   static String get questionImportCommit =>

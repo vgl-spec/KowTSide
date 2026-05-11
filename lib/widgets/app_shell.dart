@@ -73,6 +73,13 @@ class AppShell extends ConsumerStatefulWidget {
       activeIcon: Icons.health_and_safety_rounded,
       superadminOnly: true,
     ),
+    _NavItem(
+      route: '/archive',
+      label: 'Archive',
+      icon: Icons.archive_outlined,
+      activeIcon: Icons.archive_rounded,
+      superadminOnly: true,
+    ),
   ];
 
   @override
@@ -381,6 +388,9 @@ class _AppShellState extends ConsumerState<AppShell> {
     }
     if (route.startsWith('/system-health')) {
       return const SystemHealthLoadingSkeleton();
+    }
+    if (route.startsWith('/archive')) {
+      return const StandardPageLoadingSkeleton();
     }
     return const StandardPageLoadingSkeleton();
   }
