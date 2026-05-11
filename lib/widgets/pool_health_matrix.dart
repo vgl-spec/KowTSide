@@ -22,27 +22,18 @@ class PoolHealthMatrix extends StatelessWidget {
           spacing: 10,
           runSpacing: 8,
           children: [
-            _LegendChip(
-              label: 'Healthy (8+)',
-              color: AppTheme.accent,
-            ),
-            _LegendChip(
-              label: 'Low (5-7)',
-              color: AppTheme.tertiary,
-            ),
-            _LegendChip(
-              label: 'Critical (0-4)',
-              color: AppTheme.error,
-            ),
+            _LegendChip(label: 'Healthy (8+)', color: AppTheme.accent),
+            _LegendChip(label: 'Low (5-7)', color: AppTheme.tertiary),
+            _LegendChip(label: 'Critical (0-4)', color: AppTheme.error),
           ],
         ),
         const SizedBox(height: 10),
         for (final group in grouped.entries) ...[
           Text(
             group.key,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w700,
-                ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const SizedBox(height: 8),
           Container(
@@ -51,10 +42,9 @@ class PoolHealthMatrix extends StatelessWidget {
               color: AppTheme.surfaceLow.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(12),
               border: Border.all(
-                color: Theme.of(context)
-                    .colorScheme
-                    .outline
-                    .withValues(alpha: 0.28),
+                color: Theme.of(
+                  context,
+                ).colorScheme.outline.withValues(alpha: 0.28),
               ),
             ),
             child: _PoolGroupTable(entries: group.value),
@@ -102,10 +92,9 @@ class _PoolGroupTable extends StatelessWidget {
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(
-                    color: Theme.of(context)
-                        .colorScheme
-                        .outline
-                        .withValues(alpha: 0.2),
+                    color: Theme.of(
+                      context,
+                    ).colorScheme.outline.withValues(alpha: 0.2),
                   ),
                 ),
               ),
@@ -125,8 +114,10 @@ class _PoolGroupTable extends StatelessWidget {
   List<_SubjectPoolRow> _toRows(List<PoolHealthEntry> source) {
     final subjects = <String, Map<String, PoolHealthEntry>>{};
     for (final entry in source) {
-      subjects.putIfAbsent(entry.subject, () => <String, PoolHealthEntry>{})[
-          entry.difficulty] = entry;
+      subjects.putIfAbsent(
+        entry.subject,
+        () => <String, PoolHealthEntry>{},
+      )[entry.difficulty] = entry;
     }
 
     final rows = subjects.entries
@@ -171,10 +162,7 @@ class _HeaderCell extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(12, 10, 12, alignStart ? 10 : 10),
       child: Align(
         alignment: alignStart ? Alignment.centerLeft : Alignment.center,
-        child: Text(
-          label,
-          style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
+        child: Text(label, style: const TextStyle(fontWeight: FontWeight.w700)),
       ),
     );
   }
@@ -216,10 +204,7 @@ class _CountChip extends StatelessWidget {
       ),
       child: Text(
         '$count',
-        style: TextStyle(
-          color: color,
-          fontWeight: FontWeight.w700,
-        ),
+        style: TextStyle(color: color, fontWeight: FontWeight.w700),
       ),
     );
   }
@@ -235,10 +220,7 @@ class _LegendChip extends StatelessWidget {
   final String label;
   final Color color;
 
-  const _LegendChip({
-    required this.label,
-    required this.color,
-  });
+  const _LegendChip({required this.label, required this.color});
 
   @override
   Widget build(BuildContext context) {

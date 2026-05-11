@@ -46,7 +46,10 @@ class AuthState {
     isRestoring: isRestoring ?? this.isRestoring,
   );
 
-  static const unauthenticated = AuthState(isLoading: false, isRestoring: false);
+  static const unauthenticated = AuthState(
+    isLoading: false,
+    isRestoring: false,
+  );
 }
 
 class AuthNotifier extends StateNotifier<AuthState> {

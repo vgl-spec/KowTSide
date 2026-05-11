@@ -18,10 +18,7 @@ class QuestionImageService {
     }
 
     final formData = FormData.fromMap({
-      'image': MultipartFile.fromBytes(
-        selected.bytes,
-        filename: selected.name,
-      ),
+      'image': MultipartFile.fromBytes(selected.bytes, filename: selected.name),
     });
 
     final response = await dio.post(

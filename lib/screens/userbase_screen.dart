@@ -23,10 +23,18 @@ class UserbaseScreen extends ConsumerWidget {
       return const SafeArea(child: Center(child: CircularProgressIndicator()));
     }
     if (adminAsync.hasError) {
-      return SafeArea(child: Center(child: Text('Failed to load admin users: ${adminAsync.error}')));
+      return SafeArea(
+        child: Center(
+          child: Text('Failed to load admin users: ${adminAsync.error}'),
+        ),
+      );
     }
     if (studentsAsync.hasError) {
-      return SafeArea(child: Center(child: Text('Failed to load students: ${studentsAsync.error}')));
+      return SafeArea(
+        child: Center(
+          child: Text('Failed to load students: ${studentsAsync.error}'),
+        ),
+      );
     }
 
     final admins = adminAsync.value ?? const <AdminUser>[];
@@ -59,13 +67,16 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
   int _page = 1;
   static const int _rowsPerPage = 100;
   DateTime? _lastRefreshAt;
+  bool _isEditDialogOpen = false;
+  bool _isEditDialogFetching = false;
 
   @override
   Widget build(BuildContext context) {
     final canArchiveAccounts = ref.watch(authProvider).isSuperadmin;
     final filtered = widget.entries.where((entry) {
       final needle = _query.trim().toLowerCase();
-      final matchesQuery = needle.isEmpty ||
+      final matchesQuery =
+          needle.isEmpty ||
           entry.displayName.toLowerCase().contains(needle) ||
           entry.username.toLowerCase().contains(needle);
       final matchesType = _type == 'All' || entry.kind == _type;
@@ -73,7 +84,9 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
     }).toList();
 
     final totalRows = filtered.length;
-    final totalPages = totalRows == 0 ? 1 : ((totalRows + _rowsPerPage - 1) ~/ _rowsPerPage);
+    final totalPages = totalRows == 0
+        ? 1
+        : ((totalRows + _rowsPerPage - 1) ~/ _rowsPerPage);
     if (_page > totalPages) {
       _page = totalPages;
     }
@@ -83,8 +96,12 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
     final startIndex = totalRows == 0 ? 0 : (_page - 1) * _rowsPerPage;
     final endIndex = totalRows == 0
         ? 0
-        : ((startIndex + _rowsPerPage) > totalRows ? totalRows : (startIndex + _rowsPerPage));
-    final pageRows = totalRows == 0 ? const <_UserbaseEntry>[] : filtered.sublist(startIndex, endIndex);
+        : ((startIndex + _rowsPerPage) > totalRows
+              ? totalRows
+              : (startIndex + _rowsPerPage));
+    final pageRows = totalRows == 0
+        ? const <_UserbaseEntry>[]
+        : filtered.sublist(startIndex, endIndex);
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -96,7 +113,7 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
           actions: [
             FilledButton.icon(
               onPressed: () => _showTeacherDialog(context, ref),
-                icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
+              icon: const Icon(Icons.person_add_alt_1_rounded, size: 18),
               label: const Text('Register Account'),
             ),
             FilledButton.tonalIcon(
@@ -154,7 +171,9 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
                         child: SingleChildScrollView(
                           scrollDirection: Axis.horizontal,
                           child: ConstrainedBox(
-                            constraints: BoxConstraints(minWidth: constraints.maxWidth),
+                            constraints: BoxConstraints(
+                              minWidth: constraints.maxWidth,
+                            ),
                             child: DataTable(
                               columns: const [
                                 DataColumn(label: Text('Name')),
@@ -163,46 +182,77 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
                                 DataColumn(label: Text('Actions')),
                               ],
                               rows: pageRows.map((entry) {
-                                return DataRow(cells: [
-                                  DataCell(Text(entry.displayName)),
-                                  DataCell(Text(entry.username)),
-                                  DataCell(FlarePill(label: entry.kind, color: _kindColor(entry.kind))),
-                                  DataCell(Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      IconButton(
-                                        tooltip: 'Edit',
-                                        icon: const Icon(Icons.edit_outlined),
-                                        onPressed: () => entry.admin != null
-                                            ? _showTeacherDialog(context, ref, existing: entry.admin)
-                                            : _showStudentDialog(context, entry.student!),
+                                return DataRow(
+                                  cells: [
+                                    DataCell(Text(entry.displayName)),
+                                    DataCell(Text(entry.username)),
+                                    DataCell(
+                                      FlarePill(
+                                        label: entry.kind,
+                                        color: _kindColor(entry.kind),
                                       ),
-                                      if (entry.admin != null)
-                                        IconButton(
-                                          tooltip: 'Reset password',
-                                          icon: const Icon(Icons.lock_reset),
-                                          onPressed: () => showDialog<void>(
-                                            context: context,
-                                            builder: (_) => _ResetPasswordDialog(user: entry.admin!),
+                                    ),
+                                    DataCell(
+                                      Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          IconButton(
+                                            tooltip: 'Edit',
+                                            icon: const Icon(
+                                              Icons.edit_outlined,
+                                            ),
+                                            onPressed:
+                                                (_isEditDialogOpen ||
+                                                    _isEditDialogFetching)
+                                                ? null
+                                                : () => _openEditDialogForEntry(
+                                                    context,
+                                                    entry,
+                                                  ),
                                           ),
-                                        ),
-                                      if (entry.admin != null && canArchiveAccounts)
-                                        IconButton(
-                                          tooltip: 'Archive account',
-                                          icon: const Icon(Icons.archive_outlined),
-                                          onPressed: entry.admin!.isActive
-                                              ? () => _archiveTeacher(entry.admin!)
-                                              : null,
-                                        ),
-                                      if (entry.student != null && canArchiveAccounts)
-                                        IconButton(
-                                          tooltip: 'Archive learner',
-                                          icon: const Icon(Icons.archive_outlined),
-                                          onPressed: () => _archiveStudent(entry.student!),
-                                        ),
-                                    ],
-                                  )),
-                                ]);
+                                          if (entry.admin != null)
+                                            IconButton(
+                                              tooltip: 'Reset password',
+                                              icon: const Icon(
+                                                Icons.lock_reset,
+                                              ),
+                                              onPressed: () => showDialog<void>(
+                                                context: context,
+                                                builder: (_) =>
+                                                    _ResetPasswordDialog(
+                                                      user: entry.admin!,
+                                                    ),
+                                              ),
+                                            ),
+                                          if (entry.admin != null &&
+                                              canArchiveAccounts)
+                                            IconButton(
+                                              tooltip: 'Archive account',
+                                              icon: const Icon(
+                                                Icons.archive_outlined,
+                                              ),
+                                              onPressed: entry.admin!.isActive
+                                                  ? () => _archiveTeacher(
+                                                      entry.admin!,
+                                                    )
+                                                  : null,
+                                            ),
+                                          if (entry.student != null &&
+                                              canArchiveAccounts)
+                                            IconButton(
+                                              tooltip: 'Archive learner',
+                                              icon: const Icon(
+                                                Icons.archive_outlined,
+                                              ),
+                                              onPressed: () => _archiveStudent(
+                                                entry.student!,
+                                              ),
+                                            ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                );
                               }).toList(),
                             ),
                           ),
@@ -218,11 +268,11 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
           runSpacing: 10,
           crossAxisAlignment: WrapCrossAlignment.center,
           children: [
-            Text('Showing ${totalRows == 0 ? 0 : startIndex + 1}-$endIndex of $totalRows'),
+            Text(
+              'Showing ${totalRows == 0 ? 0 : startIndex + 1}-$endIndex of $totalRows',
+            ),
             OutlinedButton(
-              onPressed: _page > 1
-                  ? () => setState(() => _page -= 1)
-                  : null,
+              onPressed: _page > 1 ? () => setState(() => _page -= 1) : null,
               child: const Text('Previous'),
             ),
             Text('Page $_page of $totalPages'),
@@ -242,7 +292,9 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
     var profileBirthday = student.birthday;
     var profileSex = student.sex;
     try {
-      final resp = await dio.get('${ApiConstants.baseUrl}/api/users/${student.studId}');
+      final resp = await dio.get(
+        '${ApiConstants.baseUrl}/api/users/${student.studId}',
+      );
       final profile = (resp.data is Map<String, dynamic>)
           ? (resp.data['profile'] as Map<String, dynamic>? ?? const {})
           : const <String, dynamic>{};
@@ -262,102 +314,214 @@ class _UserbaseBodyState extends ConsumerState<_UserbaseBody> {
     final lastName = TextEditingController(text: student.lastName);
     final nickname = TextEditingController(text: student.nickname);
     final birthday = TextEditingController(text: profileBirthday);
+    final area = TextEditingController(text: student.area.trim());
     String sex = profileSex == 'Female' ? 'Female' : 'Male';
+    final formKey = GlobalKey<FormState>();
+    final initialSnapshot =
+        '${firstName.text}|${lastName.text}|${nickname.text}|${birthday.text}|${area.text}|$sex';
+
+    Future<bool> confirmDiscardIfDirty(BuildContext dialogContext) async {
+      final currentSnapshot =
+          '${firstName.text}|${lastName.text}|${nickname.text}|${birthday.text}|${area.text}|$sex';
+      if (currentSnapshot == initialSnapshot) {
+        return true;
+      }
+      final discard = await showDialog<bool>(
+        context: dialogContext,
+        builder: (confirmContext) => AlertDialog(
+          title: const Text('Discard changes?'),
+          content: const Text(
+            'You have unsaved changes. Do you want to close without saving?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(confirmContext, false),
+              child: const Text('Keep Editing'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.pop(confirmContext, true),
+              child: const Text('Discard'),
+            ),
+          ],
+        ),
+      );
+      return discard == true;
+    }
 
     await showDialog<void>(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        title: const Text('Edit Student'),
-        content: SizedBox(
-          width: 480,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: firstName, decoration: const InputDecoration(labelText: 'First name')),
-              const SizedBox(height: 8),
-              TextField(controller: lastName, decoration: const InputDecoration(labelText: 'Last name')),
-              const SizedBox(height: 8),
-              TextField(controller: nickname, decoration: const InputDecoration(labelText: 'Username')),
-              const SizedBox(height: 8),
-              TextField(
-                controller: birthday,
-                readOnly: true,
-                decoration: const InputDecoration(
-                  labelText: 'Birthday',
-                  suffixIcon: Icon(Icons.calendar_today_rounded),
-                ),
-                onTap: () async {
-                  final now = DateTime.now();
-                  final initial = DateTime.tryParse(birthday.text.trim()) ??
-                      DateTime(now.year - 6, now.month, now.day);
-                  final picked = await showDatePicker(
-                    context: dialogContext,
-                    initialDate: initial,
-                    firstDate: DateTime(1990, 1, 1),
-                    lastDate: now,
-                  );
-                  if (picked != null) {
-                    final month = picked.month.toString().padLeft(2, '0');
-                    final day = picked.day.toString().padLeft(2, '0');
-                    birthday.text = '${picked.year}-$month-$day';
-                  }
-                },
-              ),
-              const SizedBox(height: 8),
-              DropdownButtonFormField<String>(
-                initialValue: sex,
-                items: const [
-                  DropdownMenuItem(value: 'Male', child: Text('Male')),
-                  DropdownMenuItem(value: 'Female', child: Text('Female')),
+      barrierDismissible: false,
+      builder: (dialogContext) => PopScope(
+        canPop: false,
+        onPopInvokedWithResult: (didPop, _) async {
+          if (didPop) return;
+          final canClose = await confirmDiscardIfDirty(dialogContext);
+          if (canClose && dialogContext.mounted) {
+            Navigator.pop(dialogContext);
+          }
+        },
+        child: AlertDialog(
+          title: const Text('Edit Student'),
+          content: SizedBox(
+            width: 480,
+            child: Form(
+              key: formKey,
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  TextFormField(
+                    controller: firstName,
+                    decoration: const InputDecoration(labelText: 'First name'),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: lastName,
+                    decoration: const InputDecoration(labelText: 'Last name'),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: nickname,
+                    decoration: const InputDecoration(labelText: 'Username'),
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: birthday,
+                    readOnly: true,
+                    decoration: const InputDecoration(
+                      labelText: 'Birthday',
+                      suffixIcon: Icon(Icons.calendar_today_rounded),
+                    ),
+                    onTap: () async {
+                      final now = DateTime.now();
+                      final initial =
+                          DateTime.tryParse(birthday.text.trim()) ??
+                          DateTime(now.year - 6, now.month, now.day);
+                      final picked = await showDatePicker(
+                        context: dialogContext,
+                        initialDate: initial,
+                        firstDate: DateTime(1990, 1, 1),
+                        lastDate: now,
+                      );
+                      if (picked != null) {
+                        final month = picked.month.toString().padLeft(2, '0');
+                        final day = picked.day.toString().padLeft(2, '0');
+                        birthday.text = '${picked.year}-$month-$day';
+                      }
+                    },
+                    validator: (value) {
+                      final bday = (value ?? '').trim();
+                      if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(bday)) {
+                        return 'Birthday must be YYYY-MM-DD.';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: area,
+                    decoration: const InputDecoration(labelText: 'Area'),
+                    validator: (value) {
+                      final v = (value ?? '').trim();
+                      if (v.isEmpty ||
+                          v.toLowerCase() == 'unspecified area') {
+                        return 'Please specify area.';
+                      }
+                      return null;
+                    },
+                  ),
+                  const SizedBox(height: 8),
+                  DropdownButtonFormField<String>(
+                    initialValue: sex,
+                    items: const [
+                      DropdownMenuItem(value: 'Male', child: Text('Male')),
+                      DropdownMenuItem(value: 'Female', child: Text('Female')),
+                    ],
+                    onChanged: (value) {
+                      if (value != null) sex = value;
+                    },
+                    decoration: const InputDecoration(labelText: 'Sex'),
+                  ),
                 ],
-                onChanged: (value) {
-                  if (value != null) sex = value;
-                },
-                decoration: const InputDecoration(labelText: 'Sex'),
               ),
-            ],
+            ),
           ),
-        ),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(dialogContext), child: const Text('Cancel')),
-          FilledButton(
-            onPressed: () async {
-              final bday = birthday.text.trim();
-              if (!RegExp(r'^\d{4}-\d{2}-\d{2}$').hasMatch(bday)) {
-                if (!context.mounted) return;
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Birthday must be YYYY-MM-DD.')),
+          actions: [
+            TextButton(
+              onPressed: () async {
+                final canClose = await confirmDiscardIfDirty(dialogContext);
+                if (canClose && dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
+              },
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                if (!(formKey.currentState?.validate() ?? false)) {
+                  return;
+                }
+                await dio.put(
+                  '${ApiConstants.baseUrl}/api/users/${student.studId}/profile',
+                  data: {
+                    'first_name': firstName.text.trim(),
+                    'last_name': lastName.text.trim(),
+                    'nickname': nickname.text.trim(),
+                    'birthday': birthday.text.trim(),
+                    'area': area.text.trim(),
+                    'barangay_id': 1,
+                    'barangayId': 1,
+                    'sex': sex,
+                  },
                 );
-                return;
-              }
-              await dio.put(
-                '${ApiConstants.baseUrl}/api/users/${student.studId}/profile',
-                data: {
-                  'first_name': firstName.text.trim(),
-                  'last_name': lastName.text.trim(),
-                  'nickname': nickname.text.trim(),
-                  'birthday': bday,
-                  'sex': sex,
-                },
-              );
-              if (!mounted) return;
-              ref.invalidate(studentsProvider);
-              Navigator.pop(dialogContext);
-            },
-            child: const Text('Save'),
-          ),
-        ],
+                if (!mounted) return;
+                ref.invalidate(studentsProvider);
+                if (dialogContext.mounted) {
+                  Navigator.pop(dialogContext);
+                }
+              },
+              child: const Text('Save'),
+            ),
+          ],
+        ),
       ),
     );
   }
 
-  void _showTeacherDialog(BuildContext context, WidgetRef ref, {AdminUser? existing}) {
-    showDialog<void>(
+  Future<void> _openEditDialogForEntry(
+    BuildContext context,
+    _UserbaseEntry entry,
+  ) async {
+    if (_isEditDialogOpen || _isEditDialogFetching) return;
+    setState(() => _isEditDialogFetching = true);
+    try {
+      _isEditDialogOpen = true;
+      if (entry.admin != null) {
+        await _showTeacherDialog(context, ref, existing: entry.admin);
+      } else if (entry.student != null) {
+        await _showStudentDialog(context, entry.student!);
+      }
+    } finally {
+      if (mounted) {
+        setState(() {
+          _isEditDialogFetching = false;
+          _isEditDialogOpen = false;
+        });
+      } else {
+        _isEditDialogFetching = false;
+        _isEditDialogOpen = false;
+      }
+    }
+  }
+
+  Future<void> _showTeacherDialog(
+    BuildContext context,
+    WidgetRef ref, {
+    AdminUser? existing,
+  }) async {
+    await showDialog<void>(
       context: context,
       barrierDismissible: false,
-      builder: (_) => _TeacherFormDialog(
-        existing: existing,
-      ),
+      builder: (_) => _TeacherFormDialog(existing: existing),
     );
   }
 
@@ -564,7 +728,9 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
                     controller: _password,
                     obscureText: true,
                     decoration: const InputDecoration(labelText: 'Password'),
-                    validator: (value) => value == null || value.length < 12 ? 'Use at least 12 characters.' : null,
+                    validator: (value) => value == null || value.length < 12
+                        ? 'Use at least 12 characters.'
+                        : null,
                   ),
                 ],
               ],
@@ -574,11 +740,20 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
                 decoration: const InputDecoration(labelText: 'Account role'),
                 items: isEdit
                     ? const <DropdownMenuItem<String>>[
-                        DropdownMenuItem(value: 'teacher', child: Text('Teacher')),
+                        DropdownMenuItem(
+                          value: 'teacher',
+                          child: Text('Teacher'),
+                        ),
                       ]
                     : const <DropdownMenuItem<String>>[
-                        DropdownMenuItem(value: 'teacher', child: Text('Teacher')),
-                        DropdownMenuItem(value: 'student', child: Text('Student')),
+                        DropdownMenuItem(
+                          value: 'teacher',
+                          child: Text('Teacher'),
+                        ),
+                        DropdownMenuItem(
+                          value: 'student',
+                          child: Text('Student'),
+                        ),
                       ],
                 onChanged: (value) {
                   if (value != null) {
@@ -587,13 +762,24 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
                 },
               ),
               const SizedBox(height: 12),
-              TextFormField(controller: _firstName, decoration: const InputDecoration(labelText: 'First name')),
+              TextFormField(
+                controller: _firstName,
+                decoration: const InputDecoration(labelText: 'First name'),
+              ),
               if (_role == 'teacher') ...[
                 const SizedBox(height: 12),
-                TextFormField(controller: _middleInitial, decoration: const InputDecoration(labelText: 'Middle initial')),
+                TextFormField(
+                  controller: _middleInitial,
+                  decoration: const InputDecoration(
+                    labelText: 'Middle initial',
+                  ),
+                ),
               ],
               const SizedBox(height: 12),
-              TextFormField(controller: _lastName, decoration: const InputDecoration(labelText: 'Last name')),
+              TextFormField(
+                controller: _lastName,
+                decoration: const InputDecoration(labelText: 'Last name'),
+              ),
               if (!isEdit && _role == 'student') ...[
                 const SizedBox(height: 12),
                 TextFormField(
@@ -613,7 +799,8 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
                   ),
                   onTap: () async {
                     final now = DateTime.now();
-                    final initial = DateTime.tryParse(_birthday.text.trim()) ??
+                    final initial =
+                        DateTime.tryParse(_birthday.text.trim()) ??
                         DateTime(now.year - 6, now.month, now.day);
                     final picked = await showDatePicker(
                       context: context,
@@ -655,8 +842,14 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: _saving ? null : () => Navigator.pop(context), child: const Text('Cancel')),
-        FilledButton(onPressed: _saving ? null : _save, child: Text(isEdit ? 'Save Changes' : 'Create Account')),
+        TextButton(
+          onPressed: _saving ? null : () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        FilledButton(
+          onPressed: _saving ? null : _save,
+          child: Text(isEdit ? 'Save Changes' : 'Create Account'),
+        ),
       ],
     );
   }
@@ -692,7 +885,9 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
       final safeFirst = _firstName.text.trim().isEmpty
           ? _username.text.trim()
           : _firstName.text.trim();
-      final safeLast = _lastName.text.trim().isEmpty ? '-' : _lastName.text.trim();
+      final safeLast = _lastName.text.trim().isEmpty
+          ? '-'
+          : _lastName.text.trim();
       await notifier.updateTeacher(
         existing,
         username: _username.text.trim(),
@@ -710,7 +905,8 @@ class _ResetPasswordDialog extends ConsumerStatefulWidget {
   const _ResetPasswordDialog({required this.user});
 
   @override
-  ConsumerState<_ResetPasswordDialog> createState() => _ResetPasswordDialogState();
+  ConsumerState<_ResetPasswordDialog> createState() =>
+      _ResetPasswordDialogState();
 }
 
 class _ResetPasswordDialogState extends ConsumerState<_ResetPasswordDialog> {
@@ -735,11 +931,16 @@ class _ResetPasswordDialogState extends ConsumerState<_ResetPasswordDialog> {
         ),
       ),
       actions: [
-        TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
         FilledButton(
           onPressed: () async {
             if (_controller.text.length < 12) return;
-            await ref.read(adminUsersProvider.notifier).resetPassword(widget.user, _controller.text);
+            await ref
+                .read(adminUsersProvider.notifier)
+                .resetPassword(widget.user, _controller.text);
             if (context.mounted) Navigator.pop(context);
           },
           child: const Text('Reset Password'),

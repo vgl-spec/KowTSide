@@ -277,9 +277,7 @@ class _TeacherQuestionsScreenState
             ? const EdgeInsets.symmetric(horizontal: 10, vertical: 8)
             : const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
       ),
-      textStyle: WidgetStatePropertyAll(
-        TextStyle(fontSize: compact ? 12 : 14),
-      ),
+      textStyle: WidgetStatePropertyAll(TextStyle(fontSize: compact ? 12 : 14)),
     );
 
     if (selectedIds.isNotEmpty) {
@@ -328,18 +326,6 @@ class _TeacherQuestionsScreenState
         icon: const Icon(Icons.table_view_rounded, size: 18),
         label: const Text('Import CSV'),
       ),
-      FilledButton.icon(
-        onPressed: () => _showForm(context),
-        style: compactStyle(FilledButton.styleFrom()),
-        icon: const Icon(Icons.add, size: 18),
-        label: Text(compact ? 'Add' : 'Add Question'),
-      ),
-      FilledButton.tonalIcon(
-        onPressed: _refreshQuestions,
-        style: compactStyle(FilledButton.styleFrom()),
-        icon: const Icon(Icons.refresh_rounded, size: 18),
-        label: const Text('Refresh'),
-      ),
       FilledButton.tonalIcon(
         onPressed: _isExporting ? null : _exportQuestions,
         style: compactStyle(FilledButton.styleFrom()),
@@ -352,6 +338,18 @@ class _TeacherQuestionsScreenState
             : const Icon(Icons.download_rounded, size: 18),
         label: Text(_isExporting ? 'Exporting...' : 'Export CSV'),
       ),
+      FilledButton.icon(
+        onPressed: () => _showForm(context),
+        style: compactStyle(FilledButton.styleFrom()),
+        icon: const Icon(Icons.add, size: 18),
+        label: Text(compact ? 'Add' : 'Add Question'),
+      ),
+      FilledButton.tonalIcon(
+        onPressed: _refreshQuestions,
+        style: compactStyle(FilledButton.styleFrom()),
+        icon: const Icon(Icons.refresh_rounded, size: 18),
+        label: const Text('Refresh'),
+      ),
     ];
   }
 
@@ -360,7 +358,8 @@ class _TeacherQuestionsScreenState
     ref.invalidate(allQuestionsProvider);
     ref.invalidate(dashboardProvider);
     final now = DateTime.now();
-    final shouldPrompt = _lastRefreshAt == null ||
+    final shouldPrompt =
+        _lastRefreshAt == null ||
         now.difference(_lastRefreshAt!).inSeconds >= 2;
     _lastRefreshAt = now;
     if (shouldPrompt && mounted) {
@@ -761,7 +760,7 @@ class _CsvQuestionImportDialogState
       }
 
       final header = rows.first.map(_normalizeCsvHeader).toList();
-      final required = const [
+      const required = [
         'question_id',
         'subject',
         'grade_level',
@@ -1021,9 +1020,9 @@ class _QuestionBankList extends StatelessWidget {
         return Column(
           children: [
             if (!compact)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 8),
-                child: const _QuestionBankHeaderRow(),
+              const Padding(
+                padding: EdgeInsets.fromLTRB(16, 16, 16, 8),
+                child: _QuestionBankHeaderRow(),
               ),
             Expanded(
               child: ListView.separated(
@@ -1061,35 +1060,32 @@ class _QuestionBankHeaderRow extends StatelessWidget {
         color: AppTheme.primary.withValues(alpha: 0.16),
         borderRadius: BorderRadius.circular(14),
       ),
-      child: Row(
+      child: const Row(
         children: [
-          const SizedBox(
+          SizedBox(
             width: 42,
-            child: Text(
-              'Pick',
-              style: TextStyle(fontWeight: FontWeight.w800),
-            ),
+            child: Text('Pick', style: TextStyle(fontWeight: FontWeight.w800)),
           ),
-          const SizedBox(
+          SizedBox(
             width: 52,
             child: Text('ID', style: TextStyle(fontWeight: FontWeight.w800)),
           ),
-          const Expanded(
+          Expanded(
             flex: 22,
             child: Text('Added', style: TextStyle(fontWeight: FontWeight.w800)),
           ),
-          const Expanded(
+          Expanded(
             flex: 28,
             child: Text('Pool', style: TextStyle(fontWeight: FontWeight.w800)),
           ),
-          const Expanded(
+          Expanded(
             flex: 42,
             child: Text(
               'Preview',
               style: TextStyle(fontWeight: FontWeight.w800),
             ),
           ),
-          const Expanded(
+          Expanded(
             flex: 22,
             child: Text(
               'Correct Answer',

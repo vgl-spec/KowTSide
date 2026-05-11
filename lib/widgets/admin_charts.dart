@@ -79,7 +79,9 @@ class DonutBreakdownChart extends StatelessWidget {
                     sectionsSpace: 2,
                     borderData: FlBorderData(show: false),
                     sections: segments.map((segment) {
-                      final percent = total <= 0 ? 0 : (segment.value / total) * 100;
+                      final percent = total <= 0
+                          ? 0
+                          : (segment.value / total) * 100;
                       return PieChartSectionData(
                         color: segment.color,
                         value: segment.value,
@@ -100,10 +102,13 @@ class DonutBreakdownChart extends StatelessWidget {
                     Text(
                       total.toStringAsFixed(0),
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w800,
-                          ),
+                        fontWeight: FontWeight.w800,
+                      ),
                     ),
-                    Text(centerLabel, style: Theme.of(context).textTheme.bodySmall),
+                    Text(
+                      centerLabel,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
                   ],
                 ),
               ],
@@ -158,7 +163,7 @@ class SingleBarChart extends StatelessWidget {
     required this.data,
     required this.maxY,
     this.percentageScale = false,
-    this.valueDecimals = 0,
+    this.valueDecimals = 2,
   });
 
   @override
@@ -180,30 +185,60 @@ class SingleBarChart extends StatelessWidget {
               ? BarChartAlignment.spaceEvenly
               : BarChartAlignment.spaceAround,
           groupsSpace: data.length <= 2 ? 26 : 12,
-          barTouchData: BarTouchData(enabled: true),
+          barTouchData: BarTouchData(
+            enabled: true,
+            touchTooltipData: BarTouchTooltipData(
+              getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                final label = data[group.x.toInt()].label;
+                final formatted = _formatChartNumber(
+                  rod.toY,
+                  valueDecimals,
+                  isPercent: percentageScale,
+                );
+                return BarTooltipItem(
+                  '$label\n$formatted',
+                  TextStyle(
+                    color: AppTheme.textHighEmphasis,
+                    fontWeight: FontWeight.w700,
+                  ),
+                );
+              },
+            ),
+          ),
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
             horizontalInterval: maxY <= 10 ? 2 : 20,
             getDrawingHorizontalLine: (value) => FlLine(
               strokeWidth: 1,
-              color: Theme.of(context).colorScheme.outline.withValues(alpha: 0.3),
+              color: Theme.of(
+                context,
+              ).colorScheme.outline.withValues(alpha: 0.3),
             ),
           ),
           borderData: FlBorderData(show: false),
           titlesData: FlTitlesData(
-            topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-            rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+            topTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
+            rightTitles: const AxisTitles(
+              sideTitles: SideTitles(showTitles: false),
+            ),
             leftTitles: AxisTitles(
               sideTitles: SideTitles(
                 reservedSize: 45,
                 showTitles: true,
                 interval: maxY <= 10 ? 2 : 20,
                 getTitlesWidget: (value, _) {
-                  final label = percentageScale
-                      ? '${value.toStringAsFixed(valueDecimals)}%'
-                      : value.toStringAsFixed(valueDecimals);
-                  return Text(label, style: Theme.of(context).textTheme.bodySmall);
+                  final label = _formatChartNumber(
+                    value,
+                    valueDecimals,
+                    isPercent: percentageScale,
+                  );
+                  return Text(
+                    label,
+                    style: Theme.of(context).textTheme.bodySmall,
+                  );
                 },
               ),
             ),
@@ -213,14 +248,18 @@ class SingleBarChart extends StatelessWidget {
                 reservedSize: 42,
                 getTitlesWidget: (value, _) {
                   final index = value.toInt();
-                  if (index < 0 || index >= data.length) return const SizedBox.shrink();
+                  if (index < 0 || index >= data.length) {
+                    return const SizedBox.shrink();
+                  }
                   final label = data[index].label;
                   return SideTitleWidget(
                     axisSide: AxisSide.bottom,
                     child: Padding(
                       padding: const EdgeInsets.only(top: 6),
                       child: Text(
-                        label.length > 10 ? '${label.substring(0, 10)}...' : label,
+                        label.length > 10
+                            ? '${label.substring(0, 10)}...'
+                            : label,
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ),
@@ -266,7 +305,7 @@ class DualMetricBarChart extends StatelessWidget {
     required this.leftLegend,
     required this.rightLegend,
     required this.maxY,
-    this.yAxisDecimals = 0,
+    this.yAxisDecimals = 2,
   });
 
   @override
@@ -298,7 +337,23 @@ class DualMetricBarChart extends StatelessWidget {
                   ? BarChartAlignment.spaceEvenly
                   : BarChartAlignment.spaceAround,
               groupsSpace: data.length <= 2 ? 28 : 12,
-              barTouchData: BarTouchData(enabled: true),
+              barTouchData: BarTouchData(
+                enabled: true,
+                touchTooltipData: BarTouchTooltipData(
+                  getTooltipItem: (group, groupIndex, rod, rodIndex) {
+                    final datum = data[group.x.toInt()];
+                    final metricLabel = rodIndex == 0 ? leftLegend : rightLegend;
+                    final formatted = _formatChartNumber(rod.toY, yAxisDecimals);
+                    return BarTooltipItem(
+                      '${datum.label}\n$metricLabel: $formatted',
+                      TextStyle(
+                        color: AppTheme.textHighEmphasis,
+                        fontWeight: FontWeight.w700,
+                      ),
+                    );
+                  },
+                ),
+              ),
               borderData: FlBorderData(show: false),
               gridData: FlGridData(
                 show: true,
@@ -306,24 +361,25 @@ class DualMetricBarChart extends StatelessWidget {
                 horizontalInterval: maxY <= 10 ? 2 : 20,
                 getDrawingHorizontalLine: (value) => FlLine(
                   strokeWidth: 1,
-                  color: Theme.of(context)
-                      .colorScheme
-                      .outline
-                      .withValues(alpha: 0.28),
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.outline.withValues(alpha: 0.28),
                 ),
               ),
               titlesData: FlTitlesData(
-                topTitles:
-                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-                rightTitles:
-                    const AxisTitles(sideTitles: SideTitles(showTitles: false)),
+                topTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
+                rightTitles: const AxisTitles(
+                  sideTitles: SideTitles(showTitles: false),
+                ),
                 leftTitles: AxisTitles(
                   sideTitles: SideTitles(
                     showTitles: true,
                     reservedSize: 40,
                     interval: maxY <= 10 ? 2 : 20,
                     getTitlesWidget: (value, _) => Text(
-                      value.toStringAsFixed(yAxisDecimals),
+                      _formatChartNumber(value, yAxisDecimals),
                       style: Theme.of(context).textTheme.bodySmall,
                     ),
                   ),
@@ -376,6 +432,15 @@ class DualMetricBarChart extends StatelessWidget {
       ],
     );
   }
+}
+
+String _formatChartNumber(double value, int decimals, {bool isPercent = false}) {
+  var text = value.toStringAsFixed(decimals);
+  if (text.contains('.')) {
+    text = text.replaceAll(RegExp(r'0+$'), '');
+    text = text.replaceAll(RegExp(r'\.$'), '');
+  }
+  return isPercent ? '$text%' : text;
 }
 
 class _LegendDot extends StatelessWidget {

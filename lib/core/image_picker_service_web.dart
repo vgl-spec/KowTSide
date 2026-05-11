@@ -3,7 +3,13 @@ import 'dart:convert';
 import 'dart:html' as html;
 
 const int _maxImageBytes = 5 * 1024 * 1024;
-const _allowedImageExtensions = <String>{'.png', '.jpg', '.jpeg', '.webp', '.gif'};
+const _allowedImageExtensions = <String>{
+  '.png',
+  '.jpg',
+  '.jpeg',
+  '.webp',
+  '.gif',
+};
 
 class PickedImageData {
   final String name;

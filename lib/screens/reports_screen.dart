@@ -129,7 +129,7 @@ class ReportsScreen extends ConsumerWidget {
                 ),
                 FlareMetricTile(
                   label: 'Average Score',
-                  value: '${dashboard.averageScore.toStringAsFixed(1)} / 5',
+                  value: '${dashboard.averageScore.toStringAsFixed(2)} / 5',
                   hint: 'Overall classroom performance on the 5-point scale',
                   icon: Icons.query_stats_rounded,
                   color: AppTheme.success,
@@ -137,7 +137,7 @@ class ReportsScreen extends ConsumerWidget {
                 FlareMetricTile(
                   label: 'Needs Attention',
                   value: '${supportList.length}',
-                  hint: '${supportRate.toStringAsFixed(1)}% of learners',
+                  hint: '${supportRate.toStringAsFixed(2)}% of learners',
                   icon: Icons.flag_circle_rounded,
                   color: AppTheme.warning,
                 ),
@@ -188,6 +188,7 @@ class ReportsScreen extends ConsumerWidget {
                               .toList(),
                           maxY: 100,
                           percentageScale: true,
+                          valueDecimals: 2,
                         ),
                 ],
               ),
@@ -252,6 +253,7 @@ class ReportsScreen extends ConsumerWidget {
                               )
                               .toList(),
                           maxY: _leaderboardMax(topLeaderboard),
+                          valueDecimals: 2,
                         ),
                 ],
               ),
@@ -356,7 +358,7 @@ class ReportsScreen extends ConsumerWidget {
           xls.TextCellValue(_sanitizeExcelText(student.proficiency)),
         ]);
       }
-      final learnerHeaderRow = 3;
+      const learnerHeaderRow = 3;
       for (var col = 0; col < learnerHeader.length; col++) {
         sheet
                 .cell(
@@ -411,7 +413,16 @@ class _AreaPerformanceCard extends ConsumerStatefulWidget {
 }
 
 class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
-  DateTimeRange? _range;
+  late DateTime _startDate;
+  late DateTime _endDate;
+
+  @override
+  void initState() {
+    super.initState();
+    final now = DateTime.now();
+    _startDate = DateTime(now.year, now.month, 1);
+    _endDate = DateTime(now.year, now.month, now.day);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -454,12 +465,17 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
             runSpacing: 10,
             children: [
               OutlinedButton.icon(
-                onPressed: _pickDateRange,
+                onPressed: _pickStartDate,
                 icon: const Icon(Icons.date_range_outlined, size: 16),
                 label: Text(
-                  _range == null
-                      ? 'Select date range'
-                      : '${DateFormat('yyyy-MM-dd').format(_range!.start)} to ${DateFormat('yyyy-MM-dd').format(_range!.end)}',
+                  'Start Date: ${DateFormat('yyyy-MM-dd').format(_startDate)}',
+                ),
+              ),
+              OutlinedButton.icon(
+                onPressed: _pickEndDate,
+                icon: const Icon(Icons.event_rounded, size: 16),
+                label: Text(
+                  'End Date: ${DateFormat('yyyy-MM-dd').format(_endDate)}',
                 ),
               ),
               FilledButton.tonalIcon(
@@ -494,16 +510,39 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
     );
   }
 
-  Future<void> _pickDateRange() async {
+  Future<void> _pickStartDate() async {
     final now = DateTime.now();
-    final picked = await showDateRangePicker(
+    final picked = await showDatePicker(
       context: context,
+      initialDate: _startDate,
       firstDate: DateTime(now.year - 5),
       lastDate: now,
-      initialDateRange: _range,
     );
     if (picked != null && mounted) {
-      setState(() => _range = picked);
+      setState(() {
+        _startDate = DateTime(picked.year, picked.month, picked.day);
+        if (_startDate.isAfter(_endDate)) {
+          _endDate = _startDate;
+        }
+      });
+    }
+  }
+
+  Future<void> _pickEndDate() async {
+    final now = DateTime.now();
+    final picked = await showDatePicker(
+      context: context,
+      initialDate: _endDate,
+      firstDate: DateTime(now.year - 5),
+      lastDate: now,
+    );
+    if (picked != null && mounted) {
+      setState(() {
+        _endDate = DateTime(picked.year, picked.month, picked.day);
+        if (_endDate.isBefore(_startDate)) {
+          _startDate = _endDate;
+        }
+      });
     }
   }
 
@@ -555,7 +594,9 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
       );
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Area leaderboard spreadsheets downloaded.')),
+        const SnackBar(
+          content: Text('Area leaderboard spreadsheets downloaded.'),
+        ),
       );
     } catch (error) {
       if (!mounted) return;
@@ -566,6 +607,17 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
   }
 
   Future<void> _openAreaDrilldown(String area) async {
+    if (area.trim().toLowerCase() == 'unspecified area') {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Please wait until the popup arrives for the areas within Sauyo.',
+          ),
+        ),
+      );
+      return;
+    }
+
     final areaStudents = widget.students
         .where(
           (s) =>
@@ -581,8 +633,11 @@ class _AreaPerformanceCardState extends ConsumerState<_AreaPerformanceCard> {
     if (!mounted) return;
     showDialog<void>(
       context: context,
-      builder: (_) =>
-          _AreaDrilldownDialog(area: area, details: details, range: _range),
+      builder: (_) => _AreaDrilldownDialog(
+        area: area,
+        details: details,
+        range: DateTimeRange(start: _startDate, end: _endDate),
+      ),
     );
   }
 }
@@ -643,7 +698,7 @@ class _AreaDrilldownDialog extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 6),
-              Text(
+              const Text(
                 'Visit comparison, learner sessions, unlocked progress, and profile shortcuts.',
               ),
               const SizedBox(height: 14),
@@ -748,9 +803,7 @@ class _PrioritySupportQueueState extends State<_PrioritySupportQueue> {
 
     final total = widget.items.length;
     final totalPages = ((total + _pageSize - 1) ~/ _pageSize).clamp(1, 1000000);
-    final page = _page < 1
-        ? 1
-        : (_page > totalPages ? totalPages : _page);
+    final page = _page < 1 ? 1 : (_page > totalPages ? totalPages : _page);
     if (_page != page) _page = page;
 
     final start = (page - 1) * _pageSize;
@@ -838,9 +891,7 @@ class _LeaderboardDetailsCardState extends State<_LeaderboardDetailsCard> {
 
     final total = widget.entries.length;
     final totalPages = ((total + _pageSize - 1) ~/ _pageSize).clamp(1, 1000000);
-    final page = _page < 1
-        ? 1
-        : (_page > totalPages ? totalPages : _page);
+    final page = _page < 1 ? 1 : (_page > totalPages ? totalPages : _page);
     if (_page != page) _page = page;
     final start = (page - 1) * _pageSize;
     final end = (start + _pageSize > total) ? total : start + _pageSize;
@@ -957,7 +1008,7 @@ class _LeaderboardDetailsTable extends StatelessWidget {
                 Expanded(flex: 2, child: Text(entry.gradelvl)),
                 Expanded(
                   flex: 2,
-                  child: Text(entry.totalScore.toStringAsFixed(1)),
+                  child: Text(entry.totalScore.toStringAsFixed(2)),
                 ),
                 Expanded(flex: 1, child: Text('${entry.sessions}')),
               ],
@@ -1093,7 +1144,7 @@ List<_StudentSupportItem> _buildSupportList(List<Student> students) {
         if (_hasSupportNeed(proficiency)) reasons.add('Proficiency tag');
         if (student.avgScore < kFivePointOnTrackThreshold) {
           reasons.add(
-            'Avg < ${kFivePointOnTrackThreshold.toStringAsFixed(1)}/5',
+            'Avg < ${kFivePointOnTrackThreshold.toStringAsFixed(2)}/5',
           );
         }
         if (student.totalSessions < 8) reasons.add('Low sessions');
@@ -1161,7 +1212,7 @@ int _priorityWeight(String priority) {
 String _formatSessionsPerStudent(int totalSessions, int totalStudents) {
   if (totalStudents <= 0) return 'No active students';
   final average = totalSessions / totalStudents;
-  return '${average.toStringAsFixed(1)} sessions per learner';
+  return '${average.toStringAsFixed(2)} sessions per learner';
 }
 
 List<ChartSegment> _buildProficiencySegments(List<Student> students) {

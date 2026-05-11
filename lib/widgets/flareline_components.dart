@@ -20,15 +20,17 @@ class FlarePageHeader extends StatelessWidget {
       builder: (context, constraints) {
         final compact = constraints.maxWidth < 960;
         final titleStyle = compact
-            ? Theme.of(context).textTheme.titleLarge?.copyWith(
-                  fontWeight: FontWeight.w800,
-                )
+            ? Theme.of(
+                context,
+              ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w800)
             : Theme.of(context).textTheme.headlineSmall;
         final subtitleStyle = compact
             ? Theme.of(context).textTheme.bodySmall?.copyWith(fontSize: 12)
             : Theme.of(context).textTheme.bodySmall;
         final titleBlock = ConstrainedBox(
-          constraints: BoxConstraints(maxWidth: compact ? constraints.maxWidth : 740),
+          constraints: BoxConstraints(
+            maxWidth: compact ? constraints.maxWidth : 740,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -53,7 +55,10 @@ class FlarePageHeader extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               titleBlock,
-              if (actionsWrap != null) ...[const SizedBox(height: 12), actionsWrap],
+              if (actionsWrap != null) ...[
+                const SizedBox(height: 12),
+                actionsWrap,
+              ],
             ],
           );
         }
@@ -64,7 +69,9 @@ class FlarePageHeader extends StatelessWidget {
             Expanded(child: titleBlock),
             if (actionsWrap != null) ...[
               const SizedBox(width: 12),
-              Flexible(child: Align(alignment: Alignment.topRight, child: actionsWrap)),
+              Flexible(
+                child: Align(alignment: Alignment.topRight, child: actionsWrap),
+              ),
             ],
           ],
         );
@@ -230,7 +237,10 @@ class FlareMetricTile extends StatelessWidget {
         child: InkWell(
           onTap: onTap,
           borderRadius: BorderRadius.circular(18),
-          child: FlareSurfaceCard(padding: const EdgeInsets.all(18), child: body),
+          child: FlareSurfaceCard(
+            padding: const EdgeInsets.all(18),
+            child: body,
+          ),
         ),
       ),
     );

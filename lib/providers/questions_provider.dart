@@ -81,7 +81,9 @@ final questionsProvider = FutureProvider<QuestionPage>((ref) async {
       sortOrder: filter.sortOrder,
     );
     final total = questions.length;
-    final totalPages = total == 0 ? 1 : ((total + filter.limit - 1) ~/ filter.limit);
+    final totalPages = total == 0
+        ? 1
+        : ((total + filter.limit - 1) ~/ filter.limit);
     final safePage = filter.page > totalPages ? totalPages : filter.page;
     final start = (safePage - 1) * filter.limit;
     final pageItems = questions.skip(start).take(filter.limit).toList();
@@ -103,7 +105,9 @@ final questionsProvider = FutureProvider<QuestionPage>((ref) async {
 QuestionPage _localPage(List<Question> source, QuestionFilter filter) {
   final filtered = _applyLocalFilters(source, filter);
   final total = filtered.length;
-  final totalPages = total == 0 ? 1 : ((total + filter.limit - 1) ~/ filter.limit);
+  final totalPages = total == 0
+      ? 1
+      : ((total + filter.limit - 1) ~/ filter.limit);
   final safePage = filter.page > totalPages ? totalPages : filter.page;
   final start = (safePage - 1) * filter.limit;
   final pageItems = filtered.skip(start).take(filter.limit).toList();
@@ -116,14 +120,16 @@ QuestionPage _localPage(List<Question> source, QuestionFilter filter) {
   );
 }
 
-List<Question> _applyLocalFilters(List<Question> source, QuestionFilter filter) {
+List<Question> _applyLocalFilters(
+  List<Question> source,
+  QuestionFilter filter,
+) {
   final needle = filter.searchQuery.trim().toLowerCase();
   final filtered = source.where((question) {
     if (filter.subjectId != null && question.subjectId != filter.subjectId) {
       return false;
     }
-    if (filter.gradelvlId != null &&
-        question.gradelvlId != filter.gradelvlId) {
+    if (filter.gradelvlId != null && question.gradelvlId != filter.gradelvlId) {
       return false;
     }
     if (filter.diffId != null && question.diffId != filter.diffId) {
@@ -236,7 +242,10 @@ int _compareQuestionDateAsc(
   Question b, {
   required bool preferUpdatedFallback,
 }) {
-  final left = _resolveQuestionDate(a, preferUpdatedFallback: preferUpdatedFallback);
+  final left = _resolveQuestionDate(
+    a,
+    preferUpdatedFallback: preferUpdatedFallback,
+  );
   final right = _resolveQuestionDate(
     b,
     preferUpdatedFallback: preferUpdatedFallback,
@@ -251,7 +260,10 @@ int _compareQuestionDateDesc(
   Question b, {
   required bool preferUpdatedFallback,
 }) {
-  final left = _resolveQuestionDate(a, preferUpdatedFallback: preferUpdatedFallback);
+  final left = _resolveQuestionDate(
+    a,
+    preferUpdatedFallback: preferUpdatedFallback,
+  );
   final right = _resolveQuestionDate(
     b,
     preferUpdatedFallback: preferUpdatedFallback,
@@ -296,19 +308,13 @@ Future<List<Question>> _fetchAllRowsForFilter(QuestionFilter filter) async {
   var totalPages = 1;
 
   do {
-    final params = <String, dynamic>{
-      'page': page,
-      'limit': perPage,
-    };
+    final params = <String, dynamic>{'page': page, 'limit': perPage};
     if (filter.subjectId != null) params['subject_id'] = filter.subjectId;
     if (filter.gradelvlId != null) params['gradelvl_id'] = filter.gradelvlId;
     if (filter.diffId != null) params['diff_id'] = filter.diffId;
     if (!filter.showInactive) params['is_active'] = 1;
 
-    final resp = await dio.get(
-      ApiConstants.questions,
-      queryParameters: params,
-    );
+    final resp = await dio.get(ApiConstants.questions, queryParameters: params);
     final pageData = QuestionPage.fromJson(resp.data as Map<String, dynamic>);
     for (final question in pageData.questions) {
       if (seenQuestionIds.add(question.questionId)) {

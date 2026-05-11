@@ -14,12 +14,12 @@ class Device {
   });
 
   factory Device.fromJson(Map<String, dynamic> j) => Device(
-        deviceUuid: j['device_uuid'] as String? ?? '',
-        deviceName: j['device_name'] as String? ?? 'Unknown Device',
-        registeredAt: j['registered_at'] as String? ?? '',
-        lastSyncedAt: j['last_synced_at'] as String?,
-        studentsOnDevice: j['students_on_device'] as int? ?? 0,
-      );
+    deviceUuid: j['device_uuid'] as String? ?? '',
+    deviceName: j['device_name'] as String? ?? 'Unknown Device',
+    registeredAt: j['registered_at'] as String? ?? '',
+    lastSyncedAt: j['last_synced_at'] as String?,
+    studentsOnDevice: j['students_on_device'] as int? ?? 0,
+  );
 
   bool get hasSynced => lastSyncedAt != null && lastSyncedAt!.isNotEmpty;
 }

@@ -10,10 +10,7 @@ Future<void> downloadCsvFile({
       ? filename
       : '$filename.csv';
   final bytes = <int>[0xEF, 0xBB, 0xBF, ...utf8.encode(csvContent)];
-  final blob = html.Blob(
-    [Uint8List.fromList(bytes)],
-    'text/csv;charset=utf-8',
-  );
+  final blob = html.Blob([Uint8List.fromList(bytes)], 'text/csv;charset=utf-8');
   final url = html.Url.createObjectUrlFromBlob(blob);
 
   final anchor = html.AnchorElement(href: url)

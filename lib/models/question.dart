@@ -50,16 +50,14 @@ class Question {
     final updatedRaw = _readString(j['updated_date'], j['updated_at']);
 
     final createdDate = _extractDatePart(createdRaw);
-    final createdTime =
-        _readString(j['created_time']).isNotEmpty
-            ? _readString(j['created_time'])
-            : _extractTimePart(createdRaw);
+    final createdTime = _readString(j['created_time']).isNotEmpty
+        ? _readString(j['created_time'])
+        : _extractTimePart(createdRaw);
 
     final updatedDate = _extractDatePart(updatedRaw);
-    final updatedTime =
-        _readString(j['updated_time']).isNotEmpty
-            ? _readString(j['updated_time'])
-            : _extractTimePart(updatedRaw);
+    final updatedTime = _readString(j['updated_time']).isNotEmpty
+        ? _readString(j['updated_time'])
+        : _extractTimePart(updatedRaw);
 
     return Question(
       questionId: _readInt(j['question_id']) ?? 0,

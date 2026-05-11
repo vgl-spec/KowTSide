@@ -64,32 +64,13 @@ class Student {
     final age = _readInt(j['age']) ?? 0;
     final avgScore = normalizeAverageScore(_readDouble(j['avg_score']) ?? 0.0);
     final profile = _readMap(j['profile']);
-    final source = <String, dynamic>{
-      ...j,
-      if (profile.isNotEmpty) ...profile,
-    };
+    final source = <String, dynamic>{...j, if (profile.isNotEmpty) ...profile};
     return Student(
       studId: parseStudentId(source['stud_id'] ?? source['studId']) ?? 0,
       nickname: source['nickname'] as String? ?? '',
       firstName: source['first_name'] as String? ?? '',
       lastName: source['last_name'] as String? ?? '',
-      area: _readStringByKeys(
-        source,
-        const [
-          'area',
-          'AREA',
-          'area_name',
-          'AREA_NAME',
-          'address',
-          'ADDRESS',
-          'residence',
-          'RESIDENCE',
-          'barangay',
-          'BARANGAY',
-          'barangay_nm',
-          'BARANGAY_NM',
-        ],
-      ),
+      area: _readArea(source),
       birthday: _dateOnly(source['birthday']),
       age: age,
       gradelvl: _normalizeGradeLevelLabel(source['gradelvl'], age: age),
@@ -312,10 +293,8 @@ class ScoreRecord {
     required this.playedAt,
   });
 
-  double get normalizedScore => normalizeScoreValue(
-    score,
-    sourceMax: totalItems.toDouble(),
-  );
+  double get normalizedScore =>
+      normalizeScoreValue(score, sourceMax: totalItems.toDouble());
 
   factory ScoreRecord.fromJson(Map<String, dynamic> j) => ScoreRecord(
     subject: j['subject'] as String? ?? '',
@@ -416,6 +395,53 @@ String _readStringByKeys(Map<String, dynamic> source, List<String> keys) {
     if (raw == null) continue;
     final text = raw.toString().trim();
     if (text.isNotEmpty) return text;
+  }
+  return '';
+}
+
+String _readArea(Map<String, dynamic> source) {
+  final direct = _readStringByKeys(source, const [
+    'area',
+    'AREA',
+    'area_name',
+    'AREA_NAME',
+    'assigned_area',
+    'ASSIGNED_AREA',
+    'residence',
+    'RESIDENCE',
+    'barangay',
+    'BARANGAY',
+    'barangay_nm',
+    'BARANGAY_NM',
+  ]);
+  if (direct.isNotEmpty) return direct;
+
+  final nestedKeys = const [
+    'address',
+    'ADDRESS',
+    'location',
+    'LOCATION',
+    'profile',
+    'PROFILE',
+  ];
+  for (final key in nestedKeys) {
+    final nested = _readMap(source[key]);
+    if (nested.isEmpty) continue;
+    final nestedArea = _readStringByKeys(nested, const [
+      'area',
+      'AREA',
+      'area_name',
+      'AREA_NAME',
+      'assigned_area',
+      'ASSIGNED_AREA',
+      'residence',
+      'RESIDENCE',
+      'barangay',
+      'BARANGAY',
+      'barangay_nm',
+      'BARANGAY_NM',
+    ]);
+    if (nestedArea.isNotEmpty) return nestedArea;
   }
   return '';
 }

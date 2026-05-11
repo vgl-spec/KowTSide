@@ -196,10 +196,10 @@ class _AppShellState extends ConsumerState<AppShell> {
                                 onPressed: _isQuickActionCoolingDown('theme')
                                     ? null
                                     : () => _runQuickAction('theme', () {
-                                      ref
-                                          .read(themeModeProvider.notifier)
-                                          .toggleThemeMode();
-                                    }),
+                                        ref
+                                            .read(themeModeProvider.notifier)
+                                            .toggleThemeMode();
+                                      }),
                               ),
                               IconButton(
                                 tooltip: 'Teacher guide',

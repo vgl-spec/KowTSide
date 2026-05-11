@@ -104,8 +104,11 @@ class DevicesScreen extends ConsumerWidget {
                     const Spacer(),
                     OutlinedButton.icon(
                       onPressed: devicePage.page > 1
-                          ? () => ref.read(devicesPageStateProvider.notifier).state =
-                                devicePage.page - 1
+                          ? () =>
+                                ref
+                                        .read(devicesPageStateProvider.notifier)
+                                        .state =
+                                    devicePage.page - 1
                           : null,
                       icon: const Icon(Icons.chevron_left_rounded, size: 18),
                       label: const Text('Previous'),
@@ -113,8 +116,11 @@ class DevicesScreen extends ConsumerWidget {
                     const SizedBox(width: 8),
                     OutlinedButton.icon(
                       onPressed: devicePage.page < devicePage.totalPages
-                          ? () => ref.read(devicesPageStateProvider.notifier).state =
-                                devicePage.page + 1
+                          ? () =>
+                                ref
+                                        .read(devicesPageStateProvider.notifier)
+                                        .state =
+                                    devicePage.page + 1
                           : null,
                       icon: const Icon(Icons.chevron_right_rounded, size: 18),
                       label: const Text('Next'),
@@ -181,7 +187,8 @@ class DevicesScreen extends ConsumerWidget {
                                               label: SizedBox(
                                                 width: 110,
                                                 child: Align(
-                                                  alignment: Alignment.centerRight,
+                                                  alignment:
+                                                      Alignment.centerRight,
                                                   child: Text('Students'),
                                                 ),
                                               ),
@@ -207,7 +214,9 @@ class DevicesScreen extends ConsumerWidget {
                                                               .tablet_android_outlined,
                                                           size: 18,
                                                         ),
-                                                        const SizedBox(width: 10),
+                                                        const SizedBox(
+                                                          width: 10,
+                                                        ),
                                                         Expanded(
                                                           child: Text(
                                                             device.deviceName,
@@ -216,9 +225,10 @@ class DevicesScreen extends ConsumerWidget {
                                                                     .ellipsis,
                                                             style:
                                                                 const TextStyle(
-                                                              fontWeight:
-                                                                  FontWeight.w700,
-                                                            ),
+                                                                  fontWeight:
+                                                                      FontWeight
+                                                                          .w700,
+                                                                ),
                                                           ),
                                                         ),
                                                       ],
@@ -253,7 +263,8 @@ class DevicesScreen extends ConsumerWidget {
                                                     child: Text(
                                                       synced
                                                           ? _formatTimestamp(
-                                                              device.lastSyncedAt,
+                                                              device
+                                                                  .lastSyncedAt,
                                                             )
                                                           : '-',
                                                     ),
@@ -288,14 +299,15 @@ class DevicesScreen extends ConsumerWidget {
                                                             backgroundColor:
                                                                 AppTheme.success
                                                                     .withValues(
-                                                                      alpha: 0.15,
+                                                                      alpha:
+                                                                          0.15,
                                                                     ),
                                                             labelStyle:
                                                                 const TextStyle(
-                                                              color:
-                                                                  AppTheme.success,
-                                                              fontSize: 12,
-                                                            ),
+                                                                  color: AppTheme
+                                                                      .success,
+                                                                  fontSize: 12,
+                                                                ),
                                                             padding:
                                                                 EdgeInsets.zero,
                                                           )
@@ -306,14 +318,15 @@ class DevicesScreen extends ConsumerWidget {
                                                             backgroundColor:
                                                                 AppTheme.warning
                                                                     .withValues(
-                                                                      alpha: 0.16,
+                                                                      alpha:
+                                                                          0.16,
                                                                     ),
                                                             labelStyle:
                                                                 const TextStyle(
-                                                              color:
-                                                                  AppTheme.warning,
-                                                              fontSize: 12,
-                                                            ),
+                                                                  color: AppTheme
+                                                                      .warning,
+                                                                  fontSize: 12,
+                                                                ),
                                                             padding:
                                                                 EdgeInsets.zero,
                                                           ),

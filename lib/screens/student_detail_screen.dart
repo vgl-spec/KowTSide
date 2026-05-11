@@ -143,12 +143,12 @@ class _DetailBodyState extends State<_DetailBody> {
       rowBuilder: (analyticsRow) => [
         Text(analyticsRow.subject),
         Text(analyticsRow.gradelvl),
-        Text(analyticsRow.lowestScore.toStringAsFixed(1)),
+        Text(analyticsRow.lowestScore.toStringAsFixed(2)),
         Text(
-          analyticsRow.averageScore.toStringAsFixed(1),
+          analyticsRow.averageScore.toStringAsFixed(2),
           style: const TextStyle(fontWeight: FontWeight.w700),
-        ),
-        Text(analyticsRow.highestScore.toStringAsFixed(1)),
+                analyticsRow.averageScore.toStringAsFixed(2),
+        Text(analyticsRow.highestScore.toStringAsFixed(2)),
         Text('${analyticsRow.totalAttempts}'),
       ],
     );
@@ -369,9 +369,7 @@ class _DetailBodyState extends State<_DetailBody> {
     }
 
     return grouped.entries.map((entry) {
-      final values = entry.value
-          .map((score) => score.normalizedScore)
-          .toList();
+      final values = entry.value.map((score) => score.normalizedScore).toList();
       final first = entry.value.first;
       final lowest = values.reduce((a, b) => a < b ? a : b);
       final highest = values.reduce((a, b) => a > b ? a : b);

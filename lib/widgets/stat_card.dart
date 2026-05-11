@@ -17,7 +17,7 @@ class StatCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final t = Theme.of(context);
-    
+
     return Card(
       // The CardTheme in theme.dart handles radius (16px) and surface color
       child: Padding(
@@ -32,8 +32,8 @@ class StatCard extends StatelessWidget {
                 Text(
                   title,
                   style: TextStyle(
-                     fontSize: 14,
-                     color: t.colorScheme.onSurfaceVariant,
+                    fontSize: 14,
+                    color: t.colorScheme.onSurfaceVariant,
                   ),
                 ),
                 const SizedBox(height: 8),

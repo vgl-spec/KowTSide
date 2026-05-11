@@ -32,16 +32,13 @@ class SyncLogRecord {
       json['status'] ?? json['raw_status'],
     );
     final usernameValue = _readString(
-      _pickValue(
-        json,
-        const [
-          'username',
-          'user_name',
-          'admin_username',
-          'teacher_username',
-          'actor_username',
-        ],
-      ),
+      _pickValue(json, const [
+        'username',
+        'user_name',
+        'admin_username',
+        'teacher_username',
+        'actor_username',
+      ]),
     );
 
     return SyncLogRecord(
@@ -136,15 +133,23 @@ class OracleDetails {
 
   factory OracleDetails.fromJson(Map<String, dynamic> json) {
     final poolMap = _readMap(json['pool']);
-    final dbTimeRaw =
-        _pickValue(json, const ['db_time', 'DB_TIME', 'dbTime', 'time']);
+    final dbTimeRaw = _pickValue(json, const [
+      'db_time',
+      'DB_TIME',
+      'dbTime',
+      'time',
+    ]);
     return OracleDetails(
       connected:
           json['connected'] == true ||
           (json['status'] as String?) == 'connected',
       responseMs:
           _readInt(
-            _pickValue(json, const ['response_ms', 'RESPONSE_MS', 'responseMs']),
+            _pickValue(json, const [
+              'response_ms',
+              'RESPONSE_MS',
+              'responseMs',
+            ]),
           ) ??
           0,
       dbTime: _readDateTime(dbTimeRaw),
@@ -175,20 +180,16 @@ class SystemRowCounts {
 
   factory SystemRowCounts.fromJson(Map<String, dynamic> json) {
     return SystemRowCounts(
-      students:
-          _readInt(_pickValue(json, const ['students', 'STUDENTS'])) ?? 0,
+      students: _readInt(_pickValue(json, const ['students', 'STUDENTS'])) ?? 0,
       scores: _readInt(_pickValue(json, const ['scores', 'SCORES'])) ?? 0,
       activeQuestions:
           _readInt(
-            _pickValue(
-              json,
-              const [
-                'active_questions',
-                'ACTIVE_QUESTIONS',
-                'questions',
-                'QUESTION_COUNT',
-              ],
-            ),
+            _pickValue(json, const [
+              'active_questions',
+              'ACTIVE_QUESTIONS',
+              'questions',
+              'QUESTION_COUNT',
+            ]),
           ) ??
           0,
       devices: _readInt(_pickValue(json, const ['devices', 'DEVICES'])) ?? 0,
@@ -306,26 +307,39 @@ class SystemHealthData {
       wsClients:
           _readInt(_pickValue(json, const ['ws_clients', 'wsClients'])) ?? 0,
       uptimeSeconds:
-          _readInt(_pickValue(json, const ['uptime_seconds', 'uptimeSeconds'])) ??
+          _readInt(
+            _pickValue(json, const ['uptime_seconds', 'uptimeSeconds']),
+          ) ??
           0,
       timestamp: _readDateTime(
-        _pickValue(
-              json,
-              const ['checked_at', 'checkedAt', 'timestamp', 'TIMESTAMP'],
-            ) ??
-            _pickValue(
-              oracleDetailsMap,
-              const ['db_time', 'DB_TIME', 'dbTime', 'time'],
-            ),
+        _pickValue(json, const [
+              'checked_at',
+              'checkedAt',
+              'timestamp',
+              'TIMESTAMP',
+            ]) ??
+            _pickValue(oracleDetailsMap, const [
+              'db_time',
+              'DB_TIME',
+              'dbTime',
+              'time',
+            ]),
       ),
       activeDevices:
-          _readInt(_pickValue(json, const ['active_devices', 'activeDevices'])) ??
+          _readInt(
+            _pickValue(json, const ['active_devices', 'activeDevices']),
+          ) ??
           _readInt(_pickValue(rowCountsMap, const ['devices', 'DEVICES'])) ??
           0,
       syncedDevices:
-          _readInt(_pickValue(json, const ['synced_devices', 'syncedDevices'])) ??
           _readInt(
-            _pickValue(rowCountsMap, const ['synced_devices', 'SYNCED_DEVICES']),
+            _pickValue(json, const ['synced_devices', 'syncedDevices']),
+          ) ??
+          _readInt(
+            _pickValue(rowCountsMap, const [
+              'synced_devices',
+              'SYNCED_DEVICES',
+            ]),
           ) ??
           0,
       rssBytes:

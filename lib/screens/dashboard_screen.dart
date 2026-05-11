@@ -152,7 +152,7 @@ class _DashboardViewState extends State<_DashboardView> {
               ),
               FlareMetricTile(
                 label: 'Average Score',
-                value: '${data.averageScore.toStringAsFixed(1)} / 5',
+                value: '${data.averageScore.toStringAsFixed(2)} / 5',
                 hint:
                     'Weighted mean across synced attempts on the 5-point scale',
                 icon: Icons.auto_graph_rounded,
@@ -228,7 +228,7 @@ class _DashboardViewState extends State<_DashboardView> {
                                 .toList(),
                             maxY: 100,
                             percentageScale: true,
-                            valueDecimals: 0,
+                            valueDecimals: 2,
                           ),
                   ),
                 ),
@@ -281,7 +281,7 @@ class _DashboardViewState extends State<_DashboardView> {
                           .toList(),
                       maxY: 100,
                       percentageScale: true,
-                      valueDecimals: 0,
+                      valueDecimals: 2,
                     ),
             ),
           ],
@@ -640,11 +640,8 @@ class _KpiGrid extends StatelessWidget {
           runSpacing: 12,
           children: children
               .map(
-                (child) => SizedBox(
-                  width: itemWidth,
-                  height: 210,
-                  child: child,
-                ),
+                (child) =>
+                    SizedBox(width: itemWidth, height: 210, child: child),
               )
               .toList(),
         );

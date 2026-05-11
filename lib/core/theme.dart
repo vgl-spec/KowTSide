@@ -66,7 +66,9 @@ class AppTheme {
       error: error,
       onError: Colors.white,
       surface: isDark ? AppColors.darkSurface : AppColors.lightSurface,
-      onSurface: isDark ? AppColors.darkTextPrimary : AppColors.lightTextPrimary,
+      onSurface: isDark
+          ? AppColors.darkTextPrimary
+          : AppColors.lightTextPrimary,
       onSurfaceVariant: isDark
           ? AppColors.darkTextSecondary
           : AppColors.lightTextSecondary,
@@ -87,7 +89,9 @@ class AppTheme {
       scaffoldBackgroundColor: isDark
           ? AppColors.darkBackground
           : AppColors.lightBackground,
-      canvasColor: isDark ? AppColors.darkBackground : AppColors.lightBackground,
+      canvasColor: isDark
+          ? AppColors.darkBackground
+          : AppColors.lightBackground,
       fontFamily: GoogleFonts.manrope().fontFamily,
       dividerColor: scheme.outline,
     );
@@ -176,29 +180,35 @@ class AppTheme {
           borderRadius: BorderRadius.circular(12),
           borderSide: BorderSide(color: scheme.primary, width: 1.4),
         ),
-        contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 13,
+        ),
       ),
       navigationBarTheme: NavigationBarThemeData(
-        backgroundColor: isDark ? AppColors.darkSidebar : AppColors.lightSurface,
+        backgroundColor: isDark
+            ? AppColors.darkSidebar
+            : AppColors.lightSurface,
         elevation: 0,
         indicatorColor: scheme.primary.withValues(alpha: 0.16),
         labelTextStyle: WidgetStatePropertyAll(
-          GoogleFonts.manrope(
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-          ),
+          GoogleFonts.manrope(fontSize: 12, fontWeight: FontWeight.w700),
         ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           minimumSize: const Size(0, 46),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
         ),
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           minimumSize: const Size(0, 42),
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
           side: BorderSide(color: scheme.outline.withValues(alpha: 0.9)),
         ),
       ),

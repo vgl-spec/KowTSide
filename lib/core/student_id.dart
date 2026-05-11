@@ -8,8 +8,10 @@ int? parseStudentId(Object? value) {
       return null;
     }
 
-    final canonicalMatch = RegExp(r'^STU-(\d+)$', caseSensitive: false)
-        .firstMatch(trimmed);
+    final canonicalMatch = RegExp(
+      r'^STU-(\d+)$',
+      caseSensitive: false,
+    ).firstMatch(trimmed);
     if (canonicalMatch != null) {
       return int.tryParse(canonicalMatch.group(1)!);
     }

@@ -178,9 +178,7 @@ class _LoginScreenState extends ConsumerState<LoginScreen> {
                                   ),
                                   const SizedBox(width: 10),
                                   const Expanded(
-                                    child: Text(
-                                      'Signing in... please wait.',
-                                    ),
+                                    child: Text('Signing in... please wait.'),
                                   ),
                                 ],
                               ),

@@ -24,10 +24,10 @@ class AdminUser {
   });
 
   String get fullName => [
-        firstName,
-        if (middleInitial.isNotEmpty) middleInitial,
-        lastName,
-      ].join(' ').replaceAll(RegExp(r'\s+'), ' ').trim();
+    firstName,
+    if (middleInitial.isNotEmpty) middleInitial,
+    lastName,
+  ].join(' ').replaceAll(RegExp(r'\s+'), ' ').trim();
 
   AdminUser copyWith({
     String? firstName,
@@ -63,7 +63,8 @@ class AdminUser {
       mustChangePassword:
           json['must_change_password'] == true ||
           _readInt(json['must_change_password']) == 1,
-      mfaEnabled: json['mfa_enabled'] == true || _readInt(json['mfa_enabled']) == 1,
+      mfaEnabled:
+          json['mfa_enabled'] == true || _readInt(json['mfa_enabled']) == 1,
     );
   }
 }

@@ -15,7 +15,9 @@ final devicesProvider = FutureProvider<DevicePage>((ref) async {
   if (ApiConstants.frontendOnly) {
     final devices = MockData.devices();
     final total = devices.length;
-    final totalPages = total == 0 ? 1 : ((total + _devicesPageSize - 1) ~/ _devicesPageSize);
+    final totalPages = total == 0
+        ? 1
+        : ((total + _devicesPageSize - 1) ~/ _devicesPageSize);
     final safePage = page > totalPages ? totalPages : page;
     final start = (safePage - 1) * _devicesPageSize;
     final pageItems = devices.skip(start).take(_devicesPageSize).toList();

@@ -69,8 +69,8 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
     final totalCount = syncLogs?.records.length ?? 0;
     final compact = MediaQuery.of(context).size.width < 980;
     final totalPages = records.isEmpty
-      ? 1
-      : ((records.length + _rowsPerPage - 1) ~/ _rowsPerPage);
+        ? 1
+        : ((records.length + _rowsPerPage - 1) ~/ _rowsPerPage);
     final safePage = _page > totalPages ? totalPages : _page;
     final startIndex = (safePage - 1) * _rowsPerPage;
     final pageRecords = records.skip(startIndex).take(_rowsPerPage).toList();
@@ -87,14 +87,15 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
           children: [
             FlarePageHeader(
               title: 'Sync Logs',
-              subtitle: 'Review device sync transactions and delivery outcomes.',
+              subtitle:
+                  'Review device sync transactions and delivery outcomes.',
               actions: [
                 FilledButton.tonalIcon(
                   onPressed: () {
                     ref.invalidate(syncLogsProvider);
-                    ScaffoldMessenger.of(
-                      context,
-                    ).showSnackBar(const SnackBar(content: Text('You are UpToDate')));
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('You are UpToDate')),
+                    );
                   },
                   icon: const Icon(Icons.refresh, size: 18),
                   label: const Text('Refresh Logs'),
@@ -131,7 +132,7 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
               children: [
                 _MiniStatCard(
                   title: 'Success Rate',
-                  value: '${successRate.toStringAsFixed(1)}%',
+                  value: '${successRate.toStringAsFixed(2)}%',
                   subtitle: 'Derived from recent sync batches',
                   icon: Icons.timeline_rounded,
                   color: AppTheme.accent,
@@ -360,7 +361,9 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                                         SizedBox(
                                           width: 190,
                                           child: Text(
-                                            _viewMode == _SyncLogsViewMode.groupedByDevice
+                                            _viewMode ==
+                                                    _SyncLogsViewMode
+                                                        .groupedByDevice
                                                 ? 'All events'
                                                 : record.eventType,
                                             overflow: TextOverflow.ellipsis,
@@ -414,10 +417,10 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                                           width: 320,
                                           child: Text(
                                             (record.errorMessage ??
-                                                    record.errorPayload ??
-                                                    '')
-                                                .trim()
-                                                .isEmpty
+                                                        record.errorPayload ??
+                                                        '')
+                                                    .trim()
+                                                    .isEmpty
                                                 ? '-'
                                                 : (record.errorMessage ??
                                                       record.errorPayload ??
@@ -438,7 +441,8 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                                           child: _buildExpandAction(
                                             record: record,
                                             rawRecords: rawRecords,
-                                            actorEventRecords: actorEventRecords,
+                                            actorEventRecords:
+                                                actorEventRecords,
                                           ),
                                         ),
                                       ),
@@ -489,30 +493,37 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
       grouped.putIfAbsent(key, () => <SyncLogRecord>[]).add(record);
     }
 
-    final merged = grouped.values.map((rows) {
-      rows.sort(
-        (a, b) => (b.syncedAt ?? DateTime(1970)).compareTo(a.syncedAt ?? DateTime(1970)),
-      );
-      final latest = rows.first;
-      final totalStudents = rows.fold<int>(0, (sum, row) => sum + row.studentsSynced);
-      return SyncLogRecord(
-        deviceUuid: latest.deviceUuid,
-        deviceName: latest.deviceName,
-        username: latest.username,
-        eventType: latest.eventType,
-        status: latest.status,
-        rawStatus: latest.rawStatus,
-        studId: latest.studId,
-        syncedAt: latest.syncedAt,
-        studentsSynced: totalStudents,
-        eventCount: rows.length,
-        errorPayload: latest.errorPayload,
-        errorMessage: latest.errorMessage,
-      );
-    }).toList()
-      ..sort(
-        (a, b) => (b.syncedAt ?? DateTime(1970)).compareTo(a.syncedAt ?? DateTime(1970)),
-      );
+    final merged =
+        grouped.values.map((rows) {
+          rows.sort(
+            (a, b) => (b.syncedAt ?? DateTime(1970)).compareTo(
+              a.syncedAt ?? DateTime(1970),
+            ),
+          );
+          final latest = rows.first;
+          final totalStudents = rows.fold<int>(
+            0,
+            (sum, row) => sum + row.studentsSynced,
+          );
+          return SyncLogRecord(
+            deviceUuid: latest.deviceUuid,
+            deviceName: latest.deviceName,
+            username: latest.username,
+            eventType: latest.eventType,
+            status: latest.status,
+            rawStatus: latest.rawStatus,
+            studId: latest.studId,
+            syncedAt: latest.syncedAt,
+            studentsSynced: totalStudents,
+            eventCount: rows.length,
+            errorPayload: latest.errorPayload,
+            errorMessage: latest.errorMessage,
+          );
+        }).toList()..sort(
+          (a, b) => (b.syncedAt ?? DateTime(1970)).compareTo(
+            a.syncedAt ?? DateTime(1970),
+          ),
+        );
 
     return merged;
   }
@@ -524,30 +535,37 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
       grouped.putIfAbsent(key, () => <SyncLogRecord>[]).add(record);
     }
 
-    final merged = grouped.values.map((rows) {
-      rows.sort(
-        (a, b) => (b.syncedAt ?? DateTime(1970)).compareTo(a.syncedAt ?? DateTime(1970)),
-      );
-      final latest = rows.first;
-      final totalStudents = rows.fold<int>(0, (sum, row) => sum + row.studentsSynced);
-      return SyncLogRecord(
-        deviceUuid: latest.deviceUuid,
-        deviceName: latest.deviceName,
-        username: 'Multiple users',
-        eventType: 'multiple_events',
-        status: latest.status,
-        rawStatus: latest.rawStatus,
-        studId: latest.studId,
-        syncedAt: latest.syncedAt,
-        studentsSynced: totalStudents,
-        eventCount: rows.length,
-        errorPayload: latest.errorPayload,
-        errorMessage: latest.errorMessage,
-      );
-    }).toList()
-      ..sort(
-        (a, b) => (b.syncedAt ?? DateTime(1970)).compareTo(a.syncedAt ?? DateTime(1970)),
-      );
+    final merged =
+        grouped.values.map((rows) {
+          rows.sort(
+            (a, b) => (b.syncedAt ?? DateTime(1970)).compareTo(
+              a.syncedAt ?? DateTime(1970),
+            ),
+          );
+          final latest = rows.first;
+          final totalStudents = rows.fold<int>(
+            0,
+            (sum, row) => sum + row.studentsSynced,
+          );
+          return SyncLogRecord(
+            deviceUuid: latest.deviceUuid,
+            deviceName: latest.deviceName,
+            username: 'Multiple users',
+            eventType: 'multiple_events',
+            status: latest.status,
+            rawStatus: latest.rawStatus,
+            studId: latest.studId,
+            syncedAt: latest.syncedAt,
+            studentsSynced: totalStudents,
+            eventCount: rows.length,
+            errorPayload: latest.errorPayload,
+            errorMessage: latest.errorMessage,
+          );
+        }).toList()..sort(
+          (a, b) => (b.syncedAt ?? DateTime(1970)).compareTo(
+            a.syncedAt ?? DateTime(1970),
+          ),
+        );
 
     return merged;
   }
@@ -581,7 +599,10 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
     );
   }
 
-  Future<void> _showRecordsDialog(String title, List<SyncLogRecord> rows) async {
+  Future<void> _showRecordsDialog(
+    String title,
+    List<SyncLogRecord> rows,
+  ) async {
     await showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(
@@ -610,7 +631,9 @@ class _SyncLogsScreenState extends ConsumerState<SyncLogsScreen> {
                               DataCell(Text(row.deviceName)),
                               DataCell(Text(row.username)),
                               DataCell(Text(row.eventType)),
-                              DataCell(Text(_formatManilaTimestamp(row.syncedAt))),
+                              DataCell(
+                                Text(_formatManilaTimestamp(row.syncedAt)),
+                              ),
                               DataCell(Text('${row.studentsSynced}')),
                               DataCell(_StatusPill(status: row.status)),
                             ],
@@ -688,7 +711,9 @@ class _SyncLogPaginationBar extends StatelessWidget {
               ),
             ),
             IconButton(
-              onPressed: page < totalPages ? () => onPageSelected(page + 1) : null,
+              onPressed: page < totalPages
+                  ? () => onPageSelected(page + 1)
+                  : null,
               icon: const Icon(Icons.chevron_right),
             ),
           ],

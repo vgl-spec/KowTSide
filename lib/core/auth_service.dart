@@ -63,7 +63,9 @@ class AuthService {
     } on DioException catch (e) {
       final status = e.response?.statusCode;
       if (status == 401 || status == 403) {
-        return const AuthResult.fail('Username or password is incorrect. Please try again.');
+        return const AuthResult.fail(
+          'Username or password is incorrect. Please try again.',
+        );
       }
       if (e.type == DioExceptionType.connectionError ||
           e.type == DioExceptionType.connectionTimeout ||
@@ -83,7 +85,9 @@ class AuthService {
           normalized.contains('incorrect password') ||
           normalized.contains('invalid username') ||
           normalized.contains('invalid login')) {
-        return const AuthResult.fail('Username or password is incorrect. Please try again.');
+        return const AuthResult.fail(
+          'Username or password is incorrect. Please try again.',
+        );
       }
       return AuthResult.fail(msg ?? 'Login failed. Check credentials.');
     } catch (_) {

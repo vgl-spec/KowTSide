@@ -133,6 +133,9 @@ class _StudentsViewState extends State<_StudentsView> {
     final maxPage = filtered.isEmpty
         ? 0
         : ((filtered.length - 1) / _rowsPerPage).floor();
+    if (_page < 0) {
+      _page = 0;
+    }
     if (_page > maxPage) {
       _page = maxPage;
     }
@@ -140,7 +143,8 @@ class _StudentsViewState extends State<_StudentsView> {
         widget.students
             .where(
               (student) =>
-                  student.totalSessions > 0 && student.proficiency != 'Excelling',
+                  student.totalSessions > 0 &&
+                  student.proficiency != 'Excelling',
             )
             .toList()
           ..sort((a, b) {
@@ -330,7 +334,9 @@ class _StudentsViewState extends State<_StudentsView> {
                   const SizedBox(width: 12),
                   FilledButton.tonalIcon(
                     onPressed: _selectedStudentIds.length == 1
-                        ? () => context.go('/students/${_selectedStudentIds.first}')
+                        ? () => context.go(
+                            '/students/${_selectedStudentIds.first}',
+                          )
                         : null,
                     icon: const Icon(Icons.visibility_rounded, size: 16),
                     label: const Text('View Selected'),
@@ -350,7 +356,8 @@ class _StudentsViewState extends State<_StudentsView> {
                   ),
                   const SizedBox(width: 8),
                   OutlinedButton.icon(
-                    onPressed: () => setState(() => _selectedStudentIds.clear()),
+                    onPressed: () =>
+                        setState(() => _selectedStudentIds.clear()),
                     icon: const Icon(Icons.close_rounded, size: 16),
                     label: const Text('Clear Selected'),
                   ),
@@ -367,6 +374,12 @@ class _StudentsViewState extends State<_StudentsView> {
     final maxPage = students.isEmpty
         ? 0
         : ((students.length - 1) / _rowsPerPage).floor();
+    if (_page < 0) {
+      _page = 0;
+    }
+    if (_page > maxPage) {
+      _page = maxPage;
+    }
     final pageItems = students.skip(_page * _rowsPerPage).take(_rowsPerPage);
 
     return students.isEmpty
@@ -418,9 +431,13 @@ class _StudentsViewState extends State<_StudentsView> {
                                         final isSelected = checked ?? false;
                                         setState(() {
                                           if (isSelected) {
-                                            _selectedStudentIds.add(student.studId);
+                                            _selectedStudentIds.add(
+                                              student.studId,
+                                            );
                                           } else {
-                                            _selectedStudentIds.remove(student.studId);
+                                            _selectedStudentIds.remove(
+                                              student.studId,
+                                            );
                                           }
                                         });
                                       }
@@ -466,7 +483,7 @@ class _StudentsViewState extends State<_StudentsView> {
                                   DataCell(Text('${student.totalSessions}')),
                                   DataCell(
                                     Text(
-                                      student.avgScore.toStringAsFixed(1),
+                                      student.avgScore.toStringAsFixed(2),
                                       style: const TextStyle(
                                         fontWeight: FontWeight.w600,
                                       ),
@@ -588,7 +605,8 @@ class _StudentsViewState extends State<_StudentsView> {
 
   void _handleRefresh() {
     final now = DateTime.now();
-    final shouldPrompt = _lastRefreshAt == null ||
+    final shouldPrompt =
+        _lastRefreshAt == null ||
         now.difference(_lastRefreshAt!).inSeconds >= 2;
     _lastRefreshAt = now;
     widget.onRefresh();
@@ -669,6 +687,9 @@ class _SupportPanelPagedState extends State<_SupportPanelPaged> {
   Widget build(BuildContext context) {
     final total = widget.students.length;
     final maxPage = total == 0 ? 0 : ((total - 1) / _rowsPerPage).floor();
+    if (_page < 0) {
+      _page = 0;
+    }
     if (_page > maxPage) {
       _page = maxPage;
     }
@@ -719,7 +740,7 @@ class _SupportPanelPagedState extends State<_SupportPanelPaged> {
                         ),
                         title: Text(student.fullName),
                         subtitle: Text(
-                          '${student.gradelvl} • ${student.avgScore.toStringAsFixed(1)}/5 average',
+                          '${student.gradelvl} • ${student.avgScore.toStringAsFixed(2)}/5 average',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
                         ),
@@ -845,10 +866,7 @@ class _ProficiencyChip extends StatelessWidget {
   final String proficiency;
   final bool hasPlayed;
 
-  const _ProficiencyChip({
-    required this.proficiency,
-    required this.hasPlayed,
-  });
+  const _ProficiencyChip({required this.proficiency, required this.hasPlayed});
 
   @override
   Widget build(BuildContext context) {
