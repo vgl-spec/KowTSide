@@ -67,7 +67,8 @@ class _ArchiveScreenState extends ConsumerState<ArchiveScreen> {
       );
 
       ref.invalidate(studentsProvider);
-      ref.read(adminUsersProvider.notifier).load();
+      await ref.read(adminUsersProvider.notifier).load();
+      await ref.read(studentsProvider.future);
       ref.invalidate(questionsProvider);
       ref.invalidate(allQuestionsProvider);
       await _loadEvents();
