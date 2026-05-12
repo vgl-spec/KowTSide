@@ -80,28 +80,18 @@ class AdminUsersNotifier extends StateNotifier<AsyncValue<List<AdminUser>>> {
       return;
     }
 
-    try {
-      await dio.post(
-        ApiConstants.teacherUsers,
-        data: {
-          'username': username,
-          'password': password,
-          'first_name': firstName,
-          'middle_initial': middleInitial,
-          'last_name': lastName,
-          'role': normalizedRole,
-        },
-      );
-      await load();
-    } catch (_) {
-      _registerLocalUser(
-        username: username,
-        firstName: firstName,
-        middleInitial: middleInitial,
-        lastName: lastName,
-        role: normalizedRole,
-      );
-    }
+    await dio.post(
+      ApiConstants.teacherUsers,
+      data: {
+        'username': username,
+        'password': password,
+        'first_name': firstName,
+        'middle_initial': middleInitial,
+        'last_name': lastName,
+        'role': normalizedRole,
+      },
+    );
+    await load();
   }
 
   Future<void> registerAdmin({
@@ -255,20 +245,10 @@ class AdminUsersNotifier extends StateNotifier<AsyncValue<List<AdminUser>>> {
       return;
     }
 
-    try {
-      await dio.patch(
-        ApiConstants.teacherStatus(user.adminId),
-        data: {'is_active': isActive ? 1 : 0},
-      );
-      await load();
-    } catch (_) {
-      final index = _demoUsers.indexWhere(
-        (item) => item.adminId == user.adminId,
-      );
-      if (index >= 0) {
-        _demoUsers[index] = _demoUsers[index].copyWith(isActive: isActive);
-        state = AsyncValue.data(List<AdminUser>.from(_demoUsers));
-      }
-    }
+    await dio.patch(
+      ApiConstants.teacherStatus(user.adminId),
+      data: {'is_active': isActive ? 1 : 0},
+    );
+    await load();
   }
 }

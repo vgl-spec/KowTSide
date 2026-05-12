@@ -39,7 +39,9 @@ class UserbaseScreen extends ConsumerWidget {
       );
     }
 
-    final admins = adminAsync.value ?? const <AdminUser>[];
+    final admins = (adminAsync.value ?? const <AdminUser>[])
+        .where((user) => user.isActive)
+        .toList(growable: false);
     final students = studentsAsync.value ?? const <Student>[];
     final entries = <_UserbaseEntry>[
       ...admins.map(_UserbaseEntry.admin),
@@ -1000,9 +1002,7 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
                     controller: _password,
                     obscureText: true,
                     decoration: const InputDecoration(labelText: 'Password'),
-                    validator: (value) => value == null || value.length < 12
-                        ? 'Use at least 12 characters.'
-                        : null,
+                    validator: _validateAccountPassword,
                   ),
                 ],
               ],
@@ -1196,6 +1196,31 @@ class _TeacherFormDialogState extends ConsumerState<_TeacherFormDialog> {
       }
     }
   }
+
+  String? _validateAccountPassword(String? value) {
+    final password = value ?? '';
+    final username = _username.text.trim().toLowerCase();
+    if (password.length < 12) {
+      return 'Use at least 12 characters.';
+    }
+    if (password.length > 128) {
+      return 'Use 128 characters or fewer.';
+    }
+    if (username.isNotEmpty && password.toLowerCase().contains(username)) {
+      return 'Password must not contain the username.';
+    }
+
+    final groups = <bool>[
+      RegExp(r'[a-z]').hasMatch(password),
+      RegExp(r'[A-Z]').hasMatch(password),
+      RegExp(r'\d').hasMatch(password),
+      RegExp(r'[^A-Za-z0-9]').hasMatch(password),
+    ].where((matched) => matched).length;
+    if (groups < 3) {
+      return 'Use at least three: lowercase, uppercase, number, symbol.';
+    }
+    return null;
+  }
 }
 
 class _ResetPasswordDialog extends ConsumerStatefulWidget {
@@ -1219,6 +1244,8 @@ String _extractApiErrorMessage(Object error, {required String fallback}) {
       if (nestedError is Map) {
         final nestedMessage = nestedError['message']?.toString().trim() ?? '';
         if (nestedMessage.isNotEmpty) return nestedMessage;
+      } else if (nestedError is String && nestedError.trim().isNotEmpty) {
+        return nestedError.trim();
       }
       final details = mapped['details'];
       if (details is List && details.isNotEmpty) {
